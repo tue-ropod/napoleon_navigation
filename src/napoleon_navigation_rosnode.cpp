@@ -40,20 +40,10 @@ double program_duration = 0, real_time_est = 0;
 //std::vector<geometry_msgs::PoseStamped> global_path;
 bool simple_goal_received = false;
 geometry_msgs::PoseStamped simple_goal;
-void simpleGoalCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_msg)
-{
-    ROS_INFO("new simple goal received");
-    simple_goal = *goal_msg;
-    simple_goal_received = true;
-}
+
 bool goal_received = false;
-napoleon_driving::Goal goal;
-void goalCallback(const napoleon_driving::Goal::ConstPtr& goal_msg)
-{
-    ROS_INFO("new goal received");
-    goal = *goal_msg;
-    goal_received = true;
-}
+
+
 
 bool cancel_nav = false;
 void cancelCallback(const std_msgs::Bool::ConstPtr& cancel_msg)
@@ -73,40 +63,40 @@ void loadAttachedCallback(const std_msgs::Bool::ConstPtr& load_attached_msg)
         reinit_planner_noload = true;
 }
 
-void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray) {
-    no_obs = obsarray->objects.size();
-    //ROS_INFO("%d obstacles detected", no_obs);
-    //string s;
-    // For the sake of proof of concept, the assumption is made that there will
-    // only be one obstacle to avoid or overtake.
-    // This scenario is not realistic and only serves as showcase.
-    // A counter will decide which obstacle to choose
-    // for (int q = 0; q < no_obs; ++q) {
-    //     s = obsarray->objects[q].id;
-    //     std::cout << s << std::endl;
-    //     current_obstacle = obsarray->objects[q];
-    // }
-    // For now just pick first obs if there is obs
-    // so we assume we only see the obstacle we want to see
-    if (no_obs > 0) {
-        // If no other obstacle is seen, this obstacle is kept
-        current_obstacle = obsarray->objects[0];
-        // ROS_INFO("Obs is %f wide and %f deep", current_obstacle.width, current_obstacle.depth);
-        // ROS_INFO("Obs x: %f, obs y: %f", current_obstacle.pose.position.x, current_obstacle.pose.position.y);
-        // ROS_INFO("Vx: %f, Vy %f", current_obstacle.vel.x, current_obstacle.vel.y);
-        quaternion_x = obsarray->objects[0].pose.orientation.x;
-        quaternion_y = obsarray->objects[0].pose.orientation.y;
-        quaternion_z = obsarray->objects[0].pose.orientation.z;
-        quaternion_w = obsarray->objects[0].pose.orientation.w;
-
-        // yaw (z-axis rotation)
-        siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
-        cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);  
-        obs_theta = atan2(siny_cosp, cosy_cosp);
-        obs_center_global.x = current_obstacle.pose.position.x;
-        obs_center_global.y = current_obstacle.pose.position.y;
-    }
-}
+//void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray) {
+//    no_obs = obsarray->objects.size();
+//    //ROS_INFO("%d obstacles detected", no_obs);
+//    //string s;
+//    // For the sake of proof of concept, the assumption is made that there will
+//    // only be one obstacle to avoid or overtake.
+//    // This scenario is not realistic and only serves as showcase.
+//    // A counter will decide which obstacle to choose
+//    // for (int q = 0; q < no_obs; ++q) {
+//    //     s = obsarray->objects[q].id;
+//    //     std::cout << s << std::endl;
+//    //     current_obstacle = obsarray->objects[q];
+//    // }
+//    // For now just pick first obs if there is obs
+//    // so we assume we only see the obstacle we want to see
+//    if (no_obs > 0) {
+//        // If no other obstacle is seen, this obstacle is kept
+//        current_obstacle = obsarray->objects[0];
+//        // ROS_INFO("Obs is %f wide and %f deep", current_obstacle.width, current_obstacle.depth);
+//        // ROS_INFO("Obs x: %f, obs y: %f", current_obstacle.pose.position.x, current_obstacle.pose.position.y);
+//        // ROS_INFO("Vx: %f, Vy %f", current_obstacle.vel.x, current_obstacle.vel.y);
+//        quaternion_x = obsarray->objects[0].pose.orientation.x;
+//        quaternion_y = obsarray->objects[0].pose.orientation.y;
+//        quaternion_z = obsarray->objects[0].pose.orientation.z;
+//        quaternion_w = obsarray->objects[0].pose.orientation.w;
+//
+//        // yaw (z-axis rotation)
+//        siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
+//        cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
+//        obs_theta = atan2(siny_cosp, cosy_cosp);
+//        obs_center_global.x = current_obstacle.pose.position.x;
+//        obs_center_global.y = current_obstacle.pose.position.y;
+//    }
+//}
 
 void getOdomVelCallback(const nav_msgs::Odometry::ConstPtr& odom_vel) 
 {
@@ -186,13 +176,12 @@ int main(int argc, char** argv)
     prediction_feasibility_check_period = 1.0/prediction_feasibility_check_rate;
     local_navigation_period = 1.0/local_navigation_rate;
     
-    ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
-    ros::Subscriber mn_sendGoal_pub_ = nroshndl.subscribe<napoleon_driving::Goal> ("/route_navigation/goal", 10, goalCallback);
+//    ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
     ros::Subscriber cancel_cmd_sub = nroshndl.subscribe<std_msgs::Bool>("/route_navigation/cancel", 10, cancelCallback);
     ros::Subscriber reinit_planner_sub = nroshndl.subscribe<std_msgs::Bool>("/route_navigation/set_load_attached", 10, loadAttachedCallback);
     ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, getAmclPoseCallback);
     ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, getOdomVelCallback);
-    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
+//    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     //ros::Publisher  reinit_localcostmap_footprint_sub = nroshndl.advertise<geometry_msgs::Polygon>("/napoleon_driving/local_costmap/footprint", 1);
     ros::Publisher goal_visualisation_pub_ = nroshndl.advertise<geometry_msgs::PoseStamped>("/napoleon_driving/goal_rviz", 1);
     ros::Publisher ropodmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/ropodpoints", 1);

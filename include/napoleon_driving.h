@@ -16,9 +16,6 @@
 
 // Global planner includes
 #include <maneuver_planner/maneuver_planner.h>
-#include <napoleon_driving/Goal.h>
-#include <napoleon_driving/Feedback.h>
-#include <napoleon_driving/Configuration.h>
 
 #include <nav_core/base_local_planner.h>
 #include <pluginlib/class_loader.h>
@@ -60,8 +57,6 @@ public:
     
     double footprintCost(double x_i, double y_i, double theta_i);
     bool   checkFootprintOnGlobalPlan(const std::vector<geometry_msgs::PoseStamped>& plan, const double& max_ahead_dist, double& dist_before_obs, int &index_closest_to_pose, int &index_before_obs);
-    bool gotoGoal(const geometry_msgs::PoseStamped& goal);
-    bool gotoGoal(const napoleon_driving::Goal& goal);
     void callLocalNavigationStateMachine();
     void callNapoleonDrivingStateMachine();
     
@@ -84,7 +79,6 @@ private:
    bool append_new_maneuver_;
    tf::TransformListener& tf_;   
    geometry_msgs::PoseStamped goal_;
-   napoleon_driving::Goal mn_goal_;
    int local_nav_state_, manv_nav_state_;
    int local_nav_next_state_, manv_nav_next_state_;      
    int local_plan_infeasible_, local_plan_infeasible_cnt_;

@@ -53,9 +53,7 @@ void NapoleonDriving::init()
     nh_.getParam(blp_loader_.getName(local_planner_str)+"/xy_goal_tolerance", xy_goal_tolerance_);
     nh_.getParam(blp_loader_.getName(local_planner_str)+"/yaw_goal_tolerance", yaw_goal_tolerance_);
         
-    
-    mn_goal_.conf.precise_goal = false;
-    mn_goal_.conf.use_line_planner = false;
+
     
     local_nav_state_ = LOC_NAV_IDLE;
     manv_nav_state_  = MANV_NAV_IDLE;
@@ -95,8 +93,6 @@ void NapoleonDriving::reinitPlanner(const geometry_msgs::Polygon& new_footprint)
     nh_.getParam(blp_loader_.getName(local_planner_str)+"/xy_goal_tolerance", xy_goal_tolerance_);
     nh_.getParam(blp_loader_.getName(local_planner_str)+"/yaw_goal_tolerance", yaw_goal_tolerance_);
     
-    mn_goal_.conf.precise_goal = false;
-    mn_goal_.conf.use_line_planner = false;    
 
 }
 
@@ -124,30 +120,6 @@ void NapoleonDriving::publishCustomVelocity(double v_ax, double theta_dot){
     vel_pub_.publish(cmd_vel);
 }
 
-
-bool NapoleonDriving:: gotoGoal(const geometry_msgs::PoseStamped& goal) 
-{    
-    goal_ = goal;
-    simple_goal_ = true;
-    append_new_maneuver_ = false;
-    mn_goal_.conf.precise_goal = false;
-    mn_goal_.conf.use_line_planner = true;
-    manv_nav_state_ = MANV_NAV_MAKE_INIT_PLAN;    
-    local_nav_state_ = LOC_NAV_IDLE;
-    return true; // TODO: implement
-
-};
-
-bool NapoleonDriving:: gotoGoal(const napoleon_driving::Goal& goal) 
-{        
-    mn_goal_ = goal;
-    simple_goal_ = false;
-    append_new_maneuver_ = true;
-    manv_nav_state_ = MANV_NAV_MAKE_INIT_PLAN;    
-    local_nav_state_ = LOC_NAV_IDLE;
-    return true; // TODO: implement
-
-};
 
 void NapoleonDriving:: cancel() 
 {    
@@ -296,7 +268,7 @@ void NapoleonDriving::callLocalNavigationStateMachine()
                 double dist_to_goal = hypot(diff_pose.getOrigin().getX(), diff_pose.getOrigin().getY());
                 double diff_yaw =  tf::getYaw(diff_pose.getRotation()); 
                 
-                if( mn_goal_.conf.precise_goal && ( std::abs(dist_to_goal) > xy_goal_tolerance_ || std::abs(diff_yaw) > yaw_goal_tolerance_ ) ) 
+                if( ( std::abs(dist_to_goal) > xy_goal_tolerance_ || std::abs(diff_yaw) > yaw_goal_tolerance_ ) )
                      manv_nav_state_  = MANV_NAV_MAKE_INIT_PLAN; // replan maneuver until tolerances are met
                 else
                     manv_nav_state_   = MANV_NAV_IDLE;
@@ -364,8 +336,8 @@ void NapoleonDriving::callNapoleonDrivingStateMachine()
             }
             else
             {
-                goal_ = mn_goal_.goal;
-                start = mn_goal_.start;
+//                goal_ = mn_goal_.goal; // fixme ?!?!?!?!
+//                start = mn_goal_.start;
             }
             if(append_new_maneuver_ && plan.size()>0)
             {
