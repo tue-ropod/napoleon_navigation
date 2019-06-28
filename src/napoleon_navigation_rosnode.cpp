@@ -129,6 +129,35 @@ void getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPt
     this_amcl_theta = atan2(siny_cosp, cosy_cosp);
 }
 
+
+void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ros::Publisher &pub) {
+    ROS_INFO_STREAM("showWallPoints (" << local_wallpoint_front.x  << ", " << local_wallpoint_front.y << "), ("
+    		<< local_wallpoint_rear.x << ", " << local_wallpoint_rear.y << ")");
+    visualization_msgs::Marker vis_wall;
+    vis_wall.header.frame_id = "/map";
+    vis_wall.header.stamp = ros::Time::now();
+    // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
+    vis_wall.action = visualization_msgs::Marker::ADD;
+    vis_wall.pose.orientation.w = 1.0;
+    vis_wall.id = 100;
+    vis_wall.color.a = 0.7;
+    vis_wall.color.g = 0.3;
+    vis_wall.color.b = 0.5;
+    vis_wall.type = visualization_msgs::Marker::POINTS;
+    vis_wall.scale.x = 0.3;
+    vis_wall.scale.y = 0.3;
+    geometry_msgs::Point wall_p;
+
+	vis_wall.points.clear();
+    wall_p.x =  local_wallpoint_front.x;
+    wall_p.y =  local_wallpoint_front.y;
+    vis_wall.points.push_back(wall_p);
+    wall_p.x =  local_wallpoint_rear.x;
+    wall_p.y =  local_wallpoint_rear.y;
+    vis_wall.points.push_back(wall_p);
+    pub.publish(vis_wall);
+}
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "route_navigation");
@@ -146,6 +175,8 @@ int main(int argc, char** argv)
     //         K(8.89,-1.3,"K"), L(11.62,0.42,"L"), M(12.66,4.85,"M"), N(10.93,7.76,"N"),
     //         P(6.32,8.78,"P"), Q(3.38,7.46,"Q"), R(2.25,2.76,"R"), S(4.05,-0.13,"S");
 
+#define BRSU_MAP
+#ifndef BRSU_MAP
     // Initialize environment (turn right)
     PointID A(11.12,-1.66,"A"), B(13.14,7.26,"B"), C(3.94,9.23,"C"), D(1.85,0.49,"D"),
             E(9.27,0.70,"E"), F(10.45,5.71,"F"), G(5.77,6.98,"G"), H(4.60,1.81,"H"),
@@ -157,10 +188,31 @@ int main(int argc, char** argv)
                 area45(A,L,E,K,45,"inter"), area47(M,B,N,F,47,"inter"), 
                 area49(P,C,Q,G,49,"inter"), area51(R,D,S,H,51,"inter");
 
+
     std::vector<PointID> pointlist {A, B, C, D, E, F, G, H, K, L, M, N, P, Q, R, S};
     std::vector<AreaQuadID> arealist {area44, area45, area46, area47, area48, area49, area50, area51};
 
     int assignment[] = {50,51,44,45,46,47,48,49,50};
+
+#else
+
+    PointID A(57.4835319519,31.4500312805,"A"), B(53.8165359497,31.448266983,"B"), C(53.1958885193,33.428894043, "C"), D(57.5956115723, 33.3022842407,"D"); //first corridor
+    PointID Corner(51.2283287048, 31.8158283234, "Corner");
+    /*PointID E(52.8088302612,33.5964889526,"E"),**/ PointID F(51.0468292236,33.5235900879,"F"), G(49.8914794922,39.4212722778,"G"), H(51.4209938049,40.0381965637,"H"); // second corridor
+
+    AreaQuadID areaC1(A,B,C,D,1,"hallway");
+    AreaQuadID junctionJ1(C,Corner,F,D,2,"inter");
+    AreaQuadID areaC2(D,F,G,H,3,"hallway");
+
+    std::vector<PointID> pointlist {A, B, C, D, /*E is a dublet; this does not work ,*/	 F, G, H, Corner};
+    std::vector<AreaQuadID> arealist {areaC1, junctionJ1, areaC2};
+
+
+//    int assignment[] = {1,2,3};
+    int assignment[] = {3,2,1}; // reverse
+
+#endif
+
     //int assignment[] = {50,49,48,47,46,45,44,51,50}; // reversed (right turns)
 
     nroshndl.param<double>("prediction_feasibility_check_rate", prediction_feasibility_check_rate, 3.0);    
@@ -189,6 +241,7 @@ int main(int argc, char** argv)
     // Visualize map nodes
     ros::Publisher mapmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/vmnodes", 10, true);
 
+
     visualization_msgs::Marker vis_points;
     vis_points.header.frame_id = "/map";
     vis_points.header.stamp = ros::Time::now();
@@ -213,6 +266,23 @@ int main(int argc, char** argv)
 
     mapmarker_pub.publish(vis_points);
     // End visualize map nodes
+
+    // Visualize wall the ropod is following
+    ros::Publisher wallmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/right_side_wall", 10, true);
+    visualization_msgs::Marker vis_wall;
+    vis_wall.header.frame_id = "/map";
+    vis_wall.header.stamp = ros::Time::now();
+    // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
+    vis_wall.action = visualization_msgs::Marker::ADD;
+    vis_wall.pose.orientation.w = 1.0;
+    vis_wall.id = 100;
+    vis_wall.color.a = 0.7;
+    vis_wall.color.g = 0.3;
+    vis_wall.color.b = 0.5;
+    vis_wall.type = visualization_msgs::Marker::POINTS;
+    vis_wall.scale.x = 0.3;
+    vis_wall.scale.y = 0.3;
+    geometry_msgs::Point wall_p;
 
     tf::TransformListener tf( ros::Duration(10) );
     mn::NapoleonDriving napoleon_driving(tf,nroshndl);
@@ -435,6 +505,8 @@ int main(int argc, char** argv)
             "obs depth" << "\t" << "obs vx" << "\t" << "obs vy" << "\t" << "des accel" <<"\n";
 
     std::clock_t start_loop;
+
+    simple_goal_received = true;
 
     while(nroshndl.ok() && !ropod_reached_target)
     {
@@ -951,6 +1023,16 @@ int main(int argc, char** argv)
                     }
                     local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
                     local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+                    showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
+//                    vis_wall.points.clear();
+//                    wall_p.x =  local_wallpoint_front.x;
+//                    wall_p.y =  local_wallpoint_front.y;
+//                    vis_wall.points.push_back(wall_p);
+//                    wall_p.x =  local_wallpoint_rear.x;
+//                    wall_p.y =  local_wallpoint_rear.y;
+//                    vis_wall.points.push_back(wall_p);
+//                    wallmarker_pub.publish(vis_wall);
+
                     pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
                 } else if (pred_state[j] == 2 || pred_state[j] == 7) {
                     // disp([num2str[j],' - Ropod is now in entry']);
@@ -964,6 +1046,7 @@ int main(int argc, char** argv)
                     }
                     local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
                     local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+                    showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
                     pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
                     v_des = V_ENTRY;
                 } else if (pred_state[j] == 3) {
@@ -979,6 +1062,7 @@ int main(int argc, char** argv)
                     
                     local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
                     local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+                    showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
                     pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
                     v_des = V_INTER_ACC;
                     
@@ -1013,6 +1097,7 @@ int main(int argc, char** argv)
 
                     local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
                     local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+                    showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
                     pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
                     v_des = V_INTER_DEC;
                     
@@ -1233,9 +1318,9 @@ int main(int argc, char** argv)
             pred_phi_des[0] << "\t" << pred_v_ropod[0] << "\t" << control_v << "\t"  <<  pred_xy_ropod[0].x << "\t" <<  pred_xy_ropod[0].y << "\t" << 
             pred_plan_theta[0] << "\t" << pred_x_obs[0] << "\t" << pred_y_obs[0] << "\t" << obs_theta << "\t" << current_obstacle.width << "\t" << 
             current_obstacle.depth << "\t" << current_obstacle.vel.x << "\t" << current_obstacle.vel.y << "\t" << pred_accel[1] << "\t" <<"\n";
-        //ROS_INFO("K: %d", k);
-        //ROS_INFO("V desired: %f", pred_v_ropod_plan[1]);
-        //ROS_INFO("Predphi[1]: %f / [2]: %f / [3]: %f / [4]: %f", pred_phi_des[1], pred_phi_des[2], pred_phi_des[3], pred_phi_des[4]);
+        ROS_INFO("K: %d", k);
+        ROS_INFO("V desired: %f", pred_v_ropod_plan[1]);
+        ROS_INFO("Predphi[1]: %f / [2]: %f / [3]: %f / [4]: %f", pred_phi_des[1], pred_phi_des[2], pred_phi_des[3], pred_phi_des[4]);
         
         // if (pred_v_ropod_plan[1] > 0) {
         //     v_ax = cos(pred_phi_des[1])*pred_v_ropod_plan[1];

@@ -27,7 +27,7 @@ void NapoleonDriving::init()
     costmap_ = costmap_ros_->getCostmap();
     
     world_model_ = new base_local_planner::CostmapModel(*costmap_);
-    maneuver_planner = maneuver_planner::ManeuverPlanner("maneuver_planner",costmap_ros_);
+//    maneuver_planner = maneuver_planner::ManeuverPlanner("maneuver_planner",costmap_ros_);
 //     try{
 //         local_planner.initialize("TrajectoryPlannerROS", &tf_, local_costmap_ros);
 //     } catch(...) {
@@ -75,7 +75,7 @@ void NapoleonDriving::reinitPlanner(const geometry_msgs::Polygon& new_footprint)
     costmap_ros_->setUnpaddedRobotFootprintPolygon(new_footprint);   
     costmap_ros_->resetLayers();
     // initialize maneuver planner
-    maneuver_planner = maneuver_planner::ManeuverPlanner("maneuver_planner",costmap_ros_);
+//    maneuver_planner = maneuver_planner::ManeuverPlanner("maneuver_planner",costmap_ros_);
     // Initializelocal planner
     std::string local_planner_str;
 //     nh_.param("base_local_planner", local_planner_str, std::string("base_local_planner/TrajectoryPlannerROS"));
@@ -313,127 +313,127 @@ bool NapoleonDriving::getRobotPose(tf::Stamped<tf::Pose> & global_pose)
     return true;
 };
 
-void NapoleonDriving::callNapoleonDrivingStateMachine() 
-{
-    double dist_before_obs;  
-    int index_closest_to_pose;
-    int index_before_obs;
-    std::vector<geometry_msgs::PoseStamped> old_plan;  
-    bool is_plan_free;
-    
-    tf::Stamped<tf::Pose> global_pose;
-    geometry_msgs::PoseStamped start;    
-    
-    switch(manv_nav_state_){
-        case MANV_NAV_IDLE:
-            break;          
-        case MANV_NAV_MAKE_INIT_PLAN:                            
-            if( simple_goal_ )
-            {
-                if( !getRobotPose(global_pose) )
-                    break;            
-                tf::poseStampedTFToMsg(global_pose, start);            
-            }
-            else
-            {
-//                goal_ = mn_goal_.goal; // fixme ?!?!?!?!
-//                start = mn_goal_.start;
-            }
-            if(append_new_maneuver_ && plan.size()>0)
-            {
-                // Find first current position on plan and then move certain disctance ahead to make the plan.
-                is_plan_free = checkFootprintOnGlobalPlan(plan, MAX_AHEAD_DIST_BEFORE_REPLANNING, dist_before_obs, index_closest_to_pose, index_before_obs);
-                old_plan.clear();
-                old_plan.insert(old_plan.begin(), plan.begin()+index_closest_to_pose, plan.begin()+index_before_obs);
-                start.pose.position = plan[index_before_obs].pose.position;
-                goal_free_ = maneuver_planner.makePlan(start,goal_, plan, dist_before_obs);
-                plan.insert(plan.begin(),old_plan.begin(), old_plan.end());
-            }
-            else
-            {
-                goal_free_ = maneuver_planner.makePlan(start,goal_, plan, dist_before_obs);            
-            }
-            ROS_INFO("dist_before_obs: %f", dist_before_obs);
-            if( dist_before_obs > MAX_AHEAD_DIST_BEFORE_REPLANNING || goal_free_ == true)
-            {
-                if( plan.size()>0 )
-                {
-                    simple_goal_ = true; // the structured goal is only the first time is received and succesful                
-                    local_nav_state_ = LOC_NAV_SET_PLAN;
-                    manv_nav_state_  = MANV_NAV_BUSY;
-                }
-                else
-                {
-                    ROS_ERROR("Empty plan");
-                }                    
-            }
-            else
-            {
-                ROS_WARN("napoleon_driving cannot make a plan due to obstacles, inform and keep trying");
-                publishZeroVelocity();  
-              //  local_nav_state_ = LOC_NAV_IDLE;
-                // manv_nav_state_   = MANV_NAV_IDLE; 
-            }
-            
-            break;
-         case MANV_NAV_BUSY:
-             is_plan_free = checkFootprintOnGlobalPlan(plan, MAX_AHEAD_DIST_BEFORE_REPLANNING, dist_before_obs, index_closest_to_pose, index_before_obs);
-             if( !is_plan_free)
-             {
-                ROS_INFO("Obstacle in front at %.2f m. Try to replan",dist_before_obs);
-                // publishZeroVelocity();  // TODO: Do this smarter by decreasing speed while computing new path    
-                if( !getRobotPose(global_pose) )
-                    break;
-                
-                tf::poseStampedTFToMsg(global_pose, start);              
-                goal_free_ = maneuver_planner.makePlan(start,goal_, plan);
-                if(goal_free_)
-                {
-                    if( plan.size()>0 )
-                    {
-                        local_nav_state_ = LOC_NAV_SET_PLAN;
-                        manv_nav_state_  = MANV_NAV_BUSY;                        
-                    }
-                    else
-                    {
-                        ROS_ERROR("Empty plan");
-                    }
-                }
-                else
-                {
-                    ROS_INFO("No replan possible. Stop, inform and continue trying");
-                    publishZeroVelocity();        
-                   // local_nav_state_ = LOC_NAV_IDLE;
-                    manv_nav_state_   = MANV_NAV_MAKE_INIT_PLAN;
-                }                                 
-             }
-             else if (goal_free_ == false && dist_before_obs < (MAX_AHEAD_DIST_BEFORE_REPLANNING+REPLANNING_HYSTERESIS_DISTANCE)) // When the goal was not free and we are close to end of temporary plan, replan
-             {
-                if( !getRobotPose(global_pose) )
-                    break;
-                
-                tf::poseStampedTFToMsg(global_pose, start);            
-                goal_free_ = maneuver_planner.makePlan(start,goal_, plan, dist_before_obs);            
-                if( goal_free_ || dist_before_obs > MAX_AHEAD_DIST_BEFORE_REPLANNING )
-                {
-                    if( plan.size()>0 )
-                    {
-                        local_nav_state_ = LOC_NAV_SET_PLAN;
-                        manv_nav_state_  = MANV_NAV_BUSY;
-                    }
-                    else
-                    {
-                        ROS_ERROR("Empty plan");
-                    }                    
-                }              
-             }
-             
-            break;
-        default:
-            break;
-    }    
-
-};
+//void NapoleonDriving::callNapoleonDrivingStateMachine()
+//{
+//    double dist_before_obs;
+//    int index_closest_to_pose;
+//    int index_before_obs;
+//    std::vector<geometry_msgs::PoseStamped> old_plan;
+//    bool is_plan_free;
+//
+//    tf::Stamped<tf::Pose> global_pose;
+//    geometry_msgs::PoseStamped start;
+//
+//    switch(manv_nav_state_){
+//        case MANV_NAV_IDLE:
+//            break;
+//        case MANV_NAV_MAKE_INIT_PLAN:
+//            if( simple_goal_ )
+//            {
+//                if( !getRobotPose(global_pose) )
+//                    break;
+//                tf::poseStampedTFToMsg(global_pose, start);
+//            }
+//            else
+//            {
+////                goal_ = mn_goal_.goal; // fixme ?!?!?!?!
+////                start = mn_goal_.start;
+//            }
+//            if(append_new_maneuver_ && plan.size()>0)
+//            {
+//                // Find first current position on plan and then move certain disctance ahead to make the plan.
+//                is_plan_free = checkFootprintOnGlobalPlan(plan, MAX_AHEAD_DIST_BEFORE_REPLANNING, dist_before_obs, index_closest_to_pose, index_before_obs);
+//                old_plan.clear();
+//                old_plan.insert(old_plan.begin(), plan.begin()+index_closest_to_pose, plan.begin()+index_before_obs);
+//                start.pose.position = plan[index_before_obs].pose.position;
+//                goal_free_ = maneuver_planner.makePlan(start,goal_, plan, dist_before_obs);
+//                plan.insert(plan.begin(),old_plan.begin(), old_plan.end());
+//            }
+//            else
+//            {
+//                goal_free_ = maneuver_planner.makePlan(start,goal_, plan, dist_before_obs);
+//            }
+//            ROS_INFO("dist_before_obs: %f", dist_before_obs);
+//            if( dist_before_obs > MAX_AHEAD_DIST_BEFORE_REPLANNING || goal_free_ == true)
+//            {
+//                if( plan.size()>0 )
+//                {
+//                    simple_goal_ = true; // the structured goal is only the first time is received and succesful
+//                    local_nav_state_ = LOC_NAV_SET_PLAN;
+//                    manv_nav_state_  = MANV_NAV_BUSY;
+//                }
+//                else
+//                {
+//                    ROS_ERROR("Empty plan");
+//                }
+//            }
+//            else
+//            {
+//                ROS_WARN("napoleon_driving cannot make a plan due to obstacles, inform and keep trying");
+//                publishZeroVelocity();
+//              //  local_nav_state_ = LOC_NAV_IDLE;
+//                // manv_nav_state_   = MANV_NAV_IDLE;
+//            }
+//
+//            break;
+//         case MANV_NAV_BUSY:
+//             is_plan_free = checkFootprintOnGlobalPlan(plan, MAX_AHEAD_DIST_BEFORE_REPLANNING, dist_before_obs, index_closest_to_pose, index_before_obs);
+//             if( !is_plan_free)
+//             {
+//                ROS_INFO("Obstacle in front at %.2f m. Try to replan",dist_before_obs);
+//                // publishZeroVelocity();  // TODO: Do this smarter by decreasing speed while computing new path
+//                if( !getRobotPose(global_pose) )
+//                    break;
+//
+//                tf::poseStampedTFToMsg(global_pose, start);
+//                goal_free_ = maneuver_planner.makePlan(start,goal_, plan);
+//                if(goal_free_)
+//                {
+//                    if( plan.size()>0 )
+//                    {
+//                        local_nav_state_ = LOC_NAV_SET_PLAN;
+//                        manv_nav_state_  = MANV_NAV_BUSY;
+//                    }
+//                    else
+//                    {
+//                        ROS_ERROR("Empty plan");
+//                    }
+//                }
+//                else
+//                {
+//                    ROS_INFO("No replan possible. Stop, inform and continue trying");
+//                    publishZeroVelocity();
+//                   // local_nav_state_ = LOC_NAV_IDLE;
+//                    manv_nav_state_   = MANV_NAV_MAKE_INIT_PLAN;
+//                }
+//             }
+//             else if (goal_free_ == false && dist_before_obs < (MAX_AHEAD_DIST_BEFORE_REPLANNING+REPLANNING_HYSTERESIS_DISTANCE)) // When the goal was not free and we are close to end of temporary plan, replan
+//             {
+//                if( !getRobotPose(global_pose) )
+//                    break;
+//
+//                tf::poseStampedTFToMsg(global_pose, start);
+//                goal_free_ = maneuver_planner.makePlan(start,goal_, plan, dist_before_obs);
+//                if( goal_free_ || dist_before_obs > MAX_AHEAD_DIST_BEFORE_REPLANNING )
+//                {
+//                    if( plan.size()>0 )
+//                    {
+//                        local_nav_state_ = LOC_NAV_SET_PLAN;
+//                        manv_nav_state_  = MANV_NAV_BUSY;
+//                    }
+//                    else
+//                    {
+//                        ROS_ERROR("Empty plan");
+//                    }
+//                }
+//             }
+//
+//            break;
+//        default:
+//            break;
+//    }
+//
+//};
 
 
  
