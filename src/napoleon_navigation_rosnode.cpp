@@ -205,9 +205,13 @@ int main(int argc, char** argv)
 //    AreaQuadID junctionJ1(C,Corner,F,D,2,"inter");
 //    AreaQuadID areaC2(D,F,G,H,3,"hallway");
 
-    AreaQuadID areaC1(B,C,D,A,1,"hallway");
-    AreaQuadID junctionJ1(C,Corner,F,D,2,"inter");
-    AreaQuadID areaC2(F,G,H,D,3,"hallway");
+//    AreaQuadID areaC1(B,C,D,A,1,"hallway");
+//    AreaQuadID junctionJ1(C,Corner,F,D,2,"inter");
+//    AreaQuadID areaC2(F,G,H,D,3,"hallway");
+
+        AreaQuadID areaC1(D,C,B,A,1,"hallway");
+        AreaQuadID junctionJ1(C,F, Corner,B,2,"inter");
+        AreaQuadID areaC2(C,H,G,F,3,"hallway");
 
     std::vector<PointID> pointlist {A, B, C, D, /*E is a dublet; this does not work ,*/	 F, G, H, Corner};
     std::vector<AreaQuadID> arealist {areaC1, junctionJ1, areaC2};
