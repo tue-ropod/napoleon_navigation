@@ -134,7 +134,7 @@ void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ro
     ROS_INFO_STREAM("showWallPoints (" << local_wallpoint_front.x  << ", " << local_wallpoint_front.y << "), ("
     		<< local_wallpoint_rear.x << ", " << local_wallpoint_rear.y << ")");
     visualization_msgs::Marker vis_wall;
-    vis_wall.header.frame_id = "/map";
+    vis_wall.header.frame_id = "ropod/base_link";
     vis_wall.header.stamp = ros::Time::now();
     // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
     vis_wall.action = visualization_msgs::Marker::ADD;
@@ -193,6 +193,7 @@ int main(int argc, char** argv)
     std::vector<AreaQuadID> arealist {area44, area45, area46, area47, area48, area49, area50, area51};
 
     int assignment[] = {50,51,44,45,46,47,48,49,50};
+    //    int assignment[] = {50,49,48,47,46,45,44,51,50}; // reversed (right turns)
 
 #else
 
@@ -200,20 +201,24 @@ int main(int argc, char** argv)
     PointID Corner(51.2283287048, 31.8158283234, "Corner");
     /*PointID E(52.8088302612,33.5964889526,"E"),**/ PointID F(51.0468292236,33.5235900879,"F"), G(49.8914794922,39.4212722778,"G"), H(51.4209938049,40.0381965637,"H"); // second corridor
 
-    AreaQuadID areaC1(A,B,C,D,1,"hallway");
+//    AreaQuadID areaC1(A,B,C,D,1,"hallway");
+//    AreaQuadID junctionJ1(C,Corner,F,D,2,"inter");
+//    AreaQuadID areaC2(D,F,G,H,3,"hallway");
+
+    AreaQuadID areaC1(B,C,D,A,1,"hallway");
     AreaQuadID junctionJ1(C,Corner,F,D,2,"inter");
-    AreaQuadID areaC2(D,F,G,H,3,"hallway");
+    AreaQuadID areaC2(F,G,G,D,3,"hallway");
 
     std::vector<PointID> pointlist {A, B, C, D, /*E is a dublet; this does not work ,*/	 F, G, H, Corner};
     std::vector<AreaQuadID> arealist {areaC1, junctionJ1, areaC2};
 
 
-//    int assignment[] = {1,2,3};
-    int assignment[] = {3,2,1}; // reverse
+    int assignment[] = {1,2,3};
+//    int assignment[] = {3,2,1}; // reverse
 
 #endif
 
-    //int assignment[] = {50,49,48,47,46,45,44,51,50}; // reversed (right turns)
+
 
     nroshndl.param<double>("prediction_feasibility_check_rate", prediction_feasibility_check_rate, 3.0);    
     nroshndl.param<double>("local_navigation_rate", local_navigation_rate, 10.0); // local_navigation_rate>prediction_feasibility_check_rate    
@@ -1024,14 +1029,6 @@ int main(int argc, char** argv)
                     local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
                     local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
                     showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
-//                    vis_wall.points.clear();
-//                    wall_p.x =  local_wallpoint_front.x;
-//                    wall_p.y =  local_wallpoint_front.y;
-//                    vis_wall.points.push_back(wall_p);
-//                    wall_p.x =  local_wallpoint_rear.x;
-//                    wall_p.y =  local_wallpoint_rear.y;
-//                    vis_wall.points.push_back(wall_p);
-//                    wallmarker_pub.publish(vis_wall);
 
                     pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
                 } else if (pred_state[j] == 2 || pred_state[j] == 7) {
