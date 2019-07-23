@@ -192,9 +192,9 @@ int main(int argc, char** argv)
     std::vector<PointID> pointlist {A, B, C, D, E, F, G, H, K, L, M, N, P, Q, R, S};
     std::vector<AreaQuadID> arealist {area44, area45, area46, area47, area48, area49, area50, area51};
 
-   // int assignment[] = {50,51,44,45,46,47,48,49,50};
+    int assignment[] = {50,51,44,45,46,47,48,49,50};
       //int assignment[] = {50,49,48,47,46,45,44,51,50}; // reversed (right turns)
-        int assignment[] = {48,47,46,45,44,51,50,49,48}; // reversed (right turns)
+     //   int assignment[] = {48,47,46,45,44,51,50,49,48}; // reversed (right turns)
 
 #else
 
@@ -744,11 +744,11 @@ int main(int argc, char** argv)
                         // position of the intersection
                         pred_state[j] = 3;
                         
-                    } else if (cur_pivot_local.x <= -D_AX/2 && pred_state[prevstate] == 3) {
+                    } else if (cur_pivot_local.x <= SIZE_FRONT_RAX/2 + START_STEERING_EARLY && pred_state[prevstate] == 3) {
                         // If middle of vehicle is on y height of pivot
                         pred_state[j] = 4;
-                        
-                    } else if (cur_pivot_local.x <= -D_AX+START_STEERING_EARLY && pred_state[prevstate] == 4) {
+                                                
+                    } else if (cur_pivot_local.x <= -ROPOD_TO_AX+START_STEERING_EARLY && pred_state[prevstate] == 4) {
                         // If rearaxle is aligned with the pivot minus sse
                         pred_state[j] = 5;
                         
