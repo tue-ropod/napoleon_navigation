@@ -5,26 +5,33 @@
 #include <math.h>
 using namespace std;
 
+// #define MOBIDIK
+
 // Define environment
 // static constexpr double TUBE_WIDTH = 2.45;
 
 // Optimization / performance parameters
-static constexpr double FEELER_SIZE = 0.5;          // Size of feeler [m] - used to predict where ropod goes suppose it would go straight
-static constexpr double FEELER_SIZE_STEERING = 0.3; // Size of feeler when steering [m]
-static constexpr double ENV_TCTW_SIZE = 0.05;       // Too close too wall area size [m]
-static constexpr double ENV_TRNS_SIZE = 0.20;       // Transition area size [m]
+static constexpr double FEELER_SIZE = 0.5;          // d_f: 0.5 Size of feeler [m] - used to predict where ropod goes suppose it would go straight
+static constexpr double FEELER_SIZE_STEERING = 2.0; // df_c: 0.3 Size of feeler when steering [m]
+static constexpr double ENV_TCTW_SIZE = 0.05;       // d_cor 0.05 Too close too wall area size [m]
+static constexpr double ENV_TRNS_SIZE = 0.20;       // d_trns 0.2 Transition area size [m]
 static constexpr double CARROT_LENGTH = 1.50;       // How far ahead point lies where ropod steers towards when too close to a wall [m]
-static constexpr double ENV_TRNS_SIZE_CORNERING = 0.35; // Transition area size while cornering [m]
+static constexpr double ENV_TRNS_SIZE_CORNERING = 0.35; // d_trnsc 0.35 Transition area size while cornering [m]
 
 // Vehicle size & size of vectors
 static constexpr double SIZE_SIDE = 0.72 / 2;      // How wide vehicle is from center [m]
 static constexpr double SIZE_FRONT_ROPOD = 0.325;  // How long ropod is from center [m]
 static constexpr double ROPOD_LENGTH = 0.65;	   // Ropod length [m]
-static constexpr double D_AX = 1.045;              // Length from rear axle to ropod center [m] (with load)
-//static constexpr double D_AX = 0.05;              // Length from rear axle to ropod center [m] (without load) NOTE: rear axle means center of rotation; 0 causes NaN
+#ifdef MOBIDIK
+	static constexpr double D_AX = 1.045;              // Length from rear axle to ropod center [m] (with load)
+	static constexpr double SIZE_REAR = 0.10;           // How far vehicle extends behind rear axle (with load)
+	static constexpr double SIZE_FRONT_RAX = D_AX+ROPOD_LENGTH/2;// How far vehicle extends in front of rear axle (with load)
+#else
+    static constexpr double D_AX = ROPOD_LENGTH/2;              // Length from rear axle to ropod center [m] (without load) NOTE: rear axle means center of rotation; 0 causes NaN
+    static constexpr double SIZE_REAR = ROPOD_LENGTH/2;           // How far vehicle extends behind rear axle (without load)
+    static constexpr double SIZE_FRONT_RAX = ROPOD_LENGTH/2;// How far vehicle extends in front of rear axle (without load)
+#endif
 static constexpr double FOLLOW_WALL_DIST_TURNING = sqrt(ROPOD_LENGTH*ROPOD_LENGTH/2)+ENV_TCTW_SIZE+ENV_TRNS_SIZE;
-static constexpr double SIZE_REAR = 0.10;           // How far vehicle extends behind rear axle
-static constexpr double SIZE_FRONT_RAX = D_AX+0.325;// How far vehicle extends in front of rear axle
 
 // Resolutions
 static constexpr int F_PLAN = 10;    // Frequency of planning the motion [Hz]
@@ -41,13 +48,13 @@ static constexpr double T_PRED_OBS_COLLISION = 04;  // Predict for n seconds if 
 static constexpr double T_MAX_PRED = 20;            // Predict for n seconds max [s]
 static constexpr double DELTA_DOT_LIMIT = M_PI/2;   // Max steering rate per second [rad/s]
 static constexpr double CUTOFF_FREQ = 1.0;          // Cutoff frequency for low pass filter to simulate steering delay [Hz]
-static constexpr double V_CRUISING = 0.3;//1.4;           // Max velocity [m/s] while cruising
-static constexpr double V_INTER_TURNING = 0.2;//0.5;      // Max velocity [m/s] when taking a turn
-static constexpr double V_INTER_ACC = 0.2;//0.7;          // Max velocity [m/s] when driving straight at intersection
-static constexpr double V_INTER_DEC = 0.2;//0.3;          // Max velocity [m/s] when driving straight at intersection
-static constexpr double V_ENTRY = 0.2;//0.5;              // Max velocity [m/s] when at entry of intersection
+static constexpr double V_CRUISING = 1.0;//1.4;           // Max velocity [m/s] while cruising
+static constexpr double V_INTER_TURNING = 0.5;//0.5;      // Max velocity [m/s] when taking a turn
+static constexpr double V_INTER_ACC = 0.7;//0.7;          // Max velocity [m/s] when driving straight at intersection
+static constexpr double V_INTER_DEC = 0.3;//0.3;          // Max velocity [m/s] when driving straight at intersection
+static constexpr double V_ENTRY = 0.4;//0.5;              // Max velocity [m/s] when at entry of intersection
 static constexpr double V_STEERSATURATION = 0.2;    // Velocity during steering saturation [m/s]
-static constexpr double V_OVERTAKE = 0.3;//0.5;           // Velocity during overtaking [m/s]
+static constexpr double V_OVERTAKE = 0.5;//0.5;           // Velocity during overtaking [m/s]
 vector<double> V_SCALE_OPTIONS = {1.0, 0.67, 0.33, 0.0};  // Options to scale velocity with
 int MAX_K = V_SCALE_OPTIONS.size();                 // Static not happy when populated this way, so nonstatic definition
 static constexpr double ENV_COR_WIDTH = 3.00;       

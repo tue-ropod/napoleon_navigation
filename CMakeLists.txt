@@ -18,8 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   maneuver_planner
   pluginlib
   nav_core
-  ed
-  ed_gui_server  
+  ed  
 )
 
 ## System dependencies are found with CMake's conventions

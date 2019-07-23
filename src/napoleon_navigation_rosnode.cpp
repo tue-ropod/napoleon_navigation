@@ -175,7 +175,7 @@ int main(int argc, char** argv)
     //         K(8.89,-1.3,"K"), L(11.62,0.42,"L"), M(12.66,4.85,"M"), N(10.93,7.76,"N"),
     //         P(6.32,8.78,"P"), Q(3.38,7.46,"Q"), R(2.25,2.76,"R"), S(4.05,-0.13,"S");
 
-#define BRSU_MAP
+//#define BRSU_MAP
 #ifndef BRSU_MAP
     // Initialize environment (turn right)
     PointID A(11.12,-1.66,"A"), B(13.14,7.26,"B"), C(3.94,9.23,"C"), D(1.85,0.49,"D"),
@@ -192,8 +192,9 @@ int main(int argc, char** argv)
     std::vector<PointID> pointlist {A, B, C, D, E, F, G, H, K, L, M, N, P, Q, R, S};
     std::vector<AreaQuadID> arealist {area44, area45, area46, area47, area48, area49, area50, area51};
 
-    int assignment[] = {50,51,44,45,46,47,48,49,50};
-    //    int assignment[] = {50,49,48,47,46,45,44,51,50}; // reversed (right turns)
+   // int assignment[] = {50,51,44,45,46,47,48,49,50};
+      //int assignment[] = {50,49,48,47,46,45,44,51,50}; // reversed (right turns)
+        int assignment[] = {48,47,46,45,44,51,50,49,48}; // reversed (right turns)
 
 #else
 
@@ -217,7 +218,7 @@ int main(int argc, char** argv)
     std::vector<AreaQuadID> arealist {areaC1, junctionJ1, areaC2};
 
 
-    int assignment[] = {1,2,3};
+ //   int assignment[] = {1,2,3};
 //    int assignment[] = {3,2,1}; // reverse
 
 #endif
