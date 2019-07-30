@@ -508,7 +508,7 @@ int main(int argc, char** argv)
 
     std::ofstream myfile;
     //myfile.open ("/simdata/ropod_" + get_date() +".txt");
-    myfile.open ("/home/melvin/simdata/ropod_" + get_date() +".txt");
+    myfile.open ("/home/cesar/Documents/simdata/ropod_" + get_date() +".txt");
     myfile << "time" << "\t" << "tictoc" << "\t" << "state" << "\t" << "task counter" << "\t" << "tube width" << "\t" << 
             "phi des" << "\t" << "v ropod odom" << "\t"<< "v ropod cmd" << "\t" << "x ropod" << "\t" << "y ropod" << "\t" << 
             "theta ropod" << "\t" "x obs" << "\t" << "y obs" << "\t" << "theta obs" << "\t" << "obs width" << "\t" << 
@@ -703,6 +703,7 @@ int main(int argc, char** argv)
                         current_hallway = getAreaByID(area1, arealist);
                         next_hallway = getAreaByID(area3, arealist);
                     }
+                    // TODO: The contain function should consider not only the center but all corners
                     if (current_hallway.contains(obs_center_global)) {
                         consider_overtaking_area1 = true;
                         // This strategy only allows to overtake 1 obstacle
@@ -1218,7 +1219,7 @@ int main(int argc, char** argv)
                 pred_ropod_dil_lt.y = pred_y_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]+M_PI/2);
                 pred_ropod_dil_rt.x = pred_x_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]-M_PI/2);
                 pred_ropod_dil_rt.y = pred_y_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]-M_PI/2);
-
+				
                 // Obstacle detection (crappy implementation in C++)
                 if (t_pred[m] < T_PRED_OBS_COLLISION && no_obs > 0) {
                     obslt.x = pred_x_obs[j]+current_obstacle.width/2*cos(obs_theta)-current_obstacle.depth/2*sin(obs_theta);
@@ -1233,6 +1234,13 @@ int main(int argc, char** argv)
                 } else {
                     pred_ropod_colliding_obs[j] = false;
                 }
+                
+				// TODO: Add here also check with raw laser (for instance of non-associated objects) data or costmap 
+				if (t_pred[m] < T_PRED_OBS_COLLISION ) // TODO: Condition should be smarter. For instance based on time/distance to stop? . Also the robot should stop at a minimum distance in front. for now we based it on time
+				{
+					// Here check for collision with laser data
+				}
+				
 
                 vis_points.id = 1;
                 vis_points.color.r = 0.0;
