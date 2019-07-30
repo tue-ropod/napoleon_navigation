@@ -1308,6 +1308,8 @@ int main(int argc, char** argv)
                 pred_ropod_dil_rt.x = pred_x_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]-M_PI/2);
                 pred_ropod_dil_rt.y = pred_y_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]-M_PI/2);
 
+                ropod_colliding_obs = false;
+                pred_ropod_colliding_obs[j] = false;
                 // Obstacle detection (crappy implementation in C++)
                 if (t_pred[m] < T_PRED_OBS_COLLISION && no_obs > 0) {
                     obslt.x = pred_x_obs[j]+current_obstacle.width/2*cos(obs_theta)-current_obstacle.depth/2*sin(obs_theta);
@@ -1319,8 +1321,7 @@ int main(int argc, char** argv)
                     obsrb.x = pred_x_obs[j]-current_obstacle.width/2*cos(obs_theta)+current_obstacle.depth/2*sin(obs_theta);
                     obsrb.y = pred_y_obs[j]-current_obstacle.width/2*sin(obs_theta)-current_obstacle.depth/2*cos(obs_theta);
                     pred_ropod_colliding_obs[j] = do_shapes_overlap(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt, obsrt, obslt, obslb, obsrb);
-                } else {
-                    pred_ropod_colliding_obs[j] = false;
+                    ropod_colliding_obs = pred_ropod_colliding_obs[j];
                 }
 
                 // TODO: Add here also check with raw laser (for instance of non-associated objects) data or costmap
@@ -1333,12 +1334,15 @@ int main(int argc, char** argv)
                         AreaQuad robot_footprint(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt);
                         Point laser_point(laser_meas_points[iScan].x, laser_meas_points[iScan].y);
                         pred_ropod_colliding_obs[j] = robot_footprint.contains(laser_point);                        
-                        if(pred_ropod_colliding_obs[j])
+                        ropod_colliding_obs = pred_ropod_colliding_obs[j];
+                        if(ropod_colliding_obs)
                             break;
                     }
                 }
 
-
+                if(ropod_colliding_obs)
+                    break;
+                
                 vis_points.id = 1;
                 vis_points.color.r = 0.0;
                 vis_points.color.g = 0.0;
@@ -1390,15 +1394,15 @@ int main(int argc, char** argv)
 
             // Line 892 - 912 (alter obstacle and wall collision booleans)
             // Set collision to false
-            ropod_colliding_obs = false;
+            //ropod_colliding_obs = false;
             // If collision predicted at any step, set to true
             //if (no_obs > 0) {
-                for (int qobs = 0; qobs < size_p; ++qobs) {
-                    if (pred_ropod_colliding_obs[qobs] == true) {
-                        //ROS_INFO("Collision predicted");
-                        ropod_colliding_obs = true;
-                    }
-                }
+                //for (int qobs = 0; qobs < size_p; ++qobs) {
+                    //if (pred_ropod_colliding_obs[qobs] == true) {
+                        ////ROS_INFO("Collision predicted");
+                        //ropod_colliding_obs = true;
+                    //}
+                //}
             //}
 
             ropod_colliding_wall = false;
