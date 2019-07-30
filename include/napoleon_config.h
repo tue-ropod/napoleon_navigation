@@ -21,17 +21,17 @@ static constexpr double ENV_TRNS_SIZE_CORNERING = 0.35; // d_trnsc 0.35 Transiti
 // Vehicle size & size of vectors
 static constexpr double SIZE_SIDE = 0.72 / 2;      // How wide vehicle is from center [m]
 static constexpr double SIZE_FRONT_ROPOD = 0.325;  // How long ropod is from center [m]
-static constexpr double ROPOD_LENGTH = 0.65;	   // Ropod length [m]
+static constexpr double ROPOD_LENGTH = 0.65;       // Ropod length [m]
 #ifdef MOBIDIK
-	static constexpr double D_AX = 1.045;          // Length from rear axle to front steering point [m] (with load)
-	static constexpr double ROPOD_TO_AX = D_AX;    // Length from rear axle to ropod center [m] (with load)
-	static constexpr double SIZE_REAR = 0.10;      // How far vehicle extends behind rear axle (with load)
+    static constexpr double D_AX = 1.045;          // Length from rear axle to front steering point [m] (with load)
+    static constexpr double ROPOD_TO_AX = D_AX;    // Length from rear axle to ropod center [m] (with load)
+    static constexpr double SIZE_REAR = 0.10;      // How far vehicle extends behind rear axle (with load)
 #else
     static constexpr double D_AX = ROPOD_LENGTH/2; // Length from rear axle to front steering point  [m] (without load) NOTE: rear axle means center of rotation; Because of the bycicle model, 0 causes NaN.
-    static constexpr double ROPOD_TO_AX = 0;       // Length from rear axle to ropod center [m] (without load). 
+    static constexpr double ROPOD_TO_AX = 0;       // Length from rear axle to ropod center [m] (without load).
     static constexpr double SIZE_REAR = ROPOD_LENGTH/2; // How far vehicle extends behind rear axle (without load)
 #endif
-static constexpr double SIZE_FRONT_RAX = (ROPOD_TO_AX + ROPOD_LENGTH/2); // How far vehicle extends in front of rear axle 
+static constexpr double SIZE_FRONT_RAX = (ROPOD_TO_AX + ROPOD_LENGTH/2); // How far vehicle extends in front of rear axle
 static constexpr double FOLLOW_WALL_DIST_TURNING = sqrt(ROPOD_LENGTH*ROPOD_LENGTH/2)+ENV_TCTW_SIZE+ENV_TRNS_SIZE;
 
 // Resolutions
@@ -58,8 +58,8 @@ static constexpr double V_STEERSATURATION = 0.2;    // Velocity during steering 
 static constexpr double V_OVERTAKE = 0.5;//0.5;           // Velocity during overtaking [m/s]
 vector<double> V_SCALE_OPTIONS = {1.0, 0.67, 0.33, 0.0};  // Options to scale velocity with
 int MAX_K = V_SCALE_OPTIONS.size();                 // Static not happy when populated this way, so nonstatic definition
-static constexpr double ENV_COR_WIDTH = 3.00;       
-// Fictional hallway width. Ropod will work with lanes of this/2 [m], starting from the wall. 
+static constexpr double ENV_COR_WIDTH = 3.00;
+// Fictional hallway width. Ropod will work with lanes of this/2 [m], starting from the wall.
 // No matter what the real hallway size is. This way it will stay close to the right wall, but not too agressively.
 static constexpr double TUBE_WIDTH_C = ENV_COR_WIDTH/2; // Default tube width [m]
 static constexpr double REACHEDTARGETTRESHOLD = 1.0;  // When x [m] removed from center of last hallway, program finished

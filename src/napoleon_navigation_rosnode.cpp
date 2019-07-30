@@ -26,7 +26,7 @@
 #include <nav_msgs/Path.h>
 
 #include <std_msgs/Bool.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 
 double ropod_x = 0, ropod_y = 0, ropod_theta = 0;
 double this_amcl_x = 0, this_amcl_y = 0, quaternion_x = 0, quaternion_y = 0, quaternion_z = 0, quaternion_w = 0, this_amcl_theta = 0, siny_cosp = 0, cosy_cosp = 0;
@@ -55,7 +55,7 @@ void cancelCallback(const std_msgs::Bool::ConstPtr& cancel_msg)
 bool reinit_planner_withload = false;
 bool reinit_planner_noload = false;
 void loadAttachedCallback(const std_msgs::Bool::ConstPtr& load_attached_msg)
-{   
+{
     ROS_INFO("Reinit PLanner");
     if( load_attached_msg->data == true )
         reinit_planner_withload = true;
@@ -98,7 +98,7 @@ void loadAttachedCallback(const std_msgs::Bool::ConstPtr& load_attached_msg)
 //    }
 //}
 
-void getOdomVelCallback(const nav_msgs::Odometry::ConstPtr& odom_vel) 
+void getOdomVelCallback(const nav_msgs::Odometry::ConstPtr& odom_vel)
 {
     odom_xdot_ropod_global = odom_vel->twist.twist.linear.x;
     odom_ydot_ropod_global = odom_vel->twist.twist.linear.y;
@@ -125,14 +125,90 @@ void getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPt
 
     // yaw (z-axis rotation)
     siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
-    cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);  
+    cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
     this_amcl_theta = atan2(siny_cosp, cosy_cosp);
 }
 
+std::queue<sensor_msgs::LaserScan::ConstPtr> scan_buffer_;
+bool scan_available = false;
+void scanCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
+{
+    scan_available = true;    
+    scan_buffer_.push(msg);
+}
+
+sensor_msgs::LaserScan::ConstPtr scan;
+tf::TransformListener* tf_listener_;
+std::vector<geometry_msgs::Point> laser_meas_points;
+
+void getLatestScanData()
+{
+
+    while(!scan_buffer_.empty())
+    {
+        scan = scan_buffer_.front();
+
+        // - - - - - - - - - - - - - - - - - -
+        // Determine absolute laser pose based on TF
+
+        try
+        {            
+            tf::StampedTransform t_sensor_pose;
+            tf_listener_->lookupTransform("map", scan->header.frame_id, scan->header.stamp, t_sensor_pose);
+            scan_buffer_.pop();
+            
+            tf::Quaternion q = t_sensor_pose.getRotation(); //( t_sensor_pose.getRotation().x, t_sensor_pose.getRotation().y, t_sensor_pose.getRotation().z, t_sensor_pose.getRotation().w );
+            tf::Matrix3x3 matrix ( q );
+            double rollSensor, pitchSensor, yawSensor;
+            matrix.getRPY ( rollSensor, pitchSensor, yawSensor );
+            
+            double scan_size =  scan->ranges.size();
+            laser_meas_points.resize(scan_size);
+
+            for(unsigned int iScan = 0; iScan < scan_size; iScan ++)       
+            {
+                double angle = yawSensor + scan->angle_min + scan->angle_increment*iScan;
+                laser_meas_points[iScan].x = t_sensor_pose.getOrigin().getX() + scan->ranges[iScan]*cos( angle );
+                laser_meas_points[iScan].y = t_sensor_pose.getOrigin().getY() + scan->ranges[iScan]*sin( angle );
+            }            
+        }
+        catch(tf::ExtrapolationException& ex)
+        {
+            ROS_WARN_STREAM_DELAYED_THROTTLE(10, "ED Laserplugin tracking: " << ex.what());
+            try
+            {
+                // Now we have to check if the error was an interpolation or extrapolation error
+                // (i.e., the scan is too old or too new, respectively)
+                tf::StampedTransform latest_transform;
+                tf_listener_->lookupTransform("map", scan->header.frame_id, ros::Time(0), latest_transform);
+
+                if (scan_buffer_.front()->header.stamp > latest_transform.stamp_)
+                {
+                    // Scan is too new
+                    break;
+                }
+                else
+                {
+                    // Otherwise it has to be too old (pop it because we cannot use it anymore)
+                    scan_buffer_.pop();
+                }
+            }
+            catch(tf::TransformException& exc)
+            {
+                scan_buffer_.pop();
+            }
+        }
+        catch(tf::TransformException& exc)
+        {
+            ROS_ERROR_STREAM_DELAYED_THROTTLE(10, "ED Laserplugin tracking: " << exc.what());
+            scan_buffer_.pop();
+        }
+    }
+}
 
 void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ros::Publisher &pub) {
-    ROS_INFO_STREAM("showWallPoints (" << local_wallpoint_front.x  << ", " << local_wallpoint_front.y << "), ("
-    		<< local_wallpoint_rear.x << ", " << local_wallpoint_rear.y << ")");
+    //ROS_INFO_STREAM("showWallPoints (" << local_wallpoint_front.x  << ", " << local_wallpoint_front.y << "), ("
+    //        << local_wallpoint_rear.x << ", " << local_wallpoint_rear.y << ")");
     visualization_msgs::Marker vis_wall;
     vis_wall.header.frame_id = "ropod/base_link";
     vis_wall.header.stamp = ros::Time::now();
@@ -148,7 +224,7 @@ void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ro
     vis_wall.scale.y = 0.3;
     geometry_msgs::Point wall_p;
 
-	vis_wall.points.clear();
+    vis_wall.points.clear();
     wall_p.x =  local_wallpoint_front.x;
     wall_p.y =  local_wallpoint_front.y;
     vis_wall.points.push_back(wall_p);
@@ -161,11 +237,11 @@ void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ro
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "route_navigation");
-    ros::NodeHandle nroshndl("~");    
-    
+    ros::NodeHandle nroshndl("~");
+
     double prediction_feasibility_check_rate, prediction_feasibility_check_period, prediction_feasibility_check_cycle_time = 0.0;
-    double local_navigation_rate, local_navigation_period;    
-    
+    double local_navigation_rate, local_navigation_period;
+
     std::string default_ropod_navigation_param_file;
     std::string default_ropod_load_navigation_param_file;
 
@@ -183,9 +259,9 @@ int main(int argc, char** argv)
             K(8.89,-1.3,"K"), L(11.62,0.42,"L"), M(12.68,5.02,"M"), N(10.93,7.76,"N"),
             P(6.32,8.78,"P"), Q(3.38,7.46,"Q"), R(2.25,2.76,"R"), S(4.05,-0.13,"S");
 
-    AreaQuadID area44(E,H,S,K,44,"hallway"), area46(L,M,F,E,46,"hallway"), 
+    AreaQuadID area44(E,H,S,K,44,"hallway"), area46(L,M,F,E,46,"hallway"),
                 area48(N,P,G,F,48,"hallway"), area50(Q,R,H,G,50,"hallway"),
-                area45(A,L,E,K,45,"inter"), area47(M,B,N,F,47,"inter"), 
+                area45(A,L,E,K,45,"inter"), area47(M,B,N,F,47,"inter"),
                 area49(P,C,Q,G,49,"inter"), area51(R,D,S,H,51,"inter");
 
 
@@ -214,7 +290,7 @@ int main(int argc, char** argv)
         AreaQuadID junctionJ1(C,F, Corner,B,2,"inter");
         AreaQuadID areaC2(C,H,G,F,3,"hallway");
 
-    std::vector<PointID> pointlist {A, B, C, D, /*E is a dublet; this does not work ,*/	 F, G, H, Corner};
+    std::vector<PointID> pointlist {A, B, C, D, /*E is a dublet; this does not work ,*/  F, G, H, Corner};
     std::vector<AreaQuadID> arealist {areaC1, junctionJ1, areaC2};
 
 
@@ -225,19 +301,19 @@ int main(int argc, char** argv)
 
 
 
-    nroshndl.param<double>("prediction_feasibility_check_rate", prediction_feasibility_check_rate, 3.0);    
-    nroshndl.param<double>("local_navigation_rate", local_navigation_rate, 10.0); // local_navigation_rate>prediction_feasibility_check_rate    
-    nroshndl.param<std::string>("default_ropod_navigation_param_file", default_ropod_navigation_param_file, 
-                         std::string("") ); 
-//                          std::string("~/ropod-project-software/catkin_workspace/src/functionalities/ros_structured_nav/napoleon_driving/config/footprint_local_planner_params_ropod.yaml") ); 
-    nroshndl.param<std::string>("default_ropod_load_navigation_param_file", default_ropod_load_navigation_param_file, 
-                         std::string("") ); 
-//                          std::string("~/ropod-project-software/catkin_workspace/src/functionalities/ros_structured_nav/napoleon_driving/config/footprint_local_planner_params_ropod_load.yaml") ); 
-    
+    nroshndl.param<double>("prediction_feasibility_check_rate", prediction_feasibility_check_rate, 3.0);
+    nroshndl.param<double>("local_navigation_rate", local_navigation_rate, 10.0); // local_navigation_rate>prediction_feasibility_check_rate
+    nroshndl.param<std::string>("default_ropod_navigation_param_file", default_ropod_navigation_param_file,
+                         std::string("") );
+//                          std::string("~/ropod-project-software/catkin_workspace/src/functionalities/ros_structured_nav/napoleon_driving/config/footprint_local_planner_params_ropod.yaml") );
+    nroshndl.param<std::string>("default_ropod_load_navigation_param_file", default_ropod_load_navigation_param_file,
+                         std::string("") );
+//                          std::string("~/ropod-project-software/catkin_workspace/src/functionalities/ros_structured_nav/napoleon_driving/config/footprint_local_planner_params_ropod_load.yaml") );
+
     ros::Rate rate(local_navigation_rate);
     prediction_feasibility_check_period = 1.0/prediction_feasibility_check_rate;
     local_navigation_period = 1.0/local_navigation_rate;
-    
+
 //    ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
     ros::Subscriber cancel_cmd_sub = nroshndl.subscribe<std_msgs::Bool>("/route_navigation/cancel", 10, cancelCallback);
     ros::Subscriber reinit_planner_sub = nroshndl.subscribe<std_msgs::Bool>("/route_navigation/set_load_attached", 10, loadAttachedCallback);
@@ -250,7 +326,12 @@ int main(int argc, char** argv)
 
     // Visualize map nodes
     ros::Publisher mapmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/vmnodes", 10, true);
-
+    
+    // Subscribe to topic with non-associated laser points
+    std::string laser_topic("/ropod/laser/scan");    
+    unsigned int bufferSize = 1;
+    ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>(laser_topic, bufferSize, scanCallback);
+    tf_listener_ = new tf::TransformListener;
 
     visualization_msgs::Marker vis_points;
     vis_points.header.frame_id = "/map";
@@ -303,12 +384,12 @@ int main(int argc, char** argv)
     std::string load_param_str;
 
     ROS_INFO("Wait for 2D Nav Goal to start (goal can be anywhere, doesn't influence program)");
-    
+
     // Initial values, not very important as long as ropod is in the right area
     // First action will be determined by the initial values (or I can just wait?)
     double control_v = 0;
     double theta_0 = -M_PI/2;     // Initial orientation of ropod [rad]
-    double x_ropod_0 = 4.4;	    // X position of center of ropod [m]
+    double x_ropod_0 = 4.4;     // X position of center of ropod [m]
     double y_ropod_0 = 8.8;     // Y position of center of ropod [m]
     double v_ropod_0 = 0.0;     // Velocity of ropod [m/s]
     double phi_0 = 0.00;        // Steering angle - CCW positive - 0 when steering straight [rad]
@@ -372,12 +453,12 @@ int main(int argc, char** argv)
     Point OBJ_LAST_center;
     Point current_obs_in_ropod_frame_pos, obs_in_ropod_frame_pos;
 
-    PointID rw_p_rear, rw_p_front, lw_p_rear, lw_p_front; 
-    AreaQuadID cur_obj = getAreaByID(assignment[0],arealist); 
-    vector<string> areaIDs; 
+    PointID rw_p_rear, rw_p_front, lw_p_rear, lw_p_front;
+    AreaQuadID cur_obj = getAreaByID(assignment[0],arealist);
+    vector<string> areaIDs;
     int ind, qmax;
     double space_left, space_right, shift_wall, wallang;;
-    
+
     //std::vector<int> sim_state {1};   // State of ropod
     int prev_sim_state = 1;
     int pred_state[size_p] {1};
@@ -433,7 +514,7 @@ int main(int argc, char** argv)
     PointID point_pivot;
     Point local_wallpoint_front, local_wallpoint_rear;
     Point local_pivot;
-    
+
     bool sharp_corner[ka_max] = {false};
 
     array<array<string, 6>, ka_max> OBJ_X_TASK; // Assuming this initializes empty strings (otherwise wont work)
@@ -448,36 +529,36 @@ int main(int argc, char** argv)
 
     PointID obj2wall_p0, obj2wall_p1, obj3wall_p0, obj3wall_p1;
     double obj2frontwall_angle, obj3wall_angle, relative_angle;
-    
+
     ROS_INFO("Printing assignment nodes:");
     for (int ka = 0; ka < ka_max-1; ka = ka+2) {
-        OBJ1 = getAreaByID(assignment[ka],arealist); 
-        OBJ2 = getAreaByID(assignment[ka+1],arealist); 
-        OBJ3 = getAreaByID(assignment[ka+2],arealist); 
+        OBJ1 = getAreaByID(assignment[ka],arealist);
+        OBJ2 = getAreaByID(assignment[ka+1],arealist);
+        OBJ3 = getAreaByID(assignment[ka+2],arealist);
         OBJ1TASK = getWallPointsTowardsB(OBJ1,OBJ2);
         printstringvec(OBJ1TASK);
-        OBJ_X_TASK[ka][0] = OBJ1TASK[0]; 
-        OBJ_X_TASK[ka][1] = OBJ1TASK[1]; 
-        OBJ2TASK = getPointsForTurning(OBJ1,OBJ2,OBJ3,OBJ1TASK); 
+        OBJ_X_TASK[ka][0] = OBJ1TASK[0];
+        OBJ_X_TASK[ka][1] = OBJ1TASK[1];
+        OBJ2TASK = getPointsForTurning(OBJ1,OBJ2,OBJ3,OBJ1TASK);
         printstringvec(OBJ2TASK);
-        obj2tasklen = OBJ2TASK.size(); 
-        OBJ_X_TASK[ka+1][0] = OBJ2TASK[0]; 
-        OBJ_X_TASK[ka+1][1] = OBJ2TASK[1]; 
+        obj2tasklen = OBJ2TASK.size();
+        OBJ_X_TASK[ka+1][0] = OBJ2TASK[0];
+        OBJ_X_TASK[ka+1][1] = OBJ2TASK[1];
         if (obj2tasklen == 6) {
-            OBJ_X_TASK[ka+1][2] = OBJ2TASK[2]; 
-            OBJ_X_TASK[ka+1][3] = OBJ2TASK[3]; 
-            OBJ_X_TASK[ka+1][4] = OBJ2TASK[4]; 
-            OBJ_X_TASK[ka+1][5] = OBJ2TASK[5]; 
-            
+            OBJ_X_TASK[ka+1][2] = OBJ2TASK[2];
+            OBJ_X_TASK[ka+1][3] = OBJ2TASK[3];
+            OBJ_X_TASK[ka+1][4] = OBJ2TASK[4];
+            OBJ_X_TASK[ka+1][5] = OBJ2TASK[5];
+
             obj2wall_p0 = getPointByID(OBJ2TASK[0],pointlist);
             obj2wall_p1 = getPointByID(OBJ2TASK[1],pointlist);
             obj3wall_p0 = getPointByID(OBJ2TASK[2],pointlist);
             obj3wall_p1 = getPointByID(OBJ2TASK[3],pointlist);
-            
+
             obj2frontwall_angle = atan2(obj2wall_p1.y-obj2wall_p0.y, obj2wall_p1.x-obj2wall_p0.x);
             obj3wall_angle = atan2(obj3wall_p1.y-obj3wall_p0.y, obj3wall_p1.x-obj3wall_p0.x);
             relative_angle = wrapToPi(obj3wall_angle-obj2frontwall_angle);
-            
+
             if (OBJ2TASK[5].compare("right") == 0 && relative_angle < -SHARP_ANGLE_TRESHOLD) {
                 // Sharp angle to the right, we need to take the next wall into account as well
                 sharp_corner[ka+1] = true;
@@ -487,7 +568,7 @@ int main(int argc, char** argv)
             }
         }
     }
-    
+
     // Last area
     OBJ_LAST_TASK = getWallPointsAwayFromB(OBJ_LAST,OBJ2);
     OBJ_X_TASK[ka_max-1][0] = OBJ_LAST_TASK[0];
@@ -509,9 +590,9 @@ int main(int argc, char** argv)
     std::ofstream myfile;
     //myfile.open ("/simdata/ropod_" + get_date() +".txt");
     myfile.open ("/home/cesar/Documents/simdata/ropod_" + get_date() +".txt");
-    myfile << "time" << "\t" << "tictoc" << "\t" << "state" << "\t" << "task counter" << "\t" << "tube width" << "\t" << 
-            "phi des" << "\t" << "v ropod odom" << "\t"<< "v ropod cmd" << "\t" << "x ropod" << "\t" << "y ropod" << "\t" << 
-            "theta ropod" << "\t" "x obs" << "\t" << "y obs" << "\t" << "theta obs" << "\t" << "obs width" << "\t" << 
+    myfile << "time" << "\t" << "tictoc" << "\t" << "state" << "\t" << "task counter" << "\t" << "tube width" << "\t" <<
+            "phi des" << "\t" << "v ropod odom" << "\t"<< "v ropod cmd" << "\t" << "x ropod" << "\t" << "y ropod" << "\t" <<
+            "theta ropod" << "\t" "x obs" << "\t" << "y obs" << "\t" << "theta obs" << "\t" << "obs width" << "\t" <<
             "obs depth" << "\t" << "obs vx" << "\t" << "obs vy" << "\t" << "des accel" <<"\n";
 
     std::clock_t start_loop;
@@ -520,14 +601,21 @@ int main(int argc, char** argv)
 
     while(nroshndl.ok() && !ropod_reached_target)
     {
-        
+        // Process scan data
+        if(scan_available)
+        {
+            getLatestScanData();
+            scan_available = false;
+        }
+            
+
         prediction_feasibility_check_cycle_time += local_navigation_period;
         // Execute local navigation
         napoleon_driving.callLocalNavigationStateMachine();
-        
+
         if (simple_goal_received)
         {
-        
+
         start_loop = std::clock();
 
         ropod_colliding_obs = true;     // Initially set to true
@@ -559,7 +647,7 @@ int main(int argc, char** argv)
         //ROS_INFO("xdot: %f / ydot: %f / thetadot %f", odom_xdot_ropod_global, odom_ydot_ropod_global, odom_thetadot_global);
         //ROS_INFO("ropodx: %f / ropody: %f / ropodtheta %f", ropod_x, ropod_y, ropod_theta);
 
-        while ((ropod_colliding_obs || ropod_colliding_wall) && k < MAX_K) 
+        while ((ropod_colliding_obs || ropod_colliding_wall) && k < MAX_K)
         {
             v_scale = V_SCALE_OPTIONS[k];
             k++;
@@ -567,7 +655,7 @@ int main(int argc, char** argv)
             j = 0;
             t_pred[m] = 0;
             t_pred_j[j] = 0;
-            
+
             // Vars from callbacks:
             // ropod_x
             // ropod_y
@@ -602,7 +690,7 @@ int main(int argc, char** argv)
             pred_plan_theta[0] = ropod_theta;
             pred_v_ropod_plan[0] = pred_v_ropod[0];
             pred_state[0] = prev_sim_state;
-            pred_task_counter[0] = prev_sim_task_counter; 
+            pred_task_counter[0] = prev_sim_task_counter;
             pred_x_obs[0] = current_obstacle.pose.position.x;
             pred_y_obs[0] = current_obstacle.pose.position.y;
             // pred_phi[0] = sim_phi[n-1];
@@ -620,7 +708,7 @@ int main(int argc, char** argv)
             // pred_state[0] = sim_state[i-1];
             // pred_task_counter[0] = sim_task_counter[i-1];
             // pred_tube_width[0] = sim_tube_width[i-1];
-            
+
             // Initialize areas
             u = pred_task_counter[0];
             if (u < ka_max-1) {
@@ -631,15 +719,15 @@ int main(int argc, char** argv)
                 area3 = assignment[u+2];
                 task3 = OBJ_X_TASK[u+2];
                 // AreaQuad current_sim_entry = generateEntry(assignment[u], assignment[u+1], ENTRY_LENGTH, arealist, pointlist);
-            } 
+            }
 
             // Printing position
             // ROS_INFO("X: %f, Y: %f, Theta: %f", ropod_x, ropod_y, ropod_theta);
-            
+
             // Prediction
             while (t_pred[m] < T_MIN_PRED) {
                 j = j+1;
-                
+
                 // j and m counter are initialized at 0 instead of 1 in Matlab so we dont have to change their indices
                 consider_overtaking_area1 = false;
                 consider_overtaking_area3 = false;
@@ -656,8 +744,8 @@ int main(int argc, char** argv)
                     }
                 } else {
                     update_assignment = true;
-                } 
-                
+                }
+
                 if (u < ka_max-1) {
                     if (update_assignment) {
                         area1 = assignment[u];
@@ -668,9 +756,9 @@ int main(int argc, char** argv)
                         task3 = OBJ_X_TASK[u+2];
                         current_entry = generateEntry(assignment[u], assignment[u+1], ENTRY_LENGTH, arealist, pointlist);
                     }
-                    
+
                     // Bad but working statement to check if task2 contains 6 nonempty strings.
-                    // And if so, then it is considered as a corner assignment, otherwise as 
+                    // And if so, then it is considered as a corner assignment, otherwise as
                     // go straight assignment.
                     if (!task2[5].empty()) { //(~cellfun(@isempty,task2),2) == 6
                         if (update_assignment) {
@@ -682,21 +770,21 @@ int main(int argc, char** argv)
                         cur_next_hallway_rear_local = coordGlobalToRopod(cur_next_hallway_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
                         cur_next_hallway_front_local = coordGlobalToRopod(cur_next_hallway_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
                         cur_next_hallway_angle = atan2(cur_next_hallway_front_local.y-cur_next_hallway_rear_local.y,cur_next_hallway_front_local.x-cur_next_hallway_rear_local.x);
-                    } else if (!task2[1].empty()) { //sum(~cellfun(@isempty,task2),2) == 2 
+                    } else if (!task2[1].empty()) { //sum(~cellfun(@isempty,task2),2) == 2
                         if (update_assignment) {
                             current_inter_rear_wall = getPointByID(task2[0],pointlist);
                             current_inter_front_wall = getPointByID(task2[1],pointlist);
                         }
                         current_inter_rear_wall_local = coordGlobalToRopod(current_inter_rear_wall, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
                         current_inter_front_wall_local = coordGlobalToRopod(current_inter_front_wall, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-                    } 
+                    }
                 } else {
                     // Final area from assignment
-                    area1 = assignment[u]; 
+                    area1 = assignment[u];
                     task1 = OBJ_X_TASK[u];
                     pred_state[j] = 1;  // Cruising in last HW
                 }
-                
+
                 // Consider overtaking
                 if (u < ka_max-1 && no_obs > 0) {
                     if (update_assignment) {
@@ -713,7 +801,7 @@ int main(int argc, char** argv)
                         // This strategy only allows to overtake 1 obstacle
                     }
                 }
-                
+
                 // Original implementation was checking for overlap between ropod shape and entry shape,
                 // maybe change later if this implementation causes strange behavior
                 pred_ropod_on_entry[j] = current_entry.contains(pred_xy_ropod[j-1]);
@@ -721,7 +809,7 @@ int main(int argc, char** argv)
                 update_state_points = true; // Initially true, might change to false when not necessary
                 prevstate = j-1;
 
-                // State of ropod 
+                // State of ropod
                 // 1 cruising
                 // 2 entry before inter (turn)
                 // 3 accelerate a bit on inter
@@ -732,30 +820,30 @@ int main(int argc, char** argv)
                 // 8 straight on inter
                 // 9 tight overtake (follow left wall)
                 // 10 spacious overtake (shift right wall to left virtually)
-                
+
                 // Taking a turn on an intersection
                 if (!task2[5].empty()) {
                     if (pred_ropod_on_entry[j] && pred_state[prevstate] == 1) {
                         // If cruising and the y position of the ropod exceeds the y
                         // position of the entry
                         pred_state[j] = 2;
-                        
+
                     } else if (cur_pivot_local.x < SIZE_FRONT_ROPOD && pred_state[prevstate] == 2) {
                         // If in entry and the y position of the ropod exceeds the y
                         // position of the intersection
                         pred_state[j] = 3;
-                        
+
                     } else if (cur_pivot_local.x <= SIZE_FRONT_RAX/2 + START_STEERING_EARLY && pred_state[prevstate] == 3) {
                         // If middle of vehicle is on y height of pivot
                         pred_state[j] = 4;
-                                                
+
                     } else if (cur_pivot_local.x <= -ROPOD_TO_AX+START_STEERING_EARLY && pred_state[prevstate] == 4) {
                         // If rearaxle is aligned with the pivot minus sse
                         pred_state[j] = 5;
-                        
+
                     } else if (-ROTATED_ENOUGH_TRES < cur_next_hallway_angle && cur_next_hallway_angle < ROTATED_ENOUGH_TRES && pred_state[prevstate] == 5) {
                         // If ropod has turned enough
-                        
+
                         pred_state[j] = 1;
                         //disp([num2str(i), ': Here we can switch to the next task']);
                         u = u+2;
@@ -770,7 +858,7 @@ int main(int argc, char** argv)
                             //current_inter = getPoints(getAreaByID(area2,arealist));
                         }
                     } else {
-                        
+
                         pred_state[j] = pred_state[prevstate];
                         update_state_points = false;
                     }
@@ -779,12 +867,12 @@ int main(int argc, char** argv)
                     if (pred_ropod_on_entry[j] == 1 && pred_state[prevstate] == 1) {
                         // If cruising and the y position of the ropod exceeds the y
                         // position of the entry
-                        
+
                         pred_state[j] = 7;
                     } else if (current_inter_rear_wall_local.x < SIZE_FRONT_ROPOD+START_STEERING_EARLY && pred_state[prevstate] == 7) {
                         // If in entry and the y position of the ropod exceeds the y
                         // position of the intersection
-                        
+
                         pred_state[j] = 8;
                     } else if (current_inter_front_wall_local.x < -D_AX/2 && pred_state[prevstate] == 8) {
                         pred_state[j] = 1;
@@ -799,7 +887,7 @@ int main(int argc, char** argv)
                             current_entry = generateEntry(assignment[u], assignment[u+1], ENTRY_LENGTH, arealist, pointlist);
                             //current_inter = getPoints(getAreaByID(area2,arealist));
                         }
-                        
+
                     } else {
                         pred_state[j] = pred_state[prevstate];
                         update_state_points = false;
@@ -808,7 +896,7 @@ int main(int argc, char** argv)
                 if (pred_state[prevstate] == 9 || pred_state[prevstate] == 10) {
                     if (no_obs > 0) {
                         current_obs_in_ropod_frame_pos = coordGlobalToRopod(obs_center_global, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-                        //disp(['Obs is ',num2str(obs_in_ropod_frame_pos.x), ' m in front of ropod']); 
+                        //disp(['Obs is ',num2str(obs_in_ropod_frame_pos.x), ' m in front of ropod']);
                         if (current_obs_in_ropod_frame_pos.x+current_obstacle.depth/2+D_AX+SIZE_REAR < 0) {
                             pred_state[j] = 1;
                             update_state_points = true;
@@ -826,7 +914,7 @@ int main(int argc, char** argv)
                         pred_tube_width[j] = TUBE_WIDTH_C;
                     }
                 }
-                
+
                 // Overtaking
                 if ((pred_state[prevstate] == 1 && consider_overtaking_area1) || consider_overtaking_area3 && (pred_state[prevstate] == 5 || pred_state[prevstate] == 8)) {
                     obs_in_ropod_frame_pos = coordGlobalToRopod(obs_center_global, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
@@ -842,9 +930,9 @@ int main(int argc, char** argv)
                             qmax = areaIDs.size();
                             for (int q = 0; q < qmax; ++q) {
                                 if (areaIDs[q].compare(rw_p_rear.id) == 0) {
-                                    ind = q; 
+                                    ind = q;
                                 }
-                            } 
+                            }
                             rotate(areaIDs.begin(), areaIDs.begin() + ind, areaIDs.end());
                             lw_p_rear = getPointByID(areaIDs[3],pointlist);
                             lw_p_front = getPointByID(areaIDs[2],pointlist);
@@ -857,16 +945,16 @@ int main(int argc, char** argv)
                             qmax = areaIDs.size();
                             for (int q = 0; q < qmax; ++q) {
                                 if (areaIDs[q].compare(rw_p_rear.id) == 0) {
-                                    ind = q; 
+                                    ind = q;
                                 }
-                            } 
+                            }
                             rotate(areaIDs.begin(), areaIDs.begin() + ind, areaIDs.end());
                             lw_p_rear = getPointByID(areaIDs[3],pointlist);
                             lw_p_front = getPointByID(areaIDs[2],pointlist);
                         }
 
-                        space_left = distToSegment(obs_center_global,lw_p_rear,lw_p_front); 
-                        space_right = distToSegment(obs_center_global,rw_p_rear,rw_p_front); 
+                        space_left = distToSegment(obs_center_global,lw_p_rear,lw_p_front);
+                        space_right = distToSegment(obs_center_global,rw_p_rear,rw_p_front);
                         if (current_obstacle.width > current_obstacle.depth) {
                             space_left = space_left-current_obstacle.width/2;
                             space_right = space_right-current_obstacle.width/2;
@@ -874,7 +962,7 @@ int main(int argc, char** argv)
                             space_left = space_left-current_obstacle.depth/2;
                             space_right = space_right-current_obstacle.depth/2;
                         }
-                        
+
                         if (space_right > TUBE_WIDTH_C) {
                             if (j == 1) {
                                 ROS_INFO("No overtake necessary, passing on right should be possible");
@@ -928,7 +1016,7 @@ int main(int argc, char** argv)
                 } else if (!consider_overtaking_area1 && !consider_overtaking_area3) {
                     pred_tube_width[j] = TUBE_WIDTH_C;
                 }
-                
+
                 // Exception for first plan
                 if (j == 1) {
                     update_state_points = true;
@@ -954,7 +1042,7 @@ int main(int argc, char** argv)
                         //global_wall_front_p0 = [wall_front_p0.x, wall_front_p0.y];
                         //global_wall_front_p1 = [wall_front_p1.x, wall_front_p1.y];
                     }
-                    
+
                     local_wall_front_p0 = coordGlobalToRopod(wall_front_p0, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
                     local_wall_front_p1 = coordGlobalToRopod(wall_front_p1, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
                     if (do_lines_intersect(local_front_ropod_dilated_p0, local_front_ropod_dilated_p1, local_wall_front_p0, local_wall_front_p1)) {
@@ -1006,9 +1094,9 @@ int main(int argc, char** argv)
                         qmax = areaIDs.size();
                         for (int q = 0; q < qmax; ++q) {
                             if (areaIDs[q].compare(rw_p_rear.id) == 0) {
-                                ind = q; 
+                                ind = q;
                             }
-                        } 
+                        }
                         rotate(areaIDs.begin(), areaIDs.begin() + ind, areaIDs.end());
                         lw_p_rear = getPointByID(areaIDs[3],pointlist);
                         lw_p_front = getPointByID(areaIDs[2],pointlist);
@@ -1062,21 +1150,21 @@ int main(int argc, char** argv)
                         glob_wallpoint_rear.x = point_rear.x;
                         glob_wallpoint_rear.y = point_rear.y;
                     }
-                    
+
                     local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
                     local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
                     showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
                     pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
                     v_des = V_INTER_ACC;
-                    
+
                     // Monitor if we don't bump into front wall
                     if (update_state_points) {
                         wall_front_p0 = getPointByID(task2[0],pointlist);
                         wall_front_p1 = getPointByID(task2[1],pointlist);
-                        
+
                         global_wall_front_p0.x = wall_front_p0.x;
                         global_wall_front_p0.y = wall_front_p0.y;
-                        global_wall_front_p1.x = wall_front_p1.x; 
+                        global_wall_front_p1.x = wall_front_p1.x;
                         global_wall_front_p1.y = wall_front_p1.y;
                     }
 
@@ -1103,14 +1191,14 @@ int main(int argc, char** argv)
                     showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
                     pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
                     v_des = V_INTER_DEC;
-                    
+
                     // Monitor if we don't bump into front wall
                     if (update_state_points) {
                         wall_front_p0 = getPointByID(task2[0],pointlist);
                         wall_front_p1 = getPointByID(task2[1],pointlist);
                         global_wall_front_p0.x = wall_front_p0.x;
                         global_wall_front_p0.y = wall_front_p0.y;
-                        global_wall_front_p1.x = wall_front_p1.x; 
+                        global_wall_front_p1.x = wall_front_p1.x;
                         global_wall_front_p1.y = wall_front_p1.y;
                     }
 
@@ -1132,7 +1220,7 @@ int main(int argc, char** argv)
                         glob_wallpoint_rear.x = point_rear.x;
                         glob_wallpoint_rear.y = point_rear.y;
                     }
-                    
+
                     dir_cw = true;
                     if (task2[5].compare("left") == 0) {
                     //if (strcmp(task2{6},'left')) {
@@ -1149,13 +1237,13 @@ int main(int argc, char** argv)
                         //pred_phi_des[j] = getSteeringTurnSharp(pred_x_ropod(j-1), pred_y_ropod(j-1), pred_plan_theta[j-1], size_front_ropod, size_side, feeler_size_steering, d_ax, dir_cw, task2, pointlist, follow_wall_distance, env_tctw_size, env_trns_size_cornering, env_carrot_size);
                         pred_phi_des[j] = getSteeringTurnSharp(pred_xy_ropod[j-1], pred_plan_theta[j-1], dir_cw, task2, pointlist);
                     }
-                    
+
                     v_des = V_INTER_TURNING;
                 }
 
                 // Wrap to [-pi,pi] domain
                 pred_phi_des[j] = wrapToPi(pred_phi_des[j]);
-                
+
                 // Saturate steering rate
                 if (abs(pred_phi_des[j]-prev_pred_phi_des) > DELTA_DOT_LIMIT/(double)F_PLAN) {
                     //disp("Delta steering too large, steering saturated");
@@ -1168,7 +1256,7 @@ int main(int argc, char** argv)
                     }
                     //disp(['In saturation - j: ', num2str(j) ,', Phides: ', num2str(pred_phi_des(j)), ' // Prev phides: ' , num2str(prev_pred_phi_des), ', v_des = ', num2str(v_des)]);
                 }
-                
+
                 prev_pred_phi_des = pred_phi_des[j];
 
                 // Applying the v_scale (scales down vel if collision is detected in previous prediction and therefore it failed)
@@ -1183,16 +1271,16 @@ int main(int argc, char** argv)
                     pred_accel[j] = sgn(v_des_scaled[j]-pred_v_ropod_plan[j-1])*A_MAX;
                 }
                 //ROS_INFO("pred_accel: %f", pred_accel[j]);
-                
+
                 m_prev = m;
                 t_pred_prev = t_pred[m];
                 t_pred_j[j] = t_pred_prev+F_FSTR*TS;
 
-                // Predict movement with current plan  
+                // Predict movement with current plan
                 for (int q = 1; q <= F_FSTR; ++q) { // q = [1, 2, ..., F_FSTR]
                     m = m_prev+q;           // Current iteration
                     t_pred[m] = t_pred_prev+q*TS;
-                    
+
                     pred_phi[m] = (1-lpf)*pred_phi[m-1]+lpf*pred_phi_des[j];
                     pred_theta[m] = wrapToPi(pred_theta[m-1]+pred_thetadot[m-1]*TS);
                     pred_v_ropod[m] = pred_v_ropod[m-1]+pred_accel[j]*TS;
@@ -1215,11 +1303,11 @@ int main(int argc, char** argv)
                 pred_ropod_dil_rb.y = pred_y_rearax[m] + (SIZE_REAR+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]+M_PI) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]-M_PI/2);
                 pred_ropod_dil_lb.x = pred_x_rearax[m] + (SIZE_REAR+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]+M_PI) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]+M_PI/2);
                 pred_ropod_dil_lb.y = pred_y_rearax[m] + (SIZE_REAR+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]+M_PI) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]+M_PI/2);
-                pred_ropod_dil_lt.x = pred_x_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]+M_PI/2); 
+                pred_ropod_dil_lt.x = pred_x_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]+M_PI/2);
                 pred_ropod_dil_lt.y = pred_y_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]+M_PI/2);
                 pred_ropod_dil_rt.x = pred_x_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]-M_PI/2);
                 pred_ropod_dil_rt.y = pred_y_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]-M_PI/2);
-				
+
                 // Obstacle detection (crappy implementation in C++)
                 if (t_pred[m] < T_PRED_OBS_COLLISION && no_obs > 0) {
                     obslt.x = pred_x_obs[j]+current_obstacle.width/2*cos(obs_theta)-current_obstacle.depth/2*sin(obs_theta);
@@ -1234,13 +1322,22 @@ int main(int argc, char** argv)
                 } else {
                     pred_ropod_colliding_obs[j] = false;
                 }
-                
-				// TODO: Add here also check with raw laser (for instance of non-associated objects) data or costmap 
-				if (t_pred[m] < T_PRED_OBS_COLLISION ) // TODO: Condition should be smarter. For instance based on time/distance to stop? . Also the robot should stop at a minimum distance in front. for now we based it on time
-				{
-					// Here check for collision with laser data
-				}
-				
+
+                // TODO: Add here also check with raw laser (for instance of non-associated objects) data or costmap
+                if (t_pred[m] < T_PRED_OBS_COLLISION ) // TODO: Condition should be smarter. For instance based on time/distance to stop? . Also the robot should stop at a minimum distance in front. for now we based it on time
+                {
+                    // Here check for collision with laser data
+                    // Create Area and use contain method with the laser data.
+                    for(unsigned int iScan = 0; iScan < laser_meas_points.size(); iScan++)
+                    {
+                        AreaQuad robot_footprint(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt);
+                        Point laser_point(laser_meas_points[iScan].x, laser_meas_points[iScan].y);
+                        pred_ropod_colliding_obs[j] = robot_footprint.contains(laser_point);                        
+                        if(pred_ropod_colliding_obs[j])
+                            break;
+                    }
+                }
+
 
                 vis_points.id = 1;
                 vis_points.color.r = 0.0;
@@ -1255,7 +1352,7 @@ int main(int argc, char** argv)
                 ropodmarker_pub.publish(vis_points);
 
                 // Predict intersection times (left out for now)
-                
+
                 // Predict intersection with walls
                 // if ((u < ka_max-1) && update_assignment) {
                 //     walls = getWalls(assignment[u],assignment[u+1],assignment[u+2],arealist);
@@ -1273,36 +1370,36 @@ int main(int argc, char** argv)
                 //         end
                 //     end
                 // }
-                
+
                 // Update positions used to make the prediction plan with
                 pred_x_ropod[j] = pred_x_rearax[m]+D_AX*cos(pred_theta[m]);
                 pred_y_ropod[j] = pred_y_rearax[m]+D_AX*sin(pred_theta[m]);
                 pred_xy_ropod[j].x = pred_x_ropod[j];
                 pred_xy_ropod[j].y = pred_y_ropod[j];
                 pred_v_ropod_plan[j] = pred_v_ropod[m];
-            
+
                 if (j == 1) {
                     //ROS_INFO("v[0] = %f, a[1] = %f, ts = %f, v[1] = %f", pred_v_ropod[0], pred_accel[j], TS, pred_v_ropod_plan[j]);
-                    ROS_INFO("v[0] = %f, a[1] = %f, deltav = %f, v[1] = %f", pred_v_ropod[0], pred_accel[j], pred_accel[j]*local_navigation_period, pred_v_ropod[0]+pred_accel[1]*local_navigation_period);
+                    // ROS_INFO("v[0] = %f, a[1] = %f, deltav = %f, v[1] = %f", pred_v_ropod[0], pred_accel[j], pred_accel[j]*local_navigation_period, pred_v_ropod[0]+pred_accel[1]*local_navigation_period);
                 }
                 pred_plan_theta[j] = pred_theta[m];
                 //ROS_INFO("j: %d / State: %d / Time: %f / Phi: %f / V_des: %f", j, pred_state[j], t_pred_j[j], pred_phi_des[j], pred_v_ropod[j]);
 
                 //--
             } // endwhile prediction
-            
+
             // Line 892 - 912 (alter obstacle and wall collision booleans)
             // Set collision to false
             ropod_colliding_obs = false;
             // If collision predicted at any step, set to true
-            if (no_obs > 0) {
+            //if (no_obs > 0) {
                 for (int qobs = 0; qobs < size_p; ++qobs) {
                     if (pred_ropod_colliding_obs[qobs] == true) {
                         //ROS_INFO("Collision predicted");
                         ropod_colliding_obs = true;
                     }
                 }
-            }
+            //}
 
             ropod_colliding_wall = false;
 
@@ -1312,7 +1409,7 @@ int main(int argc, char** argv)
         // The prediction is ran until t_min_pred, however, the ropod will run a
         // new prediction the next step, so only the first part of the
         // prediction is used.
-        
+
         prev_sim_state = pred_state[1];
         prev_sim_task_counter = pred_task_counter[1];
         prev_sim_phi_des = pred_phi_des[1];
@@ -1322,16 +1419,19 @@ int main(int argc, char** argv)
 
         control_v = pred_v_ropod[0]+pred_accel[1]*local_navigation_period;
         // Compute v_ax and theta_dot from v_des and phi
-        //ROS_INFO("Phi: %f / V_ax: %f / Theta_dot: %f", pred_phi_des[1], v_ax, theta_dot);
-        ROS_INFO("state: %d, tube width: %f", pred_state[1], pred_tube_width[1]);
-        myfile << real_time_est << "\t" << program_duration << "\t" << pred_state[0] << "\t" << pred_task_counter[0] << "\t" << pred_tube_width[0] << "\t" << 
-            pred_phi_des[0] << "\t" << pred_v_ropod[0] << "\t" << control_v << "\t"  <<  pred_xy_ropod[0].x << "\t" <<  pred_xy_ropod[0].y << "\t" << 
-            pred_plan_theta[0] << "\t" << pred_x_obs[0] << "\t" << pred_y_obs[0] << "\t" << obs_theta << "\t" << current_obstacle.width << "\t" << 
+        
+        myfile << real_time_est << "\t" << program_duration << "\t" << pred_state[0] << "\t" << pred_task_counter[0] << "\t" << pred_tube_width[0] << "\t" <<
+            pred_phi_des[0] << "\t" << pred_v_ropod[0] << "\t" << control_v << "\t"  <<  pred_xy_ropod[0].x << "\t" <<  pred_xy_ropod[0].y << "\t" <<
+            pred_plan_theta[0] << "\t" << pred_x_obs[0] << "\t" << pred_y_obs[0] << "\t" << obs_theta << "\t" << current_obstacle.width << "\t" <<
             current_obstacle.depth << "\t" << current_obstacle.vel.x << "\t" << current_obstacle.vel.y << "\t" << pred_accel[1] << "\t" <<"\n";
+        /*
+        //ROS_INFO("Phi: %f / V_ax: %f / Theta_dot: %f", pred_phi_des[1], v_ax, theta_dot);
+        ROS_INFO("state: %d, tube width: %f", pred_state[1], pred_tube_width[1]);            
         ROS_INFO("K: %d", k);
         ROS_INFO("V desired: %f", pred_v_ropod_plan[1]);
         ROS_INFO("Predphi[1]: %f / [2]: %f / [3]: %f / [4]: %f", pred_phi_des[1], pred_phi_des[2], pred_phi_des[3], pred_phi_des[4]);
-        
+        */ 
+
         // if (pred_v_ropod_plan[1] > 0) {
         //     v_ax = cos(pred_phi_des[1])*pred_v_ropod_plan[1];
         //     theta_dot = pred_v_ropod_plan[1]/D_AX*sin(pred_phi_des[1]);
@@ -1393,14 +1493,14 @@ int main(int argc, char** argv)
         ropodmarker_pub.publish(vis_points);
         vis_points.points.clear();
         // End publish ropod points
-        
+
         }   // end if received goal
         ros::spinOnce();
         rate.sleep();
         if(rate.cycleTime() > ros::Duration(local_navigation_period) ){
             ROS_WARN("Control loop missed its desired rate of %.4fHz... the loop actually took %.4f seconds", local_navigation_rate, rate.cycleTime().toSec());
         }
-        
+
     }
     // Will only perform this when ropod has reached target
     napoleon_driving.publishZeroVelocity();

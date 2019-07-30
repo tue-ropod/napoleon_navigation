@@ -13,6 +13,10 @@
 #include <base_local_planner/world_model.h>
 #include <base_local_planner/costmap_model.h>
 #include <nav_msgs/Path.h>
+#include <queue>
+#include <sensor_msgs/LaserScan.h>
+#include <geometry_msgs/Point.h>
+
 
 // Global planner includes
 //#include <maneuver_planner/maneuver_planner.h>
