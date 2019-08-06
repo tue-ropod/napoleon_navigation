@@ -17,8 +17,12 @@
 #include <fstream>
 #include <ctime>
 
-#include <ed_gui_server/objPosVel.h>
-#include <ed_gui_server/objsPosVel.h>
+#include <actionlib/server/simple_action_server.h>
+#include <ropod_ros_msgs/GoToAction.h>
+#include <ropod_ros_msgs/RoutePlannerAction.h>
+
+// #include <ed_gui_server/objPosVel.h>
+// #include <ed_gui_server/objsPosVel.h>
 
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -42,7 +46,6 @@ bool simple_goal_received = false;
 geometry_msgs::PoseStamped simple_goal;
 
 bool goal_received = false;
-
 
 
 bool cancel_nav = false;
@@ -234,6 +237,61 @@ void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ro
     pub.publish(vis_wall);
 }
 
+void gotoActionExecuteCB(const ropod_ros_msgs::GoToGoalConstPtr &goal)
+{
+
+}
+
+
+// route planner integration
+class NapoleonPlanner
+{
+protected:
+    ros::NodeHandle nh_;
+    actionlib::SimpleActionServer<ropod_ros_msgs::GoToAction> as_;
+    actionlib::SimpleActionClient<ropod_ros_msgs::RoutePlannerAction> ac_;
+    std::string action_name_;
+    ropod_ros_msgs::GoToFeedback feedback_;
+    ropod_ros_msgs::GoToResult result_;
+
+public:
+    NapoleonPlanner(std::string name) :
+    as_(nh_, name, boost::bind(&NapoleonPlanner::executeCB, this, _1), false),
+    action_name_(name), ac_("/route_planner", true)
+    {
+        ROS_INFO("Waiting for route planner action server to start");
+        ac_.waitForServer();
+        ROS_INFO("Connected to route planner action server");
+        // waiting for route planner action server to start
+        as_.start();
+    }
+
+    ~NapoleonPlanner(void)
+    {
+    }
+
+    void executeCB(const ropod_ros_msgs::GoToGoalConstPtr &goal)
+    {
+        std::vector<ropod_ros_msgs::Area> area_list = goal->action.areas;
+        ropod_ros_msgs::RoutePlannerGoal route_planner_goal;
+        route_planner_goal.areas = area_list;
+        ac_.sendGoal(route_planner_goal);
+
+        //wait for the action to return
+        bool finished_before_timeout = ac_.waitForResult(ros::Duration(60.0));
+
+        if (finished_before_timeout)
+        {
+            actionlib::SimpleClientGoalState state = ac_.getState();
+            ROS_INFO("Action finished: %s", state.toString().c_str());
+        }
+        else
+        {
+            ROS_INFO("Action did not finish before the time out.");
+        }
+    }
+};
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "route_navigation");
@@ -242,8 +300,12 @@ int main(int argc, char** argv)
     double prediction_feasibility_check_rate, prediction_feasibility_check_period, prediction_feasibility_check_cycle_time = 0.0;
     double local_navigation_rate, local_navigation_period;
 
+    NapoleonPlanner napoleon_planner_("/goto");
+
     std::string default_ropod_navigation_param_file;
     std::string default_ropod_load_navigation_param_file;
+
+
 
     // Initialize environment (turn left)
     // PointID A(11.12,-1.66,"A"), B(13.04,7.06,"B"), C(3.94,9.23,"C"), D(1.85,0.49,"D"),
