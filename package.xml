@@ -22,7 +22,8 @@
   <build_depend>tf</build_depend>
   <build_depend>costmap_2d</build_depend>
   <build_depend>maneuver_planner</build_depend>
-  <!-- <build_depend>ed</build_depend> -->
+  <build_depend>ed</build_depend>
+  <build_depend>ed_gui_server</build_depend>
   <build_depend>pluginlib</build_depend>
   <build_depend>nav_core</build_depend>
   
@@ -39,7 +40,8 @@
   <run_depend>tf</run_depend>
   <run_depend>costmap_2d</run_depend>
   <run_depend>maneuver_planner</run_depend>
-  <!-- <run_depend>ed</run_depend> -->
+  <run_depend>ed</run_depend>
+  <run_depend>ed_gui_server</run_depend>
   <run_depend>pluginlib</run_depend>
   <run_depend>nav_core</run_depend>
  

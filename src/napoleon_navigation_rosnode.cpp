@@ -21,8 +21,8 @@
 #include <ropod_ros_msgs/GoToAction.h>
 #include <ropod_ros_msgs/RoutePlannerAction.h>
 
-// #include <ed_gui_server/objPosVel.h>
-// #include <ed_gui_server/objsPosVel.h>
+#include <ed_gui_server/objPosVel.h>
+#include <ed_gui_server/objsPosVel.h>
 
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -300,7 +300,7 @@ int main(int argc, char** argv)
     double prediction_feasibility_check_rate, prediction_feasibility_check_period, prediction_feasibility_check_cycle_time = 0.0;
     double local_navigation_rate, local_navigation_period;
 
-    NapoleonPlanner napoleon_planner_("/goto");
+    // NapoleonPlanner napoleon_planner_("/goto");
 
     std::string default_ropod_navigation_param_file;
     std::string default_ropod_load_navigation_param_file;
@@ -313,7 +313,7 @@ int main(int argc, char** argv)
     //         K(8.89,-1.3,"K"), L(11.62,0.42,"L"), M(12.66,4.85,"M"), N(10.93,7.76,"N"),
     //         P(6.32,8.78,"P"), Q(3.38,7.46,"Q"), R(2.25,2.76,"R"), S(4.05,-0.13,"S");
 
-//#define BRSU_MAP
+#define BRSU_MAP
 #ifndef BRSU_MAP
     // Initialize environment (turn right)
     PointID A(11.12,-1.66,"A"), B(13.14,7.26,"B"), C(3.94,9.23,"C"), D(1.85,0.49,"D"),
@@ -356,7 +356,7 @@ int main(int argc, char** argv)
     std::vector<AreaQuadID> arealist {areaC1, junctionJ1, areaC2};
 
 
- //   int assignment[] = {1,2,3};
+    int assignment[] = {1,2,3};
 //    int assignment[] = {3,2,1}; // reverse
 
 #endif

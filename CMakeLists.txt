@@ -20,7 +20,8 @@ find_package(catkin REQUIRED COMPONENTS
   nav_core
   actionlib_msgs
   ropod_ros_msgs
-  #ed  
+  ed
+  ed_gui_server  
 )
 
 ## System dependencies are found with CMake's conventions
