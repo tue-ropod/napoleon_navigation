@@ -1,0 +1,44 @@
+# For moving straight through the junction to corridor
+
+PointID A(63.395690918, 33.1979217529,"A"), B(54.3451690674,33.4537239075,"B"), C(54.3025970459,32.0084457397, "C"), 
+D(63.3531188965, 31.7526473999,"D"), E(53.0334472656, 33.4637107849, "E"), F(53.4655265808, 31.5283699036, "F"), 
+G(50.4813156128, 33.5153083801, "G"), H(50.9491882324, 31.6013393402, "H"), I(50.1147499084, 33.5243186951, "I"), 
+J(50.0909767151, 32.5569801331, "J"), K(40.239730835, 33.8115310669, "K"), L(40.2089080811, 32.844367981, "L");
+
+AreaQuadID area1(A,B,C,D,1,"hallway");
+AreaQuadID area2(B,E,F,C,2,"hallway");
+AreaQuadID area3(E,G,H,F,3,"inter");
+AreaQuadID area4(G,I,O,H,4,"hallway");
+AreaQuadID area5(I,K,L,J,4,"hallway");
+
+std::vector<PointID> pointlist {A, B, C, D, E, F, G, H, I, J, K, L};
+std::vector<AreaQuadID> arealist {area1, area2, area3, area4, area5};
+
+int assignment[] = {1,2,3,4,5};
+
+
+
+# For turning right at the junction
+
+PointID A(63.395690918, 33.1979217529,"A"), B(54.3451690674,33.4537239075,"B"), C(54.3025970459,32.0084457397, "C"), 
+D(63.3531188965, 31.7526473999,"D"), E(53.0334472656,33.4637107849,"E"), F(53.4655265808,31.5283699036, "F"), 
+G(50.4813156128,33.5153083801, "G"), H(50.9491882324, 31.6013393402,"H"), I(52.3446426392,35.5722427368,"I"), 
+J(51.3785552979,35.2955970764, "J"), K(51.2514648438,39.8824501038,"K"), L(50.3707923889,39.6370811462, "L");
+
+AreaQuadID area1(A,B,C,D,1,"hallway");
+AreaQuadID area2(B,E,F,C,2,"hallway");
+AreaQuadID area3(F,E,G,H,3,"inter");
+AreaQuadID area4(E,I,J,G,4,"hallway");
+AreaQuadID area5(I,K,L,J,4,"hallway");
+
+std::vector<PointID> pointlist {A, B, C, D, E, F, G, H, I, J, K, L};
+std::vector<AreaQuadID> arealist {area1, area2, area3, area4, area5};
+
+int assignment[] = {1,2,3,4,5};
+
+
+
+
+
+
+
