@@ -5,7 +5,7 @@
 #include <math.h>
 using namespace std;
 
-// #define MOBIDIK
+#define MOBIDIK
 
 // Define environment
 // static constexpr double TUBE_WIDTH = 2.45;
@@ -16,7 +16,7 @@ static constexpr double FEELER_SIZE_STEERING = 2.0; // df_c: 0.3 Size of feeler 
 static constexpr double ENV_TCTW_SIZE = 0.05;       // d_cor 0.05 Too close too wall area size [m]
 static constexpr double ENV_TRNS_SIZE = 0.20;       // d_trns 0.2 Transition area size [m]
 static constexpr double CARROT_LENGTH = 1.50;       // How far ahead point lies where ropod steers towards when too close to a wall [m]
-static constexpr double ENV_TRNS_SIZE_CORNERING = 0.35; // d_trnsc 0.35 Transition area size while cornering [m]
+static constexpr double ENV_TRNS_SIZE_CORNERING = 0.45; // d_trnsc 0.35 Transition area size while cornering [m]
 
 // Vehicle size & size of vectors
 static constexpr double SIZE_SIDE = 0.72 / 2;      // How wide vehicle is from center [m]
@@ -49,13 +49,13 @@ static constexpr double T_PRED_OBS_COLLISION = 04;  // Predict for n seconds if 
 static constexpr double T_MAX_PRED = 20;            // Predict for n seconds max [s]
 static constexpr double DELTA_DOT_LIMIT = 0.5;   // Max steering rate per second [rad/s]
 static constexpr double CUTOFF_FREQ = 1.0;          // Cutoff frequency for low pass filter to simulate steering delay [Hz]
-static constexpr double V_CRUISING = 0.8;//1.4;           // Max velocity [m/s] while cruising
-static constexpr double V_INTER_TURNING = 0.6;//0.5;      // Max velocity [m/s] when taking a turn
-static constexpr double V_INTER_ACC = 0.6;//0.7;          // Max velocity [m/s] when driving straight at intersection
-static constexpr double V_INTER_DEC = 0.3;//0.3;          // Max velocity [m/s] when driving straight at intersection
-static constexpr double V_ENTRY = 0.5;//0.5;              // Max velocity [m/s] when at entry of intersection
+static constexpr double V_CRUISING = 1.0;//1.4;           // Max velocity [m/s] while cruising
+static constexpr double V_INTER_TURNING = 0.5;//0.5;      // Max velocity [m/s] when taking a turn
+static constexpr double V_INTER_ACC = 0.8;//0.7;          // Max velocity [m/s] when driving straight at intersection
+static constexpr double V_INTER_DEC = 0.8;//0.3;          // Max velocity [m/s] when driving straight at intersection
+static constexpr double V_ENTRY = 0.6;//0.5;              // Max velocity [m/s] when at entry of intersection
 static constexpr double V_STEERSATURATION = 0.2;    // Velocity during steering saturation [m/s]
-static constexpr double V_OVERTAKE = 0.9;//0.5;           // Velocity during overtaking [m/s]
+static constexpr double V_OVERTAKE = 0.5;//0.5;           // Velocity during overtaking [m/s]
 vector<double> V_SCALE_OPTIONS = {1.0, 0.67, 0.33, 0.0};  // Options to scale velocity with
 int MAX_K = V_SCALE_OPTIONS.size();                 // Static not happy when populated this way, so nonstatic definition
 static constexpr double ENV_COR_WIDTH = 2.50;
@@ -65,9 +65,9 @@ static constexpr double TUBE_WIDTH_C = ENV_COR_WIDTH/2; // Default tube width [m
 static constexpr double REACHEDTARGETTRESHOLD = 1.0;  // When x [m] removed from center of last hallway, program finished
 
 // Performance based on position in environment
-static constexpr double START_STEERING_EARLY = 0.1;     // Start steering earlier by x [m]
+static constexpr double START_STEERING_EARLY = 0.5;     // Start steering earlier by x [m]
 static constexpr double ENTRY_LENGTH = 2.2;             // Length of entries before intersections [m]
-static constexpr double ROTATED_ENOUGH_TRES = M_PI/8;   // Stop turning when within x rad of the new corridor
+static constexpr double ROTATED_ENOUGH_TRES = M_PI/4;   // Stop turning when within x rad of the new corridor
 static constexpr double OBS_AVOID_MARGIN = 0.2;         // Margin between ropod and obstacles at full speed [m]
 static constexpr double DILATE_ROPOD_ALIGNING = 0.90;   // Dilation from center (so actually this value -size_side if measured from side of vehicle)
 //static constexpr double ROPOD_TO_OBS_MARGIN = (OBS_AVOID_MARGIN+SIZE_FRONT_ROPOD)/SIZE_FRONT_ROPOD;
