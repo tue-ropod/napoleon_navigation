@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   pluginlib
   nav_core
   ed  
+  ed_gui_server
 )
 
 ## System dependencies are found with CMake's conventions
