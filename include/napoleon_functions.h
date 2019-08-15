@@ -42,6 +42,7 @@ public:
 	PointID p0, p1, p2, p3;
 	int id;
 	string type;
+    AreaQuadID();
 	AreaQuadID(PointID p0val, PointID p1val, PointID p2val, PointID p3val, int idval, string typeval);
 	vector<string> getPointIDs();
 	bool contains(Point q);

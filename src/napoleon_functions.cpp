@@ -30,6 +30,11 @@ AreaQuad::AreaQuad(Point p0val, Point p1val, Point p2val, Point p3val) {
     p3 = p3val;
 }
 
+// empty constructor
+AreaQuadID::AreaQuadID() {
+    type = "none";
+}
+
 // For static areas like hallways and intersections
 AreaQuadID::AreaQuadID(PointID p0val, PointID p1val, PointID p2val, PointID p3val, int idval, string typeval) {
     p0 = p0val;

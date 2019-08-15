@@ -38,7 +38,7 @@ Point obs_center_global;
 double program_duration = 0, real_time_est = 0;
 
 //std::vector<geometry_msgs::PoseStamped> global_path;
-bool simple_goal_received = false;
+bool start_navigation = false;
 geometry_msgs::PoseStamped simple_goal;
 
 bool goal_received = false;
@@ -129,11 +129,17 @@ void getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPt
     this_amcl_theta = atan2(siny_cosp, cosy_cosp);
 }
 
+void simpleGoalCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_msg)
+{
+    ROS_INFO("new simple goal received");
+    start_navigation = true;
+}
+
 std::queue<sensor_msgs::LaserScan::ConstPtr> scan_buffer_;
 bool scan_available = false;
 void scanCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
-    scan_available = true;    
+    scan_available = true;
     scan_buffer_.push(msg);
 }
 
@@ -152,25 +158,25 @@ void getLatestScanData()
         // Determine absolute laser pose based on TF
 
         try
-        {            
+        {
             tf::StampedTransform t_sensor_pose;
             tf_listener_->lookupTransform("map", scan->header.frame_id, scan->header.stamp, t_sensor_pose);
             scan_buffer_.pop();
-            
+
             tf::Quaternion q = t_sensor_pose.getRotation(); //( t_sensor_pose.getRotation().x, t_sensor_pose.getRotation().y, t_sensor_pose.getRotation().z, t_sensor_pose.getRotation().w );
             tf::Matrix3x3 matrix ( q );
             double rollSensor, pitchSensor, yawSensor;
             matrix.getRPY ( rollSensor, pitchSensor, yawSensor );
-            
+
             double scan_size =  scan->ranges.size();
             laser_meas_points.resize(scan_size);
 
-            for(unsigned int iScan = 0; iScan < scan_size; iScan ++)       
+            for(unsigned int iScan = 0; iScan < scan_size; iScan ++)
             {
                 double angle = yawSensor + scan->angle_min + scan->angle_increment*iScan;
                 laser_meas_points[iScan].x = t_sensor_pose.getOrigin().getX() + scan->ranges[iScan]*cos( angle );
                 laser_meas_points[iScan].y = t_sensor_pose.getOrigin().getY() + scan->ranges[iScan]*sin( angle );
-            }            
+            }
         }
         catch(tf::ExtrapolationException& ex)
         {
@@ -251,7 +257,7 @@ int main(int argc, char** argv)
     //         K(8.89,-1.3,"K"), L(11.62,0.42,"L"), M(12.66,4.85,"M"), N(10.93,7.76,"N"),
     //         P(6.32,8.78,"P"), Q(3.38,7.46,"Q"), R(2.25,2.76,"R"), S(4.05,-0.13,"S");
 
-//#define BRSU_MAP
+#define BRSU_MAP
 #ifndef BRSU_MAP
     // Initialize environment (turn right)
     PointID A(11.12,-1.66,"A"), B(13.14,7.26,"B"), C(3.94,9.23,"C"), D(1.85,0.49,"D"),
@@ -273,29 +279,63 @@ int main(int argc, char** argv)
      //   int assignment[] = {48,47,46,45,44,51,50,49,48}; // reversed (right turns)
 
 #else
-
+    /*
     PointID A(57.4835319519,31.4500312805,"A"), B(53.8165359497,31.448266983,"B"), C(53.1958885193,33.428894043, "C"), D(57.5956115723, 33.3022842407,"D"); //first corridor
     PointID Corner(51.2283287048, 31.8158283234, "Corner");
-    /*PointID E(52.8088302612,33.5964889526,"E"),**/ PointID F(51.0468292236,33.5235900879,"F"), G(49.8914794922,39.4212722778,"G"), H(51.4209938049,40.0381965637,"H"); // second corridor
+    //PointID E(52.8088302612,33.5964889526,"E"),
+    PointID F(51.0468292236,33.5235900879,"F"), G(49.8914794922,39.4212722778,"G"), H(51.4209938049,40.0381965637,"H"); // second corridor
 
-//    AreaQuadID areaC1(A,B,C,D,1,"hallway");
-//    AreaQuadID junctionJ1(C,Corner,F,D,2,"inter");
-//    AreaQuadID areaC2(D,F,G,H,3,"hallway");
+    AreaQuadID areaC1(D,C,B,A,1,"hallway");
+    AreaQuadID junctionJ1(C,F, Corner,B,2,"inter");
+    AreaQuadID areaC2(C,H,G,F,3,"hallway");
 
-//    AreaQuadID areaC1(B,C,D,A,1,"hallway");
-//    AreaQuadID junctionJ1(C,Corner,F,D,2,"inter");
-//    AreaQuadID areaC2(F,G,H,D,3,"hallway");
-
-        AreaQuadID areaC1(D,C,B,A,1,"hallway");
-        AreaQuadID junctionJ1(C,F, Corner,B,2,"inter");
-        AreaQuadID areaC2(C,H,G,F,3,"hallway");
-
-    std::vector<PointID> pointlist {A, B, C, D, /*E is a dublet; this does not work ,*/  F, G, H, Corner};
+    // E is a dublet; this does not work ,
+    std::vector<PointID> pointlist {A, B, C, D, F, G, H, Corner};
     std::vector<AreaQuadID> arealist {areaC1, junctionJ1, areaC2};
-
-
- //   int assignment[] = {1,2,3};
-//    int assignment[] = {3,2,1}; // reverse
+    int assignment[] = {1,2,3};
+    //int assignment[] = {3,2,1}; // reverse
+    */
+    
+    
+    // For turning right at the junction
+    PointID A(63.395690918, 33.1979217529,"A"), B(54.3451690674,33.4537239075,"B"), C(54.3025970459,32.0084457397, "C"), 
+    D(63.3531188965, 31.7526473999,"D"), E(53.0334472656,33.4637107849,"E"), F(53.4655265808,31.5283699036, "F"), 
+    G(50.4813156128,33.5153083801, "G"), H(50.9491882324, 31.6013393402,"H"), I(52.3446426392,35.5722427368,"I"), 
+    J(51.3785552979,35.2955970764, "J"), K(51.2514648438,39.8824501038,"K"), L(50.3707923889,39.6370811462, "L");
+    
+    AreaQuadID area1(A,B,C,D,1,"hallway");
+    AreaQuadID area2(B,E,F,C,2,"hallway");
+    AreaQuadID area3(F,E,G,H,3,"inter");
+    AreaQuadID area4(E,I,J,G,4,"hallway");
+    AreaQuadID area5(I,K,L,J,5,"hallway");
+    
+    std::vector<PointID> pointlist {A, B, C, D, E, F, G, H, I, J, K, L};
+    std::vector<AreaQuadID> arealist {area1, area2, area3, area4, area5};
+    
+    // reverse
+    // std::vector<AreaQuadID> arealist {area5, area4, area3, area2, area1};
+    
+    int assignment[] = {1,2,3,4,5};
+    
+    /*
+    // For moving straight through the junction to corridor
+    
+    PointID A(63.395690918, 33.1979217529,"A"), B(54.3451690674,33.4537239075,"B"), C(54.3025970459,32.0084457397, "C"), 
+    D(63.3531188965, 31.7526473999,"D"), E(53.0334472656, 33.4637107849, "E"), F(53.4655265808, 31.5283699036, "F"), 
+    G(50.4813156128, 33.5153083801, "G"), H(50.9491882324, 31.6013393402, "H"), I(50.1147499084, 33.5243186951, "I"), 
+    J(50.0909767151, 32.5569801331, "J"), K(40.239730835, 33.8115310669, "K"), L(40.2089080811, 32.844367981, "L");
+    
+    AreaQuadID area1(A,B,C,D,1,"hallway");
+    AreaQuadID area2(B,E,F,C,2,"hallway");
+    AreaQuadID area3(E,G,H,F,3,"inter");
+    AreaQuadID area4(G,I,J,H,4,"hallway");
+    AreaQuadID area5(I,K,L,J,5,"hallway");
+    
+    std::vector<PointID> pointlist {A, B, C, D, E, F, G, H, I, J, K, L};
+    std::vector<AreaQuadID> arealist {area1, area2, area3, area4, area5};
+    
+    int assignment[] = {1,2,3,4,5};    
+    */
 
 #endif
 
@@ -314,7 +354,7 @@ int main(int argc, char** argv)
     prediction_feasibility_check_period = 1.0/prediction_feasibility_check_rate;
     local_navigation_period = 1.0/local_navigation_rate;
 
-//    ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
+    ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
     ros::Subscriber cancel_cmd_sub = nroshndl.subscribe<std_msgs::Bool>("/route_navigation/cancel", 10, cancelCallback);
     ros::Subscriber reinit_planner_sub = nroshndl.subscribe<std_msgs::Bool>("/route_navigation/set_load_attached", 10, loadAttachedCallback);
     ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, getAmclPoseCallback);
@@ -326,9 +366,9 @@ int main(int argc, char** argv)
 
     // Visualize map nodes
     ros::Publisher mapmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/vmnodes", 10, true);
-    
+
     // Subscribe to topic with non-associated laser points
-    std::string laser_topic("/ropod/laser/scan");    
+    std::string laser_topic("/ropod/laser/scan");
     unsigned int bufferSize = 1;
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>(laser_topic, bufferSize, scanCallback);
     tf_listener_ = new tf::TransformListener;
@@ -408,7 +448,8 @@ int main(int argc, char** argv)
     double t_pred_j[size_p] {0};              // Prediction time planning [s]
     double pred_v_ropod[size_m] {v_ropod_0};
     double pred_v_ropod_plan[size_p] {pred_v_ropod[0]};
-    bool pred_ropod_on_entry[size_p] {false};
+    bool pred_ropod_on_entry_inter[size_p] {false};
+    bool pred_ropod_on_entry_hall[size_p] {false};
     //std::vector<double> sim_v_ropod {pred_v_ropod[0]};
     double pred_x_ropod[size_p] {x_ropod_0};
     double pred_y_ropod[size_p] {y_ropod_0};
@@ -493,8 +534,18 @@ int main(int argc, char** argv)
 
     AreaQuadID OBJ_FIRST = getAreaByID(assignment[0],arealist);
     AreaQuadID OBJ_LAST = getAreaByID(assignment[ka_max-1],arealist);
-    AreaQuadID current_hallway = getAreaByID(assignment[0],arealist);
-    AreaQuadID next_hallway = getAreaByID(assignment[2],arealist);
+    AreaQuadID current_hallway = getAreaByID(assignment[0],arealist); // TODO: This assumes we start in a hallway, which could be not the case when stuck in an intersection
+    AreaQuadID next_hallway;
+    for (int arID = 1; arID < ka_max; arID++) 
+    {
+        if (arealist[arID].type == "hallway")
+        {
+            printf("AreaNumber initial next hallway: %d\n",arID);
+            next_hallway = arealist[arID];
+            break;
+        }
+    }
+      
     Point last_obj_center = OBJ_LAST.center();
     PointID current_pivot, cur_next_hallway_rear, cur_next_hallway_front;
     PointID current_inter_rear_wall, current_inter_front_wall;
@@ -519,7 +570,7 @@ int main(int argc, char** argv)
 
     array<array<string, 6>, ka_max> OBJ_X_TASK; // Assuming this initializes empty strings (otherwise wont work)
     std::array<std::string, 6> task1, task2, task3;
-    int area1, area2, area3;
+    int area1ID, area2ID, area3ID;
 
     std::vector<std::string> OBJ1TASK, OBJ2TASK, OBJ_LAST_TASK;
     AreaQuadID OBJ1 = getAreaByID(assignment[0],arealist);
@@ -531,55 +582,70 @@ int main(int argc, char** argv)
     double obj2frontwall_angle, obj3wall_angle, relative_angle;
 
     ROS_INFO("Printing assignment nodes:");
-    for (int ka = 0; ka < ka_max-1; ka = ka+2) {
-        OBJ1 = getAreaByID(assignment[ka],arealist);
-        OBJ2 = getAreaByID(assignment[ka+1],arealist);
-        OBJ3 = getAreaByID(assignment[ka+2],arealist);
-        OBJ1TASK = getWallPointsTowardsB(OBJ1,OBJ2);
-        printstringvec(OBJ1TASK);
-        OBJ_X_TASK[ka][0] = OBJ1TASK[0];
-        OBJ_X_TASK[ka][1] = OBJ1TASK[1];
-        OBJ2TASK = getPointsForTurning(OBJ1,OBJ2,OBJ3,OBJ1TASK);
-        printstringvec(OBJ2TASK);
-        obj2tasklen = OBJ2TASK.size();
-        OBJ_X_TASK[ka+1][0] = OBJ2TASK[0];
-        OBJ_X_TASK[ka+1][1] = OBJ2TASK[1];
-        if (obj2tasklen == 6) {
-            OBJ_X_TASK[ka+1][2] = OBJ2TASK[2];
-            OBJ_X_TASK[ka+1][3] = OBJ2TASK[3];
-            OBJ_X_TASK[ka+1][4] = OBJ2TASK[4];
-            OBJ_X_TASK[ka+1][5] = OBJ2TASK[5];
-
-            obj2wall_p0 = getPointByID(OBJ2TASK[0],pointlist);
-            obj2wall_p1 = getPointByID(OBJ2TASK[1],pointlist);
-            obj3wall_p0 = getPointByID(OBJ2TASK[2],pointlist);
-            obj3wall_p1 = getPointByID(OBJ2TASK[3],pointlist);
-
-            obj2frontwall_angle = atan2(obj2wall_p1.y-obj2wall_p0.y, obj2wall_p1.x-obj2wall_p0.x);
-            obj3wall_angle = atan2(obj3wall_p1.y-obj3wall_p0.y, obj3wall_p1.x-obj3wall_p0.x);
-            relative_angle = wrapToPi(obj3wall_angle-obj2frontwall_angle);
-
-            if (OBJ2TASK[5].compare("right") == 0 && relative_angle < -SHARP_ANGLE_TRESHOLD) {
-                // Sharp angle to the right, we need to take the next wall into account as well
-                sharp_corner[ka+1] = true;
-            } else if (OBJ2TASK[5].compare("left") == 0 && relative_angle > SHARP_ANGLE_TRESHOLD) {
-                // Sharp angle to the left, we need to take the next wall into account as well
-                sharp_corner[ka+1] = true;
+    for (int ka = 0; ka < ka_max; ka = ka+1) {
+        AreaQuadID curr_OBJ = getAreaByID(assignment[ka],arealist);
+        if(curr_OBJ.type=="hallway")
+        {
+            printf("Hallway assignment: ");
+            OBJ1 = getAreaByID(assignment[ka],arealist);
+            OBJ2 = getAreaByID(assignment[ka+1],arealist);
+            OBJ3 = getAreaByID(assignment[ka+2],arealist);
+            if (ka < (ka_max-1) )
+            {
+                OBJ1TASK = getWallPointsTowardsB(OBJ1,OBJ2);
             }
+            else
+            {
+                OBJ1TASK = getWallPointsAwayFromB(OBJ1,getAreaByID(assignment[ka-1],arealist));
+            }
+            printstringvec(OBJ1TASK);
+            OBJ_X_TASK[ka][0] = OBJ1TASK[0];
+            OBJ_X_TASK[ka][1] = OBJ1TASK[1];
         }
-    }
+        else if(curr_OBJ.type=="inter")
+        {
+            printf("Intersection assignment: ");
+            OBJ1 = getAreaByID(assignment[ka-1],arealist);
+            OBJ2 = getAreaByID(assignment[ka],arealist);
+            OBJ3 = getAreaByID(assignment[ka+1],arealist);
+            OBJ2TASK = getPointsForTurning(OBJ1,OBJ2,OBJ3,OBJ1TASK);
+            printstringvec(OBJ2TASK);
+            obj2tasklen = OBJ2TASK.size();
+            OBJ_X_TASK[ka][0] = OBJ2TASK[0];
+            OBJ_X_TASK[ka][1] = OBJ2TASK[1];
+            if (obj2tasklen == 6) {
+                OBJ_X_TASK[ka][2] = OBJ2TASK[2];
+                OBJ_X_TASK[ka][3] = OBJ2TASK[3];
+                OBJ_X_TASK[ka][4] = OBJ2TASK[4];
+                OBJ_X_TASK[ka][5] = OBJ2TASK[5];
+    
+                obj2wall_p0 = getPointByID(OBJ2TASK[0],pointlist);
+                obj2wall_p1 = getPointByID(OBJ2TASK[1],pointlist);
+                obj3wall_p0 = getPointByID(OBJ2TASK[2],pointlist);
+                obj3wall_p1 = getPointByID(OBJ2TASK[3],pointlist);
+    
+                obj2frontwall_angle = atan2(obj2wall_p1.y-obj2wall_p0.y, obj2wall_p1.x-obj2wall_p0.x);
+                obj3wall_angle = atan2(obj3wall_p1.y-obj3wall_p0.y, obj3wall_p1.x-obj3wall_p0.x);
+                relative_angle = wrapToPi(obj3wall_angle-obj2frontwall_angle);
+    
+                if (OBJ2TASK[5].compare("right") == 0 && relative_angle < -SHARP_ANGLE_TRESHOLD) {
+                    // Sharp angle to the right, we need to take the next wall into account as well
+                    sharp_corner[ka+1] = true;
+                } else if (OBJ2TASK[5].compare("left") == 0 && relative_angle > SHARP_ANGLE_TRESHOLD) {
+                    // Sharp angle to the left, we need to take the next wall into account as well
+                    sharp_corner[ka+1] = true;
+                }
+            }            
+        }
 
-    // Last area
-    OBJ_LAST_TASK = getWallPointsAwayFromB(OBJ_LAST,OBJ2);
-    OBJ_X_TASK[ka_max-1][0] = OBJ_LAST_TASK[0];
-    OBJ_X_TASK[ka_max-1][1] = OBJ_LAST_TASK[1];
-    printstringvec(OBJ_LAST_TASK);
+    }    
+
 
     double v_ax = 0, theta_dot = 0, v_des, phi, v_scale;
     bool ropod_is_in_44, ropod_is_in_45, ropod_is_in_46, ropod_is_in_47,
          ropod_is_in_48, ropod_is_in_49, ropod_is_in_50, ropod_is_in_51;
 
-    bool consider_overtaking_area1, consider_overtaking_area3;
+    bool consider_overtaking_area1ID, consider_overtaking_area3ID;
     bool update_assignment;
     int uprev;
     bool ropod_colliding_obs = true;
@@ -597,7 +663,6 @@ int main(int argc, char** argv)
 
     std::clock_t start_loop;
 
-    simple_goal_received = true;
 
     while(nroshndl.ok() && !ropod_reached_target)
     {
@@ -607,13 +672,11 @@ int main(int argc, char** argv)
             getLatestScanData();
             scan_available = false;
         }
-            
+
 
         prediction_feasibility_check_cycle_time += local_navigation_period;
-        // Execute local navigation
-        napoleon_driving.callLocalNavigationStateMachine();
 
-        if (simple_goal_received)
+        if (start_navigation)
         {
 
         start_loop = std::clock();
@@ -711,13 +774,23 @@ int main(int argc, char** argv)
 
             // Initialize areas
             u = pred_task_counter[0];
-            if (u < ka_max-1) {
-                area1 = assignment[u];
+            if (u < ka_max-1) 
+            {
+                area1ID = assignment[u];
                 task1 = OBJ_X_TASK[u];
-                area2 = assignment[u+1];
+                area2ID = assignment[u+1];
                 task2 = OBJ_X_TASK[u+1];
-                area3 = assignment[u+2];
-                task3 = OBJ_X_TASK[u+2];
+                if(u == (ka_max-2) )
+                {
+                    area3ID = assignment[u+1];
+                    task3 = OBJ_X_TASK[u+1];
+                }
+                else
+                {
+                    area3ID = assignment[u+2];
+                    task3 = OBJ_X_TASK[u+2];
+                }
+                //current_entry = generateEntry(assignment[u], assignment[u+1], ENTRY_LENGTH, arealist, pointlist);
                 // AreaQuad current_sim_entry = generateEntry(assignment[u], assignment[u+1], ENTRY_LENGTH, arealist, pointlist);
             }
 
@@ -729,8 +802,8 @@ int main(int argc, char** argv)
                 j = j+1;
 
                 // j and m counter are initialized at 0 instead of 1 in Matlab so we dont have to change their indices
-                consider_overtaking_area1 = false;
-                consider_overtaking_area3 = false;
+                consider_overtaking_area1ID = false;
+                consider_overtaking_area3ID = false;
                 pred_tube_width[j] = pred_tube_width[j-1];  // Assume same as previous, might change later
 
                 // Get old task counter
@@ -748,12 +821,21 @@ int main(int argc, char** argv)
 
                 if (u < ka_max-1) {
                     if (update_assignment) {
-                        area1 = assignment[u];
+                        area1ID = assignment[u];
                         task1 = OBJ_X_TASK[u];
-                        area2 = assignment[u+1];
+                        area2ID = assignment[u+1];
                         task2 = OBJ_X_TASK[u+1];
-                        area3 = assignment[u+2];
-                        task3 = OBJ_X_TASK[u+2];
+                        if(u == (ka_max-2) )
+                        {
+                            area3ID = assignment[u+1];
+                            task3 = OBJ_X_TASK[u+1];
+                        }
+                        else
+                        {
+                            area3ID = assignment[u+2];
+                            task3 = OBJ_X_TASK[u+2];
+                        }
+                            
                         current_entry = generateEntry(assignment[u], assignment[u+1], ENTRY_LENGTH, arealist, pointlist);
                     }
 
@@ -780,31 +862,52 @@ int main(int argc, char** argv)
                     }
                 } else {
                     // Final area from assignment
-                    area1 = assignment[u];
+                    area1ID = assignment[u];
                     task1 = OBJ_X_TASK[u];
                     pred_state[j] = 1;  // Cruising in last HW
                 }
-
+                
+                AreaQuadID curr_area = getAreaByID(area1ID,arealist);
+                AreaQuadID next_area = getAreaByID(area2ID,arealist);
+                
                 // Consider overtaking
                 if (u < ka_max-1 && no_obs > 0) {
                     if (update_assignment) {
-                        current_hallway = getAreaByID(area1, arealist);
-                        next_hallway = getAreaByID(area3, arealist);
+                        current_hallway = getAreaByID(area1ID, arealist);
+                        if(next_area.type == "hallway")
+                        {
+                            next_hallway = next_area;
+                        }
+                        else
+                        {
+                            next_hallway = getAreaByID(area3ID, arealist);
+                        }
                     }
                     // TODO: The contain function should consider not only the center but all corners
                     if (current_hallway.contains(obs_center_global)) {
-                        consider_overtaking_area1 = true;
+                        consider_overtaking_area1ID = true;
                         // This strategy only allows to overtake 1 obstacle
                     }
                     if (next_hallway.contains(obs_center_global)) {
-                        consider_overtaking_area3 = true;
+                        consider_overtaking_area3ID = true;
                         // This strategy only allows to overtake 1 obstacle
                     }
                 }
 
                 // Original implementation was checking for overlap between ropod shape and entry shape,
                 // maybe change later if this implementation causes strange behavior
-                pred_ropod_on_entry[j] = current_entry.contains(pred_xy_ropod[j-1]);
+                //if(j==1)printf("Areas type curr next: %s, %s\n",curr_area.type.c_str(),next_area.type.c_str());
+                pred_ropod_on_entry_inter[j] = false;
+                pred_ropod_on_entry_hall[j] = false;
+                if (curr_area.type == "hallway" && next_area.type == "inter")
+                {
+                    pred_ropod_on_entry_inter[j] = current_entry.contains(pred_xy_ropod[j-1]);
+                }
+                else if (area1ID!=area2ID && curr_area.type == "hallway" && next_area.type == "hallway")
+                {  
+                    pred_ropod_on_entry_hall[j] = current_entry.contains(pred_xy_ropod[j-1]);
+                }
+                
 
                 update_state_points = true; // Initially true, might change to false when not necessary
                 prevstate = j-1;
@@ -823,7 +926,39 @@ int main(int argc, char** argv)
 
                 // Taking a turn on an intersection
                 if (!task2[5].empty()) {
-                    if (pred_ropod_on_entry[j] && pred_state[prevstate] == 1) {
+                    //printf("Ropod entry hall task2[5] non empty: %d\n",(int)pred_ropod_on_entry_hall[j]);
+                    if (pred_ropod_on_entry_hall[j] && pred_state[prevstate] == 1) {
+                        pred_state[j] = 1;
+                        //disp([num2str(i), ': Here we can switch to the next hallway']);
+                        u = u+1;
+                        area1ID = assignment[u];
+                        task1 = OBJ_X_TASK[u];
+                        if (u < ka_max-1) {
+                            area2ID = assignment[u+1];
+                            task2 = OBJ_X_TASK[u+1];
+                            if(u == (ka_max-2) )
+                            {
+                                area3ID = assignment[u+1];
+                                task3 = OBJ_X_TASK[u+1];
+                            }
+                            else
+                            {
+                                area3ID = assignment[u+2];
+                                task3 = OBJ_X_TASK[u+2];
+                            }
+                        }
+                        else
+                        {
+                            area1ID = assignment[ka_max-1];
+                            task1 = OBJ_X_TASK[ka_max-1];
+                            area2ID = assignment[ka_max-1];
+                            task2 = OBJ_X_TASK[ka_max-1];
+                            area3ID = assignment[ka_max-1];
+                            task3 = OBJ_X_TASK[ka_max-1];
+                        }
+                        current_entry = generateEntry(area1ID, area2ID, ENTRY_LENGTH, arealist, pointlist);
+                        
+                    } else if (pred_ropod_on_entry_inter[j] && pred_state[prevstate] == 1) {
                         // If cruising and the y position of the ropod exceeds the y
                         // position of the entry
                         pred_state[j] = 2;
@@ -847,16 +982,33 @@ int main(int argc, char** argv)
                         pred_state[j] = 1;
                         //disp([num2str(i), ': Here we can switch to the next task']);
                         u = u+2;
-                        area1 = assignment[u];
+                        area1ID = assignment[u];
                         task1 = OBJ_X_TASK[u];
-                        if (u < ka_max-1) {
-                            area2 = assignment[u+1];
+                        if (u < ka_max-1) 
+                        {
+                            area2ID = assignment[u+1];
                             task2 = OBJ_X_TASK[u+1];
-                            area3 = assignment[u+2];
-                            task3 = OBJ_X_TASK[u+2];
-                            current_entry = generateEntry(assignment[u], assignment[u+1], ENTRY_LENGTH, arealist, pointlist);
-                            //current_inter = getPoints(getAreaByID(area2,arealist));
+                            if(u == (ka_max-2) )
+                            {
+                                area3ID = assignment[u+1];
+                                task3 = OBJ_X_TASK[u+1];
+                            }
+                            else
+                            {
+                                area3ID = assignment[u+2];
+                                task3 = OBJ_X_TASK[u+2];
+                            }
                         }
+                        else
+                        {
+                            area1ID = assignment[ka_max-1];
+                            task1 = OBJ_X_TASK[ka_max-1];
+                            area2ID = assignment[ka_max-1];
+                            task2 = OBJ_X_TASK[ka_max-1];
+                            area3ID = assignment[ka_max-1];
+                            task3 = OBJ_X_TASK[ka_max-1];
+                        }
+                        current_entry = generateEntry(area1ID, area2ID, ENTRY_LENGTH, arealist, pointlist);
                     } else {
 
                         pred_state[j] = pred_state[prevstate];
@@ -864,35 +1016,92 @@ int main(int argc, char** argv)
                     }
                 // Going straight on an intersection
                 } else if (!task2[1].empty()) {
-                    if (pred_ropod_on_entry[j] == 1 && pred_state[prevstate] == 1) {
+                    if (pred_ropod_on_entry_hall[j] && pred_state[prevstate] == 1) {
+                        pred_state[j] = 1;
+                        //disp([num2str(i), ': Here we can switch to the next hallway']);                    
+                        u = u+1;
+                        if(j==1)printf("Entry detected between halls u = %d\n",u);
+                        if (u < ka_max-1) 
+                        {
+                            area1ID = assignment[u];
+                            task1 = OBJ_X_TASK[u];
+                            area2ID = assignment[u+1];
+                            task2 = OBJ_X_TASK[u+1];
+                            if(u == (ka_max-2) )
+                            {
+                                area3ID = assignment[u+1];
+                                task3 = OBJ_X_TASK[u+1];
+                            }
+                            else
+                            {
+                                area3ID = assignment[u+2];
+                                task3 = OBJ_X_TASK[u+2];
+                            }                            
+                        }
+                        else
+                        {
+                            area1ID = assignment[ka_max-1];
+                            task1 = OBJ_X_TASK[ka_max-1];
+                            area2ID = assignment[ka_max-1];
+                            task2 = OBJ_X_TASK[ka_max-1];
+                            area3ID = assignment[ka_max-1];
+                            task3 = OBJ_X_TASK[ka_max-1];
+                        }
+                        current_entry = generateEntry(area1ID, area2ID, ENTRY_LENGTH, arealist, pointlist);
+
+                    }else if (pred_ropod_on_entry_inter[j] == 1 && pred_state[prevstate] == 1) {
                         // If cruising and the y position of the ropod exceeds the y
                         // position of the entry
-
+                        if(j==1)printf("Entry detected to intersection u = %d\n",u);
                         pred_state[j] = 7;
                     } else if (current_inter_rear_wall_local.x < SIZE_FRONT_ROPOD+START_STEERING_EARLY && pred_state[prevstate] == 7) {
                         // If in entry and the y position of the ropod exceeds the y
                         // position of the intersection
-
+                        if(j==1)printf("On entry u = %d\n",u);
                         pred_state[j] = 8;
                     } else if (current_inter_front_wall_local.x < -D_AX/2 && pred_state[prevstate] == 8) {
+                        
                         pred_state[j] = 1;
                         u = u+2;
-                        area1 = assignment[u];
-                        task1 = OBJ_X_TASK[u];
+                        if(j==1)printf("Done with intersection u = %d\n",u);
                         if (u < ka_max-1) {
-                            area2 = assignment[u+1];
+                            area1ID = assignment[u];
+                            task1 = OBJ_X_TASK[u];
+                            area2ID = assignment[u+1];
                             task2 = OBJ_X_TASK[u+1];
-                            area3 = assignment[u+2];
-                            task3 = OBJ_X_TASK[u+2];
-                            current_entry = generateEntry(assignment[u], assignment[u+1], ENTRY_LENGTH, arealist, pointlist);
-                            //current_inter = getPoints(getAreaByID(area2,arealist));
+                            if(u == (ka_max-2) )
+                            {
+                                area3ID = assignment[u+1];
+                                task3 = OBJ_X_TASK[u+1];
+                            }
+                            else
+                            {
+                                area3ID = assignment[u+2];
+                                task3 = OBJ_X_TASK[u+2];
+                            }
                         }
+                        else
+                        {
+                            area1ID = assignment[ka_max-1];
+                            task1 = OBJ_X_TASK[ka_max-1];
+                            area2ID = assignment[ka_max-1];
+                            task2 = OBJ_X_TASK[ka_max-1];
+                            area3ID = assignment[ka_max-1];
+                            task3 = OBJ_X_TASK[ka_max-1];
+                        }
+                        current_entry = generateEntry(area1ID, area2ID, ENTRY_LENGTH, arealist, pointlist);
+
 
                     } else {
                         pred_state[j] = pred_state[prevstate];
                         update_state_points = false;
                     }
                 }
+                if(u >= ka_max)
+                {
+                    u = ka_max-1;
+                }
+                
                 if (pred_state[prevstate] == 9 || pred_state[prevstate] == 10) {
                     if (no_obs > 0) {
                         current_obs_in_ropod_frame_pos = coordGlobalToRopod(obs_center_global, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
@@ -916,15 +1125,15 @@ int main(int argc, char** argv)
                 }
 
                 // Overtaking
-                if ((pred_state[prevstate] == 1 && consider_overtaking_area1) || consider_overtaking_area3 && (pred_state[prevstate] == 5 || pred_state[prevstate] == 8)) {
+                if ((pred_state[prevstate] == 1 && consider_overtaking_area1ID) || consider_overtaking_area3ID && (pred_state[prevstate] == 5 || pred_state[prevstate] == 8)) {
                     obs_in_ropod_frame_pos = coordGlobalToRopod(obs_center_global, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
                     v_obs_sq = current_obstacle.vel.x*current_obstacle.vel.x+current_obstacle.vel.y*current_obstacle.vel.y;
                     if ((v_obs_sq < V_OBS_OVERTAKE_MAX*V_OBS_OVERTAKE_MAX) && obs_in_ropod_frame_pos.x > 0) {
                         //disp("Slow obstacle, check if there is space to overtake");
-                        if (consider_overtaking_area1) {
+                        if (consider_overtaking_area1ID) {
                             rw_p_rear = getPointByID(task1[0],pointlist);
                             rw_p_front = getPointByID(task1[1],pointlist);
-                            cur_obj = getAreaByID(area1,arealist);
+                            cur_obj = getAreaByID(area1ID,arealist);
                             areaIDs = cur_obj.getPointIDs();
                             ind = 0;
                             qmax = areaIDs.size();
@@ -936,10 +1145,10 @@ int main(int argc, char** argv)
                             rotate(areaIDs.begin(), areaIDs.begin() + ind, areaIDs.end());
                             lw_p_rear = getPointByID(areaIDs[3],pointlist);
                             lw_p_front = getPointByID(areaIDs[2],pointlist);
-                        } else if (consider_overtaking_area3) {
+                        } else if (consider_overtaking_area3ID) {
                             rw_p_rear = getPointByID(task3[0],pointlist);
                             rw_p_front = getPointByID(task3[1],pointlist);
-                            cur_obj = getAreaByID(area3,arealist);
+                            cur_obj = getAreaByID(area3ID,arealist);
                             areaIDs = cur_obj.getPointIDs();
                             ind = 0;
                             qmax = areaIDs.size();
@@ -984,7 +1193,7 @@ int main(int argc, char** argv)
                                     ROS_INFO("Tight overtake, state 9");
                                     pred_state[j] = 9;
                                     //current_to_overtake_obs = to_overtake_obs;
-                                    if (consider_overtaking_area3) {
+                                    if (consider_overtaking_area3ID) {
                                         u = u+2;
                                         update_assignment = true;
                                     }
@@ -995,7 +1204,7 @@ int main(int argc, char** argv)
                                     ROS_INFO("Spacious overtake, state 10");
                                     pred_state[j] = 10;
                                     //current_to_overtake_obs = to_overtake_obs;
-                                    if (consider_overtaking_area3) {
+                                    if (consider_overtaking_area3ID) {
                                         u = u+2;
                                         update_assignment = true;
                                     }
@@ -1013,7 +1222,7 @@ int main(int argc, char** argv)
                             }
                         }
                     }
-                } else if (!consider_overtaking_area1 && !consider_overtaking_area3) {
+                } else if (!consider_overtaking_area1ID && !consider_overtaking_area3ID) {
                     pred_tube_width[j] = TUBE_WIDTH_C;
                 }
 
@@ -1051,6 +1260,7 @@ int main(int argc, char** argv)
                         //disp("Switched early while aligning pivot because too close to front wall");
                     }
                 }
+
                 //////////////////////////////////////////////////////////////////////////////////////////
                 // Perform the appropriate action according to finite state machine
                 if (pred_state[j] == 1 || pred_state[j] == 6 || pred_state[j] == 8 || pred_state[j] == 9 || pred_state[j] == 10) {
@@ -1059,7 +1269,7 @@ int main(int argc, char** argv)
                         if (update_state_points) {
                             point_rear = getPointByID(task1[0],pointlist);
                             point_front = getPointByID(task1[1],pointlist);
-                            //ROS_INFO("Point rear: %s, Point front: %s", point_rear.id, point_front.id);
+                            //if(j==1 && u == ka_max-1) ROS_INFO("Cruising Point rear: %s, Point front: %s", point_rear.id.c_str(), point_front.id.c_str());
                             glob_wallpoint_front.x = point_front.x;
                             glob_wallpoint_front.y = point_front.y;
                             glob_wallpoint_rear.x = point_rear.x;
@@ -1088,7 +1298,7 @@ int main(int argc, char** argv)
                         v_des = V_INTER_ACC;
                     } else if (pred_state[j] == 9) { // Tight overtake
                         rw_p_rear = getPointByID(task1[0],pointlist);
-                        cur_obj = getAreaByID(area1,arealist);
+                        cur_obj = getAreaByID(area1ID,arealist);
                         areaIDs = cur_obj.getPointIDs();
                         ind = 0;
                         qmax = areaIDs.size();
@@ -1333,7 +1543,7 @@ int main(int argc, char** argv)
                     {
                         AreaQuad robot_footprint(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt);
                         Point laser_point(laser_meas_points[iScan].x, laser_meas_points[iScan].y);
-                        pred_ropod_colliding_obs[j] = robot_footprint.contains(laser_point);                        
+                        pred_ropod_colliding_obs[j] = robot_footprint.contains(laser_point);
                         ropod_colliding_obs = pred_ropod_colliding_obs[j];
                         if(ropod_colliding_obs)
                             break;
@@ -1342,7 +1552,7 @@ int main(int argc, char** argv)
 
                 if(ropod_colliding_obs)
                     break;
-                
+
                 vis_points.id = 1;
                 vis_points.color.r = 0.0;
                 vis_points.color.g = 0.0;
@@ -1356,6 +1566,8 @@ int main(int argc, char** argv)
                 ropodmarker_pub.publish(vis_points);
 
                 // Predict intersection times (left out for now)
+
+                // TODO: Finish next line to add checking collision with walls!
 
                 // Predict intersection with walls
                 // if ((u < ka_max-1) && update_assignment) {
@@ -1407,7 +1619,7 @@ int main(int argc, char** argv)
 
             ropod_colliding_wall = false;
 
-        }   // end while finding v_scale
+        }          // end while finding v_scale
 
         // Update after a prediction is made where no collision is caused
         // The prediction is ran until t_min_pred, however, the ropod will run a
@@ -1423,18 +1635,18 @@ int main(int argc, char** argv)
 
         control_v = pred_v_ropod[0]+pred_accel[1]*local_navigation_period;
         // Compute v_ax and theta_dot from v_des and phi
-        
+
         myfile << real_time_est << "\t" << program_duration << "\t" << pred_state[0] << "\t" << pred_task_counter[0] << "\t" << pred_tube_width[0] << "\t" <<
             pred_phi_des[0] << "\t" << pred_v_ropod[0] << "\t" << control_v << "\t"  <<  pred_xy_ropod[0].x << "\t" <<  pred_xy_ropod[0].y << "\t" <<
             pred_plan_theta[0] << "\t" << pred_x_obs[0] << "\t" << pred_y_obs[0] << "\t" << obs_theta << "\t" << current_obstacle.width << "\t" <<
             current_obstacle.depth << "\t" << current_obstacle.vel.x << "\t" << current_obstacle.vel.y << "\t" << pred_accel[1] << "\t" <<"\n";
         /*
         //ROS_INFO("Phi: %f / V_ax: %f / Theta_dot: %f", pred_phi_des[1], v_ax, theta_dot);
-        ROS_INFO("state: %d, tube width: %f", pred_state[1], pred_tube_width[1]);            
+        ROS_INFO("state: %d, tube width: %f", pred_state[1], pred_tube_width[1]);
         ROS_INFO("K: %d", k);
         ROS_INFO("V desired: %f", pred_v_ropod_plan[1]);
         ROS_INFO("Predphi[1]: %f / [2]: %f / [3]: %f / [4]: %f", pred_phi_des[1], pred_phi_des[2], pred_phi_des[3], pred_phi_des[4]);
-        */ 
+        */
 
         // if (pred_v_ropod_plan[1] > 0) {
         //     v_ax = cos(pred_phi_des[1])*pred_v_ropod_plan[1];
@@ -1499,6 +1711,7 @@ int main(int argc, char** argv)
         // End publish ropod points
 
         }   // end if received goal
+        
         ros::spinOnce();
         rate.sleep();
         if(rate.cycleTime() > ros::Duration(local_navigation_period) ){

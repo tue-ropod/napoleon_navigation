@@ -12,7 +12,7 @@ using namespace std;
 
 // Optimization / performance parameters
 static constexpr double FEELER_SIZE = 0.5;          // d_f: 0.5 Size of feeler [m] - used to predict where ropod goes suppose it would go straight
-static constexpr double FEELER_SIZE_STEERING = 2.0; // df_c: 0.3 Size of feeler when steering [m]
+static constexpr double FEELER_SIZE_STEERING = 1.0; // df_c: 0.3 Size of feeler when steering [m]
 static constexpr double ENV_TCTW_SIZE = 0.05;       // d_cor 0.05 Too close too wall area size [m]
 static constexpr double ENV_TRNS_SIZE = 0.20;       // d_trns 0.2 Transition area size [m]
 static constexpr double CARROT_LENGTH = 1.50;       // How far ahead point lies where ropod steers towards when too close to a wall [m]
@@ -55,10 +55,10 @@ static constexpr double V_INTER_ACC = 0.7;//0.7;          // Max velocity [m/s] 
 static constexpr double V_INTER_DEC = 0.3;//0.3;          // Max velocity [m/s] when driving straight at intersection
 static constexpr double V_ENTRY = 0.4;//0.5;              // Max velocity [m/s] when at entry of intersection
 static constexpr double V_STEERSATURATION = 0.2;    // Velocity during steering saturation [m/s]
-static constexpr double V_OVERTAKE = 0.5;//0.5;           // Velocity during overtaking [m/s]
+static constexpr double V_OVERTAKE = 1.0;//0.5;           // Velocity during overtaking [m/s]
 vector<double> V_SCALE_OPTIONS = {1.0, 0.67, 0.33, 0.0};  // Options to scale velocity with
 int MAX_K = V_SCALE_OPTIONS.size();                 // Static not happy when populated this way, so nonstatic definition
-static constexpr double ENV_COR_WIDTH = 3.00;
+static constexpr double ENV_COR_WIDTH = 2.50;
 // Fictional hallway width. Ropod will work with lanes of this/2 [m], starting from the wall.
 // No matter what the real hallway size is. This way it will stay close to the right wall, but not too agressively.
 static constexpr double TUBE_WIDTH_C = ENV_COR_WIDTH/2; // Default tube width [m]
