@@ -254,11 +254,13 @@ protected:
     std::string action_name_;
     ropod_ros_msgs::GoToFeedback feedback_;
     ropod_ros_msgs::GoToResult result_;
+    ropod_ros_msgs::RoutePlannerResult route_planner_result_;
+    bool status_;
 
 public:
     NapoleonPlanner(std::string name) :
     as_(nh_, name, boost::bind(&NapoleonPlanner::executeCB, this, _1), false),
-    action_name_(name), ac_("/route_planner", true)
+    action_name_(name), ac_("/route_planner", true), status_(false)
     {
         ROS_INFO("Waiting for route planner action server to start");
         ac_.waitForServer();
@@ -271,12 +273,23 @@ public:
     {
     }
 
+    bool getStatus()
+    {
+        return status_;
+    }
+
+    
+    void plannerResultCB(const actionlib::SimpleClientGoalState& state, const ropod_ros_msgs::RoutePlannerResultConstPtr& result)
+    {
+        route_planner_result_ = *result;
+    }
+
     void executeCB(const ropod_ros_msgs::GoToGoalConstPtr &goal)
     {
         std::vector<ropod_ros_msgs::Area> area_list = goal->action.areas;
         ropod_ros_msgs::RoutePlannerGoal route_planner_goal;
         route_planner_goal.areas = area_list;
-        ac_.sendGoal(route_planner_goal);
+        ac_.sendGoal(route_planner_goal, boost::bind(&NapoleonPlanner::plannerResultCB, this, _1, _2));
 
         //wait for the action to return
         bool finished_before_timeout = ac_.waitForResult(ros::Duration(60.0));
@@ -285,10 +298,12 @@ public:
         {
             actionlib::SimpleClientGoalState state = ac_.getState();
             ROS_INFO("Action finished: %s", state.toString().c_str());
+            bool status_ = true;
         }
         else
         {
             ROS_INFO("Action did not finish before the time out.");
+            status_ = false;
         }
     }
 };
@@ -303,6 +318,13 @@ int main(int argc, char** argv)
 
     std::string default_ropod_navigation_param_file;
     std::string default_ropod_load_navigation_param_file;
+
+    NapoleonPlanner napoleon_planner_("/goto");
+    if(!napoleon_planner_.getStatus())
+    {
+        ROS_ERROR("Route planning failed. Aborting navigation");
+        return -1;
+    }
 
     // Initialize environment (turn left)
     // PointID A(11.12,-1.66,"A"), B(13.04,7.06,"B"), C(3.94,9.23,"C"), D(1.85,0.49,"D"),
