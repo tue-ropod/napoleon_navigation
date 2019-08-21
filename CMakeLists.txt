@@ -20,6 +20,8 @@ find_package(catkin REQUIRED COMPONENTS
   nav_core
   ed  
   ed_gui_server
+  actionlib_msgs
+  ropod_ros_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -77,10 +79,12 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs  # Or other packages containing msgs
+  actionlib_msgs
+  ropod_ros_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -114,7 +118,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES napoleon_navigation
-CATKIN_DEPENDS  message_runtime std_msgs geometry_msgs nav_msgs roscpp  tf costmap_2d maneuver_planner
+CATKIN_DEPENDS  message_runtime std_msgs geometry_msgs nav_msgs roscpp  tf costmap_2d maneuver_planner actionlib_msgs ropod_ros_msgs
 #  DEPENDS system_lib
 )
 

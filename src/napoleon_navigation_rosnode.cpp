@@ -20,6 +20,10 @@
 #include <ed_gui_server/objPosVel.h>
 #include <ed_gui_server/objsPosVel.h>
 
+#include <actionlib/server/simple_action_server.h>
+#include <ropod_ros_msgs/GoToAction.h>
+#include <ropod_ros_msgs/RoutePlannerAction.h>
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -239,6 +243,55 @@ void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ro
     vis_wall.points.push_back(wall_p);
     pub.publish(vis_wall);
 }
+
+// route planner integration
+class NapoleonPlanner
+{
+protected:
+    ros::NodeHandle nh_;
+    actionlib::SimpleActionServer<ropod_ros_msgs::GoToAction> as_;
+    actionlib::SimpleActionClient<ropod_ros_msgs::RoutePlannerAction> ac_;
+    std::string action_name_;
+    ropod_ros_msgs::GoToFeedback feedback_;
+    ropod_ros_msgs::GoToResult result_;
+
+public:
+    NapoleonPlanner(std::string name) :
+    as_(nh_, name, boost::bind(&NapoleonPlanner::executeCB, this, _1), false),
+    action_name_(name), ac_("/route_planner", true)
+    {
+        ROS_INFO("Waiting for route planner action server to start");
+        ac_.waitForServer();
+        ROS_INFO("Connected to route planner action server");
+        // waiting for route planner action server to start
+        as_.start();
+    }
+
+    ~NapoleonPlanner(void)
+    {
+    }
+
+    void executeCB(const ropod_ros_msgs::GoToGoalConstPtr &goal)
+    {
+        std::vector<ropod_ros_msgs::Area> area_list = goal->action.areas;
+        ropod_ros_msgs::RoutePlannerGoal route_planner_goal;
+        route_planner_goal.areas = area_list;
+        ac_.sendGoal(route_planner_goal);
+
+        //wait for the action to return
+        bool finished_before_timeout = ac_.waitForResult(ros::Duration(60.0));
+
+        if (finished_before_timeout)
+        {
+            actionlib::SimpleClientGoalState state = ac_.getState();
+            ROS_INFO("Action finished: %s", state.toString().c_str());
+        }
+        else
+        {
+            ROS_INFO("Action did not finish before the time out.");
+        }
+    }
+};
 
 int main(int argc, char** argv)
 {
