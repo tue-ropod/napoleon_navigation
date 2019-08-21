@@ -267,6 +267,7 @@ public:
         ROS_INFO("Connected to route planner action server");
         // waiting for route planner action server to start
         as_.start();
+        ROS_INFO("Waiting for GOTO action");
     }
 
     ~NapoleonPlanner(void)
@@ -325,16 +326,20 @@ int main(int argc, char** argv)
     std::string default_ropod_load_navigation_param_file;
 
     NapoleonPlanner napoleon_planner_("/goto");
-    if(!napoleon_planner_.getStatus())
+    
+    while(ros::ok())
     {
-        ROS_ERROR("Route planning failed. Aborting navigation");
-        return -1;
+        if(napoleon_planner_.getStatus())
+        {
+            break;
+        }
     }
 
     std::vector<PointID> pointlist;
     std::vector<AreaQuadID> arealist;
     std::vector<int> assignment;
 
+    ROS_INFO("Now preparing plan");
     std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
     for (int i = 0; i < planner_areas.size(); i++)
     {
@@ -371,6 +376,8 @@ int main(int argc, char** argv)
             assignment.push_back(std::stoi(planner_areas[i].sub_areas[j].id));
         }
     }
+
+    ROS_INFO("Now starting navigation");
 
     nroshndl.param<double>("prediction_feasibility_check_rate", prediction_feasibility_check_rate, 3.0);
     nroshndl.param<double>("local_navigation_rate", local_navigation_rate, 10.0); // local_navigation_rate>prediction_feasibility_check_rate
