@@ -278,6 +278,11 @@ public:
         return status_;
     }
 
+    ropod_ros_msgs::RoutePlannerResult getPlannerResult()
+    {
+        return route_planner_result_;
+    }    
+
     
     void plannerResultCB(const actionlib::SimpleClientGoalState& state, const ropod_ros_msgs::RoutePlannerResultConstPtr& result)
     {
@@ -326,95 +331,46 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    // Initialize environment (turn left)
-    // PointID A(11.12,-1.66,"A"), B(13.04,7.06,"B"), C(3.94,9.23,"C"), D(1.85,0.49,"D"),
-    //         E(9.33,1.00,"E"), F(10.35,5.41,"F"), G(5.87,6.93,"G"), H(4.72,2.11,"H"),
-    //         K(8.89,-1.3,"K"), L(11.62,0.42,"L"), M(12.66,4.85,"M"), N(10.93,7.76,"N"),
-    //         P(6.32,8.78,"P"), Q(3.38,7.46,"Q"), R(2.25,2.76,"R"), S(4.05,-0.13,"S");
+    std::vector<PointID> pointlist;
+    std::vector<AreaQuadID> arealist;
+    std::vector<int> assignment;
 
-#define BRSU_MAP
-#ifndef BRSU_MAP
-    // Initialize environment (turn right)
-    PointID A(11.12,-1.66,"A"), B(13.14,7.26,"B"), C(3.94,9.23,"C"), D(1.85,0.49,"D"),
-            E(9.27,0.70,"E"), F(10.45,5.71,"F"), G(5.77,6.98,"G"), H(4.60,1.81,"H"),
-            K(8.89,-1.3,"K"), L(11.62,0.42,"L"), M(12.68,5.02,"M"), N(10.93,7.76,"N"),
-            P(6.32,8.78,"P"), Q(3.38,7.46,"Q"), R(2.25,2.76,"R"), S(4.05,-0.13,"S");
+    std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
+    for (int i = 0; i < planner_areas.size(); i++)
+    {
+        for (int j = 0; j < planner_areas[i].sub_areas.size(); j++)
+        {
+            for (int k = 0; k < planner_areas[i].sub_areas[j].geometry.vertices.size(); k++)
+            {
+                pointlist.push_back(PointID(planner_areas[i].sub_areas[j].geometry.vertices[k].x, 
+                                             planner_areas[i].sub_areas[j].geometry.vertices[k].y, 
+                                             std::to_string(planner_areas[i].sub_areas[j].geometry.vertices[k].id)));
+            }
 
-    AreaQuadID area44(E,H,S,K,44,"hallway"), area46(L,M,F,E,46,"hallway"),
-                area48(N,P,G,F,48,"hallway"), area50(Q,R,H,G,50,"hallway"),
-                area45(A,L,E,K,45,"inter"), area47(M,B,N,F,47,"inter"),
-                area49(P,C,Q,G,49,"inter"), area51(R,D,S,H,51,"inter");
+            int points_size = pointlist.size();
+            std::string sub_area_type = planner_areas[i].sub_areas[j].type;
+            
+            if (sub_area_type == "junction")
+            {
+                sub_area_type = "inter";
+            }
+            else if (sub_area_type == "corridor")
+            {
+                sub_area_type = "hallway";
+            }
 
-
-    std::vector<PointID> pointlist {A, B, C, D, E, F, G, H, K, L, M, N, P, Q, R, S};
-    std::vector<AreaQuadID> arealist {area44, area45, area46, area47, area48, area49, area50, area51};
-
-    int assignment[] = {50,51,44,45,46,47,48,49,50};
-      //int assignment[] = {50,49,48,47,46,45,44,51,50}; // reversed (right turns)
-     //   int assignment[] = {48,47,46,45,44,51,50,49,48}; // reversed (right turns)
-
-#else
-    /*
-    PointID A(57.4835319519,31.4500312805,"A"), B(53.8165359497,31.448266983,"B"), C(53.1958885193,33.428894043, "C"), D(57.5956115723, 33.3022842407,"D"); //first corridor
-    PointID Corner(51.2283287048, 31.8158283234, "Corner");
-    //PointID E(52.8088302612,33.5964889526,"E"),
-    PointID F(51.0468292236,33.5235900879,"F"), G(49.8914794922,39.4212722778,"G"), H(51.4209938049,40.0381965637,"H"); // second corridor
-
-    AreaQuadID areaC1(D,C,B,A,1,"hallway");
-    AreaQuadID junctionJ1(C,F, Corner,B,2,"inter");
-    AreaQuadID areaC2(C,H,G,F,3,"hallway");
-
-    // E is a dublet; this does not work ,
-    std::vector<PointID> pointlist {A, B, C, D, F, G, H, Corner};
-    std::vector<AreaQuadID> arealist {areaC1, junctionJ1, areaC2};
-    int assignment[] = {1,2,3};
-    //int assignment[] = {3,2,1}; // reverse
-    */
-    
-    
-    // For turning right at the junction
-    PointID A(63.395690918, 33.1979217529,"A"), B(54.3451690674,33.4537239075,"B"), C(54.3025970459,32.0084457397, "C"), 
-    D(63.3531188965, 31.7526473999,"D"), E(53.0334472656,33.4637107849,"E"), F(53.4655265808,31.5283699036, "F"), 
-    G(50.4813156128,33.5153083801, "G"), H(50.9491882324, 31.6013393402,"H"), I(52.3446426392,35.5722427368,"I"), 
-    J(51.3785552979,35.2955970764, "J"), K(51.2514648438,39.8824501038,"K"), L(50.3707923889,39.6370811462, "L");
-    
-    AreaQuadID area1(A,B,C,D,1,"hallway");
-    AreaQuadID area2(B,E,F,C,2,"hallway");
-    AreaQuadID area3(F,E,G,H,3,"inter");
-    AreaQuadID area4(E,I,J,G,4,"hallway");
-    AreaQuadID area5(I,K,L,J,5,"hallway");
-    
-    std::vector<PointID> pointlist {A, B, C, D, E, F, G, H, I, J, K, L};
-    std::vector<AreaQuadID> arealist {area1, area2, area3, area4, area5};
-    
-    // reverse
-    // std::vector<AreaQuadID> arealist {area5, area4, area3, area2, area1};
-    
-    int assignment[] = {1,2,3,4,5};
-    
-    /*
-    // For moving straight through the junction to corridor
-    
-    PointID A(63.395690918, 33.1979217529,"A"), B(54.3451690674,33.4537239075,"B"), C(54.3025970459,32.0084457397, "C"), 
-    D(63.3531188965, 31.7526473999,"D"), E(53.0334472656, 33.4637107849, "E"), F(53.4655265808, 31.5283699036, "F"), 
-    G(50.4813156128, 33.5153083801, "G"), H(50.9491882324, 31.6013393402, "H"), I(50.1147499084, 33.5243186951, "I"), 
-    J(50.0909767151, 32.5569801331, "J"), K(40.239730835, 33.8115310669, "K"), L(40.2089080811, 32.844367981, "L");
-    
-    AreaQuadID area1(A,B,C,D,1,"hallway");
-    AreaQuadID area2(B,E,F,C,2,"hallway");
-    AreaQuadID area3(E,G,H,F,3,"inter");
-    AreaQuadID area4(G,I,J,H,4,"hallway");
-    AreaQuadID area5(I,K,L,J,5,"hallway");
-    
-    std::vector<PointID> pointlist {A, B, C, D, E, F, G, H, I, J, K, L};
-    std::vector<AreaQuadID> arealist {area1, area2, area3, area4, area5};
-    
-    int assignment[] = {1,2,3,4,5};    
-    */
-
-#endif
-
-
+            if (points_size >= 4)
+            {
+                arealist.push_back(AreaQuadID(pointlist[points_size-3],
+                                               pointlist[points_size-2],
+                                               pointlist[points_size-1],
+                                               pointlist[points_size],
+                                               std::stoi(planner_areas[i].sub_areas[j].id),
+                                               sub_area_type));
+            }
+            assignment.push_back(std::stoi(planner_areas[i].sub_areas[j].id));
+        }
+    }
 
     nroshndl.param<double>("prediction_feasibility_check_rate", prediction_feasibility_check_rate, 3.0);
     nroshndl.param<double>("local_navigation_rate", local_navigation_rate, 10.0); // local_navigation_rate>prediction_feasibility_check_rate
