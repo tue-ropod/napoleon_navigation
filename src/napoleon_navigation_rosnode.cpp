@@ -325,7 +325,7 @@ int main(int argc, char** argv)
     std::string default_ropod_navigation_param_file;
     std::string default_ropod_load_navigation_param_file;
 
-    NapoleonPlanner napoleon_planner_("/goto");
+    NapoleonPlanner napoleon_planner_("/ropod/goto");
     
     while(ros::ok())
     {
@@ -378,6 +378,7 @@ int main(int argc, char** argv)
     }
 
     ROS_INFO("Now starting navigation");
+    start_navigation = true;
 
     nroshndl.param<double>("prediction_feasibility_check_rate", prediction_feasibility_check_rate, 3.0);
     nroshndl.param<double>("local_navigation_rate", local_navigation_rate, 10.0); // local_navigation_rate>prediction_feasibility_check_rate
