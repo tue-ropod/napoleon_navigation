@@ -304,7 +304,7 @@ public:
         {
             actionlib::SimpleClientGoalState state = ac_.getState();
             ROS_INFO("Action finished: %s", state.toString().c_str());
-            bool status_ = true;
+            status_ = true;
         }
         else
         {
@@ -333,6 +333,7 @@ int main(int argc, char** argv)
         {
             break;
         }
+        ros::spinOnce();
     }
 
     std::vector<PointID> pointlist;
@@ -341,6 +342,7 @@ int main(int argc, char** argv)
 
     ROS_INFO("Now preparing plan");
     std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
+    int intermediate_area_id_counter = 10000;
     for (int i = 0; i < planner_areas.size(); i++)
     {
         for (int j = 0; j < planner_areas[i].sub_areas.size(); j++)
@@ -353,7 +355,7 @@ int main(int argc, char** argv)
             }
 
             int points_size = pointlist.size();
-            std::string sub_area_type = planner_areas[i].sub_areas[j].type;
+            std::string sub_area_type = planner_areas[i].type;
             
             if (sub_area_type == "junction")
             {
@@ -364,16 +366,29 @@ int main(int argc, char** argv)
                 sub_area_type = "hallway";
             }
 
+            int sub_area_id;
             if (points_size >= 4)
             {
-                arealist.push_back(AreaQuadID(pointlist[points_size-3],
+              
+                if(planner_areas[i].sub_areas[j].id != "")
+                {
+                    sub_area_id = std::stoi(planner_areas[i].sub_areas[j].id.c_str());
+                }
+                else
+                {
+                    sub_area_id = intermediate_area_id_counter;
+                    intermediate_area_id_counter = intermediate_area_id_counter + 1;
+                }
+
+                arealist.push_back(AreaQuadID(pointlist[points_size-4],
+                                               pointlist[points_size-3],
                                                pointlist[points_size-2],
                                                pointlist[points_size-1],
-                                               pointlist[points_size],
-                                               std::stoi(planner_areas[i].sub_areas[j].id),
+                                               sub_area_id,
                                                sub_area_type));
             }
-            assignment.push_back(std::stoi(planner_areas[i].sub_areas[j].id));
+            ROS_INFO("Sub area id: %d | Sub area type: %s", sub_area_id, sub_area_type.c_str());
+            assignment.push_back(sub_area_id);
         }
     }
 
@@ -407,7 +422,9 @@ int main(int argc, char** argv)
     ros::Publisher mapmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/vmnodes", 10, true);
 
     // Subscribe to topic with non-associated laser points
-    std::string laser_topic("/ropod/laser/scan");
+    // std::string laser_topic("/ropod/laser/scan");
+    std::string laser_topic("/projected_scan_front"); // For BRSU ropod
+    
     unsigned int bufferSize = 1;
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>(laser_topic, bufferSize, scanCallback);
     tf_listener_ = new tf::TransformListener;
