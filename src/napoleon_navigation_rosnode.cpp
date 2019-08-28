@@ -23,6 +23,10 @@
 #include <ed_gui_server/objPosVel.h>
 #include <ed_gui_server/objsPosVel.h>
 
+#include <actionlib/server/simple_action_server.h>
+#include <ropod_ros_msgs/GoToAction.h>
+#include <ropod_ros_msgs/RoutePlannerAction.h>
+
 #include <math.h>
 
 #include <nav_msgs/Path.h>
@@ -31,88 +35,9 @@
 #include <stdlib.h>
 
 
-/******************************************
- * Define assigment to be executed
- ******************************************/
-
-#define BRSU_MAP
-#ifndef BRSU_MAP
-    // Initialize environment (turn right)
-    PointID A(11.12,-1.66,"A"), B(13.14,7.26,"B"), C(3.94,9.23,"C"), D(1.85,0.49,"D"),
-            E(9.27,0.70,"E"), F(10.45,5.71,"F"), G(5.77,6.98,"G"), H(4.60,1.81,"H"),
-            K(8.89,-1.3,"K"), L(11.62,0.42,"L"), M(12.68,5.02,"M"), N(10.93,7.76,"N"),
-            P(6.32,8.78,"P"), Q(3.38,7.46,"Q"), R(2.25,2.76,"R"), S(4.05,-0.13,"S");
-
-    AreaQuadID area44(E,H,S,K,44,"hallway"), area46(L,M,F,E,46,"hallway"),
-                area48(N,P,G,F,48,"hallway"), area50(Q,R,H,G,50,"hallway"),
-                area45(A,L,E,K,45,"inter"), area47(M,B,N,F,47,"inter"),
-                area49(P,C,Q,G,49,"inter"), area51(R,D,S,H,51,"inter");
-
-
-    std::vector<PointID> pointlist {A, B, C, D, E, F, G, H, K, L, M, N, P, Q, R, S};
-    std::vector<AreaQuadID> arealist {area44, area45, area46, area47, area48, area49, area50, area51};
-
-    int assignment[] = {50,51,44,45,46,47,48,49,50};
-      //int assignment[] = {50,49,48,47,46,45,44,51,50}; // reversed (right turns)
-     //   int assignment[] = {48,47,46,45,44,51,50,49,48}; // reversed (right turns)
-
-#else
-
-    /*
-    // First plan tested by Sebastian. Can be tested also in reverse because hallway areas ar wide enough
-    PointID A(57.4835319519,31.4500312805,"A"), B(53.8165359497,31.448266983,"B"), C(53.1958885193,33.428894043, "C"), D(57.5956115723, 33.3022842407,"D"); //first corridor
-    PointID Corner(51.2283287048, 31.8158283234, "Corner");
-    //PointID E(52.8088302612,33.5964889526,"E"),
-    PointID F(51.0468292236,33.5235900879,"F"), G(49.8914794922,39.4212722778,"G"), H(51.4209938049,40.0381965637,"H"); // second corridor
-    AreaQuadID areaC1(D,C,B,A,1,"hallway");
-    AreaQuadID junctionJ1(C,F, Corner,B,2,"inter");
-    AreaQuadID areaC2(C,H,G,F,3,"hallway");
-    // E is a dublet; this does not work ,
-    std::vector<PointID> pointlist {A, B, C, D, F, G, H, Corner};
-    std::vector<AreaQuadID> arealist {areaC1, junctionJ1, areaC2};
-    //int assignment[] = {1,2,3};
-    int assignment[] = {3,2,1}; // reverse
-    */
-
-
-    // For turning right at the junction
-    PointID A(63.395690918, 33.1979217529,"A"), B(54.3451690674,33.4537239075,"B"), C(54.3025970459,32.0084457397, "C"),
-    D(63.3531188965, 31.7526473999,"D"), E(53.0334472656,33.4637107849,"E"), F(53.4655265808,31.5283699036, "F"),
-    G(50.4813156128,33.5153083801, "G"), H(50.9491882324, 31.6013393402,"H"), I(52.3446426392,35.5722427368,"I"),
-    J(51.3785552979,35.2955970764, "J"), K(51.2514648438,39.8824501038,"K"), L(50.3707923889,39.6370811462, "L");
-
-    AreaQuadID area1(A,B,C,D,1,"hallway");
-    AreaQuadID area2(B,E,F,C,2,"hallway");
-    AreaQuadID area3(F,E,G,H,3,"inter");
-    AreaQuadID area4(E,I,J,G,4,"hallway");
-    AreaQuadID area5(I,K,L,J,5,"hallway");
-
-    std::vector<PointID> pointlist {A, B, C, D, E, F, G, H, I, J, K, L};
-    std::vector<AreaQuadID> arealist {area1, area2, area3, area4, area5};
-    int assignment[] = {1,2,3,4,5};
-
-
-    /*
-    // For moving straight through the junction to corridor
-
-    PointID A(63.395690918, 33.1979217529,"A"), B(54.3451690674,33.4537239075,"B"), C(54.3025970459,32.0084457397, "C"),
-    D(63.3531188965, 31.7526473999,"D"), E(53.0334472656, 33.4637107849, "E"), F(53.4655265808, 31.5283699036, "F"),
-    G(50.4813156128, 33.5153083801, "G"), H(50.9491882324, 31.6013393402, "H"), I(50.1147499084, 33.5243186951, "I"),
-    J(50.0909767151, 32.5569801331, "J"), K(40.239730835, 33.8115310669, "K"), L(40.2089080811, 32.844367981, "L");
-
-    AreaQuadID area1(A,B,C,D,1,"hallway");
-    AreaQuadID area2(B,E,F,C,2,"hallway");
-    AreaQuadID area3(E,G,H,F,3,"inter");
-    AreaQuadID area4(G,I,J,H,4,"hallway");
-    AreaQuadID area5(I,K,L,J,5,"hallway");
-
-    std::vector<PointID> pointlist {A, B, C, D, E, F, G, H, I, J, K, L};
-    std::vector<AreaQuadID> arealist {area1, area2, area3, area4, area5};
-    int assignment[] = {1,2,3,4,5};
-    */
-
-#endif
-/******************************************/
+std::vector<PointID> pointlist;
+std::vector<AreaQuadID> arealist;
+std::vector<int> assignment;
 
 double ropod_x = 0, ropod_y = 0, ropod_theta = 0;
 double this_amcl_x = 0, this_amcl_y = 0, quaternion_x = 0, quaternion_y = 0, quaternion_z = 0, quaternion_w = 0, this_amcl_theta = 0, siny_cosp = 0, cosy_cosp = 0;
@@ -304,7 +229,6 @@ void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ro
     pub.publish(vis_wall);
 }
 
-
 /******************************************
  * Visualization markers
  ******************************************/
@@ -448,7 +372,7 @@ int m = 0; // - prediction movement
 int u = 0; // - Pred task counter
 int prevstate; // Actually just j-1
 int m_prev;
-static constexpr int ka_max = sizeof(assignment)/sizeof(assignment[0]);  // Assignment length
+int ka_max = assignment.size();  // Assignment length
 double v_ax = 0, theta_dot = 0, v_des, phi, v_scale;
 
 bool consider_overtaking_area1ID, consider_overtaking_area3ID;
@@ -483,8 +407,9 @@ Point local_pivot;
 
 bool sharp_corner[ka_max] = {false};
 
-array<array<string, 6>, ka_max> OBJ_X_TASK; // Assuming this initializes empty strings (otherwise wont work)
-std::array<std::string, 6> task1, task2, task3;
+std::vector<std::vector<string>> OBJ_X_TASK;
+std::vector<std::string> task1, task2, task3;
+
 int area1ID, area2ID, area3ID;
 
 PointID obj2wall_p0, obj2wall_p1, obj3wall_p0, obj3wall_p1;
@@ -517,8 +442,12 @@ void initializeAssignment()
     AreaQuadID OBJ3 = getAreaByID(assignment[2],arealist);
     int obj2tasklen;
 
+    ka_max = assignment.size();  // Assignment length
+
     for (int ka = 0; ka < ka_max; ka = ka+1) {
         AreaQuadID curr_OBJ = getAreaByID(assignment[ka],arealist);
+        std::vector<string> area_names;
+
         if(curr_OBJ.type=="hallway")
         {
             printf("Hallway assignment: ");
@@ -534,8 +463,13 @@ void initializeAssignment()
                 OBJ1TASK = getWallPointsAwayFromB(OBJ1,getAreaByID(assignment[ka-1],arealist));
             }
             printstringvec(OBJ1TASK);
-            OBJ_X_TASK[ka][0] = OBJ1TASK[0];
-            OBJ_X_TASK[ka][1] = OBJ1TASK[1];
+            area_names.push_back(OBJ1TASK[0]);
+            area_names.push_back(OBJ1TASK[1]);
+            area_names.push_back("");
+            area_names.push_back("");
+            area_names.push_back("");
+            area_names.push_back("");
+            OBJ_X_TASK.push_back(area_names);
         }
         else if(curr_OBJ.type=="inter")
         {
@@ -546,13 +480,13 @@ void initializeAssignment()
             OBJ2TASK = getPointsForTurning(OBJ1,OBJ2,OBJ3,OBJ1TASK);
             printstringvec(OBJ2TASK);
             obj2tasklen = OBJ2TASK.size();
-            OBJ_X_TASK[ka][0] = OBJ2TASK[0];
-            OBJ_X_TASK[ka][1] = OBJ2TASK[1];
+            area_names.push_back(OBJ2TASK[0]);
+            area_names.push_back(OBJ2TASK[1]);
             if (obj2tasklen == 6) {
-                OBJ_X_TASK[ka][2] = OBJ2TASK[2];
-                OBJ_X_TASK[ka][3] = OBJ2TASK[3];
-                OBJ_X_TASK[ka][4] = OBJ2TASK[4];
-                OBJ_X_TASK[ka][5] = OBJ2TASK[5];
+                area_names.push_back(OBJ2TASK[2]);
+                area_names.push_back(OBJ2TASK[3]);
+                area_names.push_back(OBJ2TASK[4]);
+                area_names.push_back(OBJ2TASK[5]);
 
                 obj2wall_p0 = getPointByID(OBJ2TASK[0],pointlist);
                 obj2wall_p1 = getPointByID(OBJ2TASK[1],pointlist);
@@ -571,11 +505,19 @@ void initializeAssignment()
                     sharp_corner[ka+1] = true;
                 }
             }
+            else
+            {
+                area_names.push_back("");
+                area_names.push_back("");
+                area_names.push_back("");
+                area_names.push_back("");
+
+            }
+            OBJ_X_TASK.push_back(area_names);
         }
 
     }
 }
-
 
 
 void considerOvertaking()
@@ -1365,6 +1307,83 @@ void visualizeRopodMarkers()
     ropodmarker_pub.publish(vis_points);
 }
 
+
+
+
+
+
+
+
+// route planner integration
+class NapoleonPlanner
+{
+protected:
+    ros::NodeHandle nh_;
+    actionlib::SimpleActionServer<ropod_ros_msgs::GoToAction> as_;
+    actionlib::SimpleActionClient<ropod_ros_msgs::RoutePlannerAction> ac_;
+    std::string action_name_;
+    ropod_ros_msgs::GoToFeedback feedback_;
+    ropod_ros_msgs::GoToResult result_;
+    ropod_ros_msgs::RoutePlannerResult route_planner_result_;
+    bool status_;
+
+public:
+    NapoleonPlanner(std::string name) :
+    as_(nh_, name, boost::bind(&NapoleonPlanner::executeCB, this, _1), false),
+    action_name_(name), ac_("/route_planner", true), status_(false)
+    {
+        ROS_INFO("Waiting for route planner action server to start");
+        ac_.waitForServer();
+        ROS_INFO("Connected to route planner action server");
+        // waiting for route planner action server to start
+        as_.start();
+        ROS_INFO("Waiting for GOTO action");
+    }
+
+    ~NapoleonPlanner(void)
+    {
+    }
+
+    bool getStatus()
+    {
+        return status_;
+    }
+
+    ropod_ros_msgs::RoutePlannerResult getPlannerResult()
+    {
+        return route_planner_result_;
+    }    
+
+    
+    void plannerResultCB(const actionlib::SimpleClientGoalState& state, const ropod_ros_msgs::RoutePlannerResultConstPtr& result)
+    {
+        route_planner_result_ = *result;
+    }
+
+    void executeCB(const ropod_ros_msgs::GoToGoalConstPtr &goal)
+    {
+        std::vector<ropod_ros_msgs::Area> area_list = goal->action.areas;
+        ropod_ros_msgs::RoutePlannerGoal route_planner_goal;
+        route_planner_goal.areas = area_list;
+        ac_.sendGoal(route_planner_goal, boost::bind(&NapoleonPlanner::plannerResultCB, this, _1, _2));
+
+        //wait for the action to return
+        bool finished_before_timeout = ac_.waitForResult(ros::Duration(60.0));
+
+        if (finished_before_timeout)
+        {
+            actionlib::SimpleClientGoalState state = ac_.getState();
+            ROS_INFO("Action finished: %s", state.toString().c_str());
+            status_ = true;
+        }
+        else
+        {
+            ROS_INFO("Action did not finish before the time out.");
+            status_ = false;
+        }
+    }
+};
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "route_navigation");
@@ -1389,6 +1408,17 @@ int main(int argc, char** argv)
 
     initializeVisualizationMarkers();
     mapmarker_pub.publish(vis_points);
+
+    NapoleonPlanner napoleon_planner_("/ropod/goto");
+    
+    while(ros::ok())
+    {
+        if(napoleon_planner_.getStatus())
+        {
+            break;
+        }
+        ros::spinOnce();
+    }
 
     initializeAssignment();
 

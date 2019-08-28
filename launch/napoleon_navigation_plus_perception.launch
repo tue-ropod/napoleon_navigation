@@ -17,7 +17,9 @@
 
     <!--- Run AMCL -->
     <node pkg="amcl" type="amcl" name="amcl">
-        <remap from="scan" to="/$(arg robotName)/$(arg laser1_name)/scan"/>
+        <!-- <remap from="scan" to="/$(arg robotName)/$(arg laser1_name)/scan"/> -->
+        
+        <remap from="scan" to="/projected_scan_front"/> <!-- for BRSU ropod -->
 
         <!--- Odometery model parameters  -->
         <param name="odom_model_type" value="omni"/>
