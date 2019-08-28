@@ -572,7 +572,7 @@ int main(int argc, char** argv)
         lpf = 1;        // Saturate
     }
     bool ropod_reached_target = false;
-    // plot_pred_new = true;
+   // plot_pred_new = true;
     // prev_m = [];
 
     // Counters
@@ -586,7 +586,7 @@ int main(int argc, char** argv)
     int prevstate; // Actually just j-1
     int m_prev;
 
-    static constexpr int ka_max = sizeof(assignment)/sizeof(assignment[0]);  // Assignment length
+    int ka_max = assignment.size();  // Assignment length
 
     AreaQuadID OBJ_FIRST = getAreaByID(assignment[0],arealist);
     AreaQuadID OBJ_LAST = getAreaByID(assignment[ka_max-1],arealist);
@@ -624,8 +624,9 @@ int main(int argc, char** argv)
 
     bool sharp_corner[ka_max] = {false};
 
-    array<array<string, 6>, ka_max> OBJ_X_TASK; // Assuming this initializes empty strings (otherwise wont work)
-    std::array<std::string, 6> task1, task2, task3;
+    std::vector<std::vector<string>> OBJ_X_TASK;
+    // array<array<string, 6>, ka_max> OBJ_X_TASK; // Assuming this initializes empty strings (otherwise wont work)
+    std::vector<std::string> task1, task2, task3;
     int area1ID, area2ID, area3ID;
 
     std::vector<std::string> OBJ1TASK, OBJ2TASK, OBJ_LAST_TASK;
@@ -640,6 +641,7 @@ int main(int argc, char** argv)
     ROS_INFO("Printing assignment nodes:");
     for (int ka = 0; ka < ka_max; ka = ka+1) {
         AreaQuadID curr_OBJ = getAreaByID(assignment[ka],arealist);
+        std::vector<string> area_names;
         if(curr_OBJ.type=="hallway")
         {
             printf("Hallway assignment: ");
@@ -655,8 +657,13 @@ int main(int argc, char** argv)
                 OBJ1TASK = getWallPointsAwayFromB(OBJ1,getAreaByID(assignment[ka-1],arealist));
             }
             printstringvec(OBJ1TASK);
-            OBJ_X_TASK[ka][0] = OBJ1TASK[0];
-            OBJ_X_TASK[ka][1] = OBJ1TASK[1];
+            area_names.push_back(OBJ1TASK[0]);
+            area_names.push_back(OBJ1TASK[1]);
+            area_names.push_back("");
+            area_names.push_back("");
+            area_names.push_back("");
+            area_names.push_back("");
+            OBJ_X_TASK.push_back(area_names);
         }
         else if(curr_OBJ.type=="inter")
         {
@@ -667,14 +674,16 @@ int main(int argc, char** argv)
             OBJ2TASK = getPointsForTurning(OBJ1,OBJ2,OBJ3,OBJ1TASK);
             printstringvec(OBJ2TASK);
             obj2tasklen = OBJ2TASK.size();
-            OBJ_X_TASK[ka][0] = OBJ2TASK[0];
-            OBJ_X_TASK[ka][1] = OBJ2TASK[1];
+
+            area_names.push_back(OBJ2TASK[0]);
+            area_names.push_back(OBJ2TASK[1]);
+
             if (obj2tasklen == 6) {
-                OBJ_X_TASK[ka][2] = OBJ2TASK[2];
-                OBJ_X_TASK[ka][3] = OBJ2TASK[3];
-                OBJ_X_TASK[ka][4] = OBJ2TASK[4];
-                OBJ_X_TASK[ka][5] = OBJ2TASK[5];
-    
+                area_names.push_back(OBJ2TASK[2]);
+                area_names.push_back(OBJ2TASK[3]);
+                area_names.push_back(OBJ2TASK[4]);
+                area_names.push_back(OBJ2TASK[5]);
+   
                 obj2wall_p0 = getPointByID(OBJ2TASK[0],pointlist);
                 obj2wall_p1 = getPointByID(OBJ2TASK[1],pointlist);
                 obj3wall_p0 = getPointByID(OBJ2TASK[2],pointlist);
@@ -692,10 +701,18 @@ int main(int argc, char** argv)
                     sharp_corner[ka+1] = true;
                 }
             }            
+            else
+            {
+                area_names.push_back("");
+                area_names.push_back("");
+                area_names.push_back("");
+                area_names.push_back("");
+
+            }
+            OBJ_X_TASK.push_back(area_names);
         }
 
     }    
-
 
     double v_ax = 0, theta_dot = 0, v_des, phi, v_scale;
     bool ropod_is_in_44, ropod_is_in_45, ropod_is_in_46, ropod_is_in_47,

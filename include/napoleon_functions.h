@@ -3,6 +3,7 @@
 
 using namespace std;
 #include "napoleon_config.h"
+#include <vector>
 
 static constexpr double     _PI= 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348;
 static constexpr double _TWO_PI= 6.2831853071795864769252867665590057683943387987502116419498891846156328125724179972560696;
@@ -73,7 +74,7 @@ vector<string> getCommonPoints(AreaQuadID A, AreaQuadID B);
 PointID getPointByID(string wantedID, vector<PointID> pointlist);
 vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID OBJ3, vector<string> OBJ1TASK);
 vector<string> getWalls(int id_OBJ1, int id_OBJ2, int id_OBJ3, vector<AreaQuadID> arealist);
-double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, array<string, 6> task, vector<PointID> pointlist);
+double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist);
 double wrapToPi(double angle);
 double modf(double x, double y);
 template <typename T> int sgn(T val);

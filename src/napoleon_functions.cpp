@@ -993,7 +993,7 @@ vector<string> getWalls(int id_OBJ1, int id_OBJ2, int id_OBJ3, vector<AreaQuadID
     return wallsABC;
 }
 
-double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, array<string, 6> task, vector<PointID> pointlist) {
+double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist) {
     // NOT IN LOCAL COORDINATES (YET)
     // Function to determine steering action while rotating around a point
     // aka taking a turn, this time with a sharp angle.
