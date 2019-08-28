@@ -345,7 +345,9 @@ bool pred_ropod_colliding_obs[size_p] {false};
 Point current_obs_in_ropod_frame_pos, obs_in_ropod_frame_pos;
 
 PointID rw_p_rear, rw_p_front, lw_p_rear, lw_p_front;
-AreaQuadID cur_obj = getAreaByID(assignment[0],arealist);
+
+AreaQuadID cur_obj;
+
 vector<string> areaIDs;
 int ind, qmax;
 double space_left, space_right, shift_wall, wallang;;
@@ -372,7 +374,7 @@ int m = 0; // - prediction movement
 int u = 0; // - Pred task counter
 int prevstate; // Actually just j-1
 int m_prev;
-int ka_max = assignment.size();  // Assignment length
+int ka_max;  // Assignment length
 double v_ax = 0, theta_dot = 0, v_des, phi, v_scale;
 
 bool consider_overtaking_area1ID, consider_overtaking_area3ID;
@@ -444,8 +446,6 @@ void initializeAssignment()
     AreaQuadID OBJ2 = getAreaByID(assignment[1],arealist);
     AreaQuadID OBJ3 = getAreaByID(assignment[2],arealist);
     int obj2tasklen;
-
-    ka_max = assignment.size();  // Assignment length
 
     for (int ka = 0; ka < ka_max; ka = ka+1) {
         AreaQuadID curr_OBJ = getAreaByID(assignment[ka],arealist);
@@ -1310,13 +1310,6 @@ void visualizeRopodMarkers()
     ropodmarker_pub.publish(vis_points);
 }
 
-
-
-
-
-
-
-
 // route planner integration
 class NapoleonPlanner
 {
@@ -1389,6 +1382,7 @@ public:
 
 int main(int argc, char** argv)
 {
+
     ros::init(argc, argv, "route_navigation");
     ros::NodeHandle nroshndl("~");
     ros::Rate rate(F_PLANNER);
@@ -1399,7 +1393,7 @@ int main(int argc, char** argv)
 //    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     // Subscribe to topic with non-associated laser points (for now all laser points)
-    std::string laser_topic("/ropod/laser/scan");
+    std::string laser_topic("/projected_scan_front");
     unsigned int bufferSize = 1;
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>(laser_topic, bufferSize, scanCallback);
     // Visualize map nodes and robot
@@ -1409,11 +1403,8 @@ int main(int argc, char** argv)
     tf_listener_ = new tf::TransformListener;
 
 
-    initializeVisualizationMarkers();
-    mapmarker_pub.publish(vis_points);
-
     NapoleonPlanner napoleon_planner_("/ropod/goto");
-    
+
     while(ros::ok())
     {
         if(napoleon_planner_.getStatus())
@@ -1423,11 +1414,76 @@ int main(int argc, char** argv)
         ros::spinOnce();
     }
 
+
+    ROS_INFO("Now preparing the plan");
+
+    std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
+    int intermediate_area_id_counter = 10000;
+    for (int i = 0; i < planner_areas.size(); i++)
+    {
+        for (int j = 0; j < planner_areas[i].sub_areas.size(); j++)
+        {
+            for (int k = 0; k < planner_areas[i].sub_areas[j].geometry.vertices.size(); k++)
+            {
+                pointlist.push_back(PointID(planner_areas[i].sub_areas[j].geometry.vertices[k].x, 
+                                             planner_areas[i].sub_areas[j].geometry.vertices[k].y, 
+                                             std::to_string(planner_areas[i].sub_areas[j].geometry.vertices[k].id)));
+            }
+
+            int points_size = pointlist.size();
+            std::string sub_area_type = planner_areas[i].type;
+            
+            if (sub_area_type == "junction")
+            {
+                sub_area_type = "inter";
+            }
+            else if (sub_area_type == "corridor")
+            {
+                sub_area_type = "hallway";
+            }
+
+            int sub_area_id;
+            if (points_size >= 4)
+            {
+              
+                if(planner_areas[i].sub_areas[j].id != "")
+                {
+                    sub_area_id = std::stoi(planner_areas[i].sub_areas[j].id.c_str());
+                }
+                else
+                {
+                    sub_area_id = intermediate_area_id_counter;
+                    intermediate_area_id_counter = intermediate_area_id_counter + 1;
+                }
+
+                arealist.push_back(AreaQuadID(pointlist[points_size-4],
+                                               pointlist[points_size-3],
+                                               pointlist[points_size-2],
+                                               pointlist[points_size-1],
+                                               sub_area_id,
+                                               sub_area_type));
+            }
+            ROS_INFO("Sub area id: %d | Sub area type: %s", sub_area_id, sub_area_type.c_str());
+            assignment.push_back(sub_area_id);
+        }
+    }
+
+    ROS_INFO("Now starting navigation");
+    start_navigation = true;
+
+
+    // update area value 
+    ka_max = assignment.size();  // Assignment length
+
+    cur_obj = getAreaByID(assignment[0],arealist);
+
+    initializeVisualizationMarkers();
+
+    mapmarker_pub.publish(vis_points);
+
     initializeAssignment();
 
-
     ROS_INFO("Wait for 2D Nav Goal to start (goal can be anywhere, doesn't influence program)");
-
 
 
     std::ofstream myfile;
