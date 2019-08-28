@@ -405,7 +405,10 @@ PointID point_pivot;
 Point local_wallpoint_front, local_wallpoint_rear;
 Point local_pivot;
 
-bool sharp_corner[ka_max] = {false};
+bool sharp_corner[100] = {false}; // quick but dirty fix! - now size is fixed to 100 since we don't
+                                  // have number of areas value during compilation time
+                                  // This will fail if number of areas go above 100
+
 
 std::vector<std::vector<string>> OBJ_X_TASK;
 std::vector<std::string> task1, task2, task3;
