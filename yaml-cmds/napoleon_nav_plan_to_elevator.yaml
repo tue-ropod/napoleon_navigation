@@ -1,4 +1,4 @@
-rosrun actionlib axclient.py  "/goto" ropod_ros_msgs/GoToAction
+rosrun actionlib axclient.py  "/ropod/goto" ropod_ros_msgs/GoToAction
 
 action: 
   action_id: 'a990bb98-762a-441a-802e-db58c757ad18'
