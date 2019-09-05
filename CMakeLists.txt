@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   nav_core
   ed  
   ed_gui_server
+  geolib2
   actionlib_msgs
   ropod_ros_msgs
 )

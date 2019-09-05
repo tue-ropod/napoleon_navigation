@@ -5,6 +5,8 @@ using namespace std;
 #include <string>
 #include <vector>
 
+#include <geolib/Shape.h>
+
 class PointID;
 class Point {
 public:

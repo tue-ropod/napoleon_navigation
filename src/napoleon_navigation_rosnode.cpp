@@ -38,8 +38,9 @@ std::vector<PointID> pointlist;
 std::vector<AreaQuadID> arealist;
 std::vector<int> assignment;
 
-double ropod_x = 0, ropod_y = 0, ropod_theta = 0;
-double this_amcl_x = 0, this_amcl_y = 0, quaternion_x = 0, quaternion_y = 0, quaternion_z = 0, quaternion_w = 0, this_amcl_theta = 0, siny_cosp = 0, cosy_cosp = 0;
+//double ropod_x = 0, ropod_y = 0, ropod_theta = 0;
+
+geo::Pose3D objectPose, thisRobotPose, ropodPose;
 double odom_xdot_ropod_global = 0, odom_ydot_ropod_global = 0, odom_thetadot_global = 0, odom_phi_local = 0, odom_phi_global = 0, odom_vropod_global = 0;
 int no_obs = 0;
 ed_gui_server::objPosVel current_obstacle;
@@ -54,41 +55,42 @@ geometry_msgs::PoseStamped simple_goal;
 bool goal_received = false;
 
 
+void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray) {
+   no_obs = obsarray->objects.size();
+   //ROS_INFO("%d obstacles detected", no_obs);
+   //string s;
+   // For the sake of proof of concept, the assumption is made that there will
+   // only be one obstacle to avoid or overtake.
+   // This scenario is not realistic and only serves as showcase.
+   // A counter will decide which obstacle to choose
+   // for (int q = 0; q < no_obs; ++q) {
+   //     s = obsarray->objects[q].id;
+   //     std::cout << s << std::endl;
+   //     current_obstacle = obsarray->objects[q];
+   // }
+   // For now just pick first obs if there is obs
+   // so we assume we only see the obstacle we want to see
+   if (no_obs > 0) {
+          int iObject = 0; // TODO: base it on some smart criteria
+       // If no other obstacle is seen, this obstacle is kept
+       //current_obstacle = obsarray->objects[0];
+       // ROS_INFO("Obs is %f wide and %f deep", current_obstacle.width, current_obstacle.depth);
+       // ROS_INFO("Obs x: %f, obs y: %f", current_obstacle.pose.position.x, current_obstacle.pose.position.y);
+        // ROS_INFO("Vx: %f, Vy %f", current_obstacle.vel.x, current_obstacle.vel.y);
 
-//void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray) {
-//    no_obs = obsarray->objects.size();
-//    //ROS_INFO("%d obstacles detected", no_obs);
-//    //string s;
-//    // For the sake of proof of concept, the assumption is made that there will
-//    // only be one obstacle to avoid or overtake.
-//    // This scenario is not realistic and only serves as showcase.
-//    // A counter will decide which obstacle to choose
-//    // for (int q = 0; q < no_obs; ++q) {
-//    //     s = obsarray->objects[q].id;
-//    //     std::cout << s << std::endl;
-//    //     current_obstacle = obsarray->objects[q];
-//    // }
-//    // For now just pick first obs if there is obs
-//    // so we assume we only see the obstacle we want to see
-//    if (no_obs > 0) {
-//        // If no other obstacle is seen, this obstacle is kept
-//        current_obstacle = obsarray->objects[0];
-//        // ROS_INFO("Obs is %f wide and %f deep", current_obstacle.width, current_obstacle.depth);
-//        // ROS_INFO("Obs x: %f, obs y: %f", current_obstacle.pose.position.x, current_obstacle.pose.position.y);
-//        // ROS_INFO("Vx: %f, Vy %f", current_obstacle.vel.x, current_obstacle.vel.y);
-//        quaternion_x = obsarray->objects[0].pose.orientation.x;
-//        quaternion_y = obsarray->objects[0].pose.orientation.y;
-//        quaternion_z = obsarray->objects[0].pose.orientation.z;
-//        quaternion_w = obsarray->objects[0].pose.orientation.w;
-//
-//        // yaw (z-axis rotation)
-//        siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
-//        cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
-//        obs_theta = atan2(siny_cosp, cosy_cosp);
-//        obs_center_global.x = current_obstacle.pose.position.x;
-//        obs_center_global.y = current_obstacle.pose.position.y;
-//    }
-//}
+        tf::Quaternion q (obsarray->objects[iObject].pose.orientation.x, obsarray->objects[iObject].pose.orientation.y,
+                          obsarray->objects[iObject].pose.orientation.z, obsarray->objects[iObject].pose.orientation.w );
+        tf::Matrix3x3 matrix ( q );
+        double objectRoll, objectPitch, objectYaw;
+        matrix.getRPY ( objectRoll, objectPitch, objectYaw );
+        
+        geo::Vec3 objectPos(obsarray->objects[iObject].pose.position.x,  obsarray->objects[iObject].pose.position.y, obsarray->objects[iObject].pose.position.z);
+        objectPose.setRPY( objectRoll, objectPitch, objectYaw );
+        objectPose.setOrigin(objectPos );
+        
+        std::cout << "Received object pose = " << objectPose << std::endl;
+    }
+}
 
 void getOdomVelCallback(const nav_msgs::Odometry::ConstPtr& odom_vel)
 {
@@ -100,21 +102,21 @@ void getOdomVelCallback(const nav_msgs::Odometry::ConstPtr& odom_vel)
     //ROS_INFO("xdot: %f, ydot: %f, vabs: %f", odom_xdot_ropod_global, odom_ydot_ropod_global, odom_vropod_global);
 }
 
+
+
 void getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& pose_msg)
 {
     //ROS_INFO("Amcl pose received");
     //ROS_INFO("X: %f, Y: %f", pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y);
-    this_amcl_x = pose_msg->pose.pose.position.x;
-    this_amcl_y = pose_msg->pose.pose.position.y;
-    quaternion_x = pose_msg->pose.pose.orientation.x;
-    quaternion_y = pose_msg->pose.pose.orientation.y;
-    quaternion_z = pose_msg->pose.pose.orientation.z;
-    quaternion_w = pose_msg->pose.pose.orientation.w;
-
-    // yaw (z-axis rotation)
-    siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
-    cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
-    this_amcl_theta = atan2(siny_cosp, cosy_cosp);
+    
+    tf::Quaternion q (pose_msg->pose.pose.orientation.x, pose_msg->pose.pose.orientation.y, pose_msg->pose.pose.orientation.z, pose_msg->pose.pose.orientation.w );
+    tf::Matrix3x3 matrix ( q );
+    double robotRoll, robotPitch, robotYaw;
+    matrix.getRPY ( robotRoll, robotPitch, robotYaw );
+      
+    geo::Vec3 robotPos(pose_msg->pose.pose.position.x,  pose_msg->pose.pose.position.y,  pose_msg->pose.pose.position.z);
+    thisRobotPose.setRPY( robotRoll, robotPitch, robotYaw );
+    thisRobotPose.setOrigin( robotPos);
 }
 
 void simpleGoalCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_msg)
@@ -311,9 +313,7 @@ double x_rearax_0 = 0.0;    // X position of center of rear axle [m]
 double y_rearax_0 = 0.0;    // Y position of center of rear axle [m]
 double x_rearax;            // X position of center of rear axle [m]
 double y_rearax;            // Y position of center of rear axle [m]
-double prev_amcl_x = 0;     // Used to update position with amcl or 'predict' new pose
-double prev_amcl_y = 0;
-double prev_amcl_theta = 0;
+geo::Pose3D prevRobotPose;     // Used to update position with amcl or 'predict' new pose
 
 static constexpr int size_m = ((int)F_MODEL)*(T_MAX_PRED+1)+1;  // Array size for predictions that run at F_MODEL
 static constexpr int size_p = ((int)F_PLANNER)*(T_MAX_PRED+1)+1;   // Array size for predictions that run at F_PLANNER
@@ -1425,21 +1425,25 @@ void getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr&
 
 int main(int argc, char** argv)
 {
+        
+        std::cout << "Start Napoleon nav" << std::endl;
 
     ros::init(argc, argv, "route_navigation");
+            std::cout << "Start Napoleon nav1" << std::endl;
     ros::NodeHandle nroshndl("~");
     ros::Rate rate(F_PLANNER);
+            std::cout << "Start Napoleon nav2" << std::endl;
 
     ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
     ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, getAmclPoseCallback);
     ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, getOdomVelCallback);
     ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod/debug_route_plan", 1, getDebugRoutePlanCallback);
-
-//    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
+        std::cout << "Start Napoleon nav3" << std::endl;
+    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     // Subscribe to topic with non-associated laser points (for now all laser points)
-    std::string laser_topic("/projected_scan_front");
-    // std::string laser_topic("/ropod/laser/scan");
+    //std::string laser_topic("/projected_scan_front");
+    std::string laser_topic("/ropod/laser/scan");
     unsigned int bufferSize = 1;
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>(laser_topic, bufferSize, scanCallback);
     // Visualize map nodes and robot
@@ -1448,14 +1452,15 @@ int main(int argc, char** argv)
     wallmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/right_side_wall", 10, true);
     tf_listener_ = new tf::TransformListener;
 
-
+        std::cout << "Start Napoleon nav" << std::endl;
     NapoleonPlanner napoleon_planner_("/ropod/goto");
 
-
+ std::cout << " Initialized" << std::endl;
     while(ros::ok())
     {
+            std::cout << " ros ok" << std::endl;
         if(napoleon_planner_.getStatus())
-        {
+        {        std::cout << "Start Napoleon nav 6" << std::endl;
             break;
         }
         ros::spinOnce();
@@ -1472,12 +1477,13 @@ int main(int argc, char** argv)
         ros::spinOnce();
     }
     */
-
+        std::cout << "Start Napoleon nav5" << std::endl;
     ROS_INFO("Now preparing the plan");
     initializeVisualizationMarkers();
     //std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
     std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
     int intermediate_area_id_counter = 10000;
+            std::cout << "Start Napoleon nav7" << std::endl;
     for (int i = 0; i < planner_areas.size(); i++)
     {
         for (int j = 0; j < planner_areas[i].sub_areas.size(); j++)
@@ -1570,7 +1576,7 @@ int main(int argc, char** argv)
 
     std::ofstream myfile;
     //myfile.open ("/simdata/ropod_" + get_date() +".txt");
-    myfile.open ("/home/cesar/Documents/simdata/ropod_" + get_date() +".txt");
+    myfile.open ("/home/wouter/Documents/simdata/ropod_" + get_date() +".txt");
     myfile << "time" << "\t" << "tictoc" << "\t" << "state" << "\t" << "task counter" << "\t" << "tube width" << "\t" <<
             "phi des" << "\t" << "v ropod odom" << "\t"<< "v ropod cmd" << "\t" << "x ropod" << "\t" << "y ropod" << "\t" <<
             "theta ropod" << "\t" "x obs" << "\t" << "y obs" << "\t" << "theta obs" << "\t" << "obs width" << "\t" <<
@@ -1578,9 +1584,11 @@ int main(int argc, char** argv)
 
     std::clock_t start_loop;
 
-
+std::cout << "Going to start loop" << std::endl;
     while(nroshndl.ok() && !ropod_reached_target)
     {
+            std::cout << "Process loop" << std::endl;
+            
         // Process scan data
         if(scan_available)
         {
@@ -1603,20 +1611,16 @@ int main(int argc, char** argv)
 
         // AMCL data (around 3Hz) - update to AMCL data if new AMCL pose received
         // otherwise make a guess
-        if (this_amcl_x == prev_amcl_x && this_amcl_y == prev_amcl_y && this_amcl_theta == prev_amcl_theta) {
+        if (thisRobotPose == prevRobotPose) {
             // No AMCL update, so estimate initial values for prediction
-            ropod_x = pred_x_ropod[1];
-            ropod_y = pred_y_ropod[1];
-            ropod_theta = pred_plan_theta[1];
+                geo::Vec3 predRopodPos(pred_x_ropod[1], pred_y_ropod[1], 0.0);
+                ropodPose.setOrigin(predRopodPos);
+                ropodPose.setRPY(0.0, 0.0, pred_plan_theta[1]);
         } else {
             // Set latest values from AMCL to previous AMCL values for next iteration
-            // And take AMCL values as initial for the prediction
-            prev_amcl_x = this_amcl_x;
-            prev_amcl_y = this_amcl_y;
-            prev_amcl_theta = this_amcl_theta;
-            ropod_x = this_amcl_x;
-            ropod_y = this_amcl_y;
-            ropod_theta = this_amcl_theta;
+            // And take AMCL values as initial for the prediction            
+            prevRobotPose = thisRobotPose;
+            ropodPose = thisRobotPose;
         }
 
         //ROS_INFO("Ropod x: %f / Ropod y: %f / Theta: %f", ropod_x, ropod_y, ropod_theta);
@@ -1637,23 +1641,23 @@ int main(int argc, char** argv)
 
             // Initialize prediction with latest sim values
             pred_phi[0] = odom_phi_local; // On ropod
-            pred_theta[0] = ropod_theta;
+            pred_theta[0] = ropodPose.getYaw();
             pred_v_ropod[0] = control_v;
             if (abs(odom_vropod_global-control_v) > 0.5) {
                 ROS_INFO("Difference between control and actual velocity > 0.5, correcting now.");
                 pred_v_ropod[0] = odom_vropod_global;
             }
-            pred_xdot[0] = pred_v_ropod[0]*cos(pred_phi[0])*cos(ropod_theta);   // xdot of rearaxle in global frame
-            pred_ydot[0] = pred_v_ropod[0]*cos(pred_phi[0])*sin(ropod_theta);   // ydot of rearaxle in global frame
+            pred_xdot[0] = pred_v_ropod[0]*cos(pred_phi[0])*cos(ropodPose.getYaw());   // xdot of rearaxle in global frame
+            pred_ydot[0] = pred_v_ropod[0]*cos(pred_phi[0])*sin(ropodPose.getYaw());   // ydot of rearaxle in global frame
             pred_thetadot[0] = pred_v_ropod[0]*1/D_AX*sin(pred_phi[0]);
-            pred_x_rearax[0] = ropod_x-D_AX*cos(ropod_theta);
-            pred_y_rearax[0] = ropod_y-D_AX*sin(ropod_theta);
-            pred_xy_ropod[0].x = ropod_x;
-            pred_xy_ropod[0].y = ropod_y;
+            pred_x_rearax[0] = ropodPose.getOrigin().getX()-D_AX*cos(ropodPose.getYaw());
+            pred_y_rearax[0] = ropodPose.getOrigin().getY()-D_AX*sin(ropodPose.getYaw());
+            pred_xy_ropod[0].x = ropodPose.getOrigin().getX();
+            pred_xy_ropod[0].y = ropodPose.getOrigin().getY();
             prev_pred_phi_des = prev_sim_phi_des;
             pred_phi_des[0] = prev_pred_phi_des;
             pred_tube_width[0] = prev_sim_tube_width;
-            pred_plan_theta[0] = ropod_theta;
+            pred_plan_theta[0] = ropodPose.getYaw();
             pred_v_ropod_plan[0] = pred_v_ropod[0];
             pred_state[0] = prev_sim_state;
             pred_task_counter[0] = prev_sim_task_counter;
@@ -1852,23 +1856,23 @@ int main(int argc, char** argv)
         vis_points.scale.x = 0.2;
         vis_points.scale.y = 0.2;
         geometry_msgs::Point vis_p;
-        vis_p.x = ropod_x;
-        vis_p.y = ropod_y;
+        vis_p.x = ropodPose.getOrigin().getX();
+        vis_p.y = ropodPose.getOrigin().getY();
         vis_points.points.push_back(vis_p);
         vis_points.id = 3;
         vis_points.color.r = 1.0;
         vis_points.color.g = 0.0;
         vis_points.color.b = 0.0;
-        x_rearax = ropod_x - D_AX*cos(ropod_theta); // X position of center of rear axle [m]
-        y_rearax = ropod_y - D_AX*sin(ropod_theta); // Y position of center of rear axle [m]
-        vis_rt.x = x_rearax+(D_AX+SIZE_FRONT_ROPOD)*cos(ropod_theta)+SIZE_SIDE*cos(ropod_theta-0.5*M_PI);
-        vis_rt.y = y_rearax+(D_AX+SIZE_FRONT_ROPOD)*sin(ropod_theta)+SIZE_SIDE*sin(ropod_theta-0.5*M_PI);
-        vis_lt.x = x_rearax+(D_AX+SIZE_FRONT_ROPOD)*cos(ropod_theta)+SIZE_SIDE*cos(ropod_theta+0.5*M_PI);
-        vis_lt.y = y_rearax+(D_AX+SIZE_FRONT_ROPOD)*sin(ropod_theta)+SIZE_SIDE*sin(ropod_theta+0.5*M_PI);
-        vis_fr.x = FEELER_SIZE_STEERING*cos(ropod_theta+prev_sim_phi_des);
-        vis_fr.y = FEELER_SIZE_STEERING*sin(ropod_theta+prev_sim_phi_des);
-        vis_fl.x = FEELER_SIZE_STEERING*cos(ropod_theta+prev_sim_phi_des);
-        vis_fl.y = FEELER_SIZE_STEERING*sin(ropod_theta+prev_sim_phi_des);
+        x_rearax = ropodPose.getOrigin().getX() - D_AX*cos(ropodPose.getYaw()); // X position of center of rear axle [m]
+        y_rearax = ropodPose.getOrigin().getY() - D_AX*sin(ropodPose.getYaw()); // Y position of center of rear axle [m]
+        vis_rt.x = x_rearax+(D_AX+SIZE_FRONT_ROPOD)*cos(ropodPose.getYaw())+SIZE_SIDE*cos(ropodPose.getYaw()-0.5*M_PI);
+        vis_rt.y = y_rearax+(D_AX+SIZE_FRONT_ROPOD)*sin(ropodPose.getYaw())+SIZE_SIDE*sin(ropodPose.getYaw()-0.5*M_PI);
+        vis_lt.x = x_rearax+(D_AX+SIZE_FRONT_ROPOD)*cos(ropodPose.getYaw())+SIZE_SIDE*cos(ropodPose.getYaw()+0.5*M_PI);
+        vis_lt.y = y_rearax+(D_AX+SIZE_FRONT_ROPOD)*sin(ropodPose.getYaw())+SIZE_SIDE*sin(ropodPose.getYaw()+0.5*M_PI);
+        vis_fr.x = FEELER_SIZE_STEERING*cos(ropodPose.getYaw()+prev_sim_phi_des);
+        vis_fr.y = FEELER_SIZE_STEERING*sin(ropodPose.getYaw()+prev_sim_phi_des);
+        vis_fl.x = FEELER_SIZE_STEERING*cos(ropodPose.getYaw()+prev_sim_phi_des);
+        vis_fl.y = FEELER_SIZE_STEERING*sin(ropodPose.getYaw()+prev_sim_phi_des);
         vis_fr = vis_fr.add(vis_rt); vis_fl = vis_fl.add(vis_lt);
         vis_p.x = vis_lt.x; vis_p.y = vis_lt.y; vis_points.points.push_back(vis_p);
         vis_p.x = vis_rt.x; vis_p.y = vis_rt.y; vis_points.points.push_back(vis_p);
