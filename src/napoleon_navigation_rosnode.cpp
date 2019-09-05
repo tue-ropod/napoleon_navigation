@@ -1731,7 +1731,7 @@ int main(int argc, char** argv)
                 {
                     point_front = getPointByID(task1[1],pointlist);
                     local_wallpoint_front = coordGlobalToRopod(point_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-                    if(local_wallpoint_front.x < SIZE_FRONT_RAX) 
+                    if(local_wallpoint_front.x < SIZE_FRONT_ROPOD-0.5*D_AX) 
                         pred_ropod_on_entry_hall[j] = true;
                     else
                         pred_ropod_on_entry_hall[j] = false;
