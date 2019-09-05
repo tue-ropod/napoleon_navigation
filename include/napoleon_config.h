@@ -6,7 +6,7 @@
 #include <vector>
 using namespace std;
 
-#define MOBIDIK
+//#define MOBIDIK
 
 // Define environment
 // static constexpr double TUBE_WIDTH = 2.45;
@@ -15,7 +15,7 @@ using namespace std;
 static constexpr double FEELER_SIZE = 1.0;          // d_f: 0.5 Size of feeler [m] - used to predict where ropod goes suppose it would go straight
 static constexpr double FEELER_SIZE_STEERING = 2.0; // df_c: 0.3 Size of feeler when steering [m]
 static constexpr double ENV_TCTW_SIZE = 0.05;       // d_cor 0.05 Too close too wall area size [m]
-static constexpr double ENV_TRNS_SIZE = 0.20;       // d_trns 0.2 Transition area size [m]
+static constexpr double ENV_TRNS_SIZE = 0.30;       // d_trns 0.2 Transition area size [m]
 static constexpr double CARROT_LENGTH = 1.50;       // How far ahead point lies where ropod steers towards when too close to a wall [m]
 
 // Vehicle size & size of vectors
@@ -30,9 +30,9 @@ static constexpr double SIZE_FRONT_ROPOD = ROPOD_LENGTH/2.0;  // How long ropod 
     static constexpr double ENV_TRNS_SIZE_CORNERING = 0.45; // d_trnsc Transition area size while cornering [m]
     static constexpr double V_CRUISING = 1.0;//1.4;           // Max velocity [m/s] while cruising
     static constexpr double V_INTER_TURNING = 0.5;//0.5;      // Max velocity [m/s] when taking a turn
-    static constexpr double V_INTER_ACC = 0.8;//0.7;          // Max velocity [m/s] when driving straight at intersection
-    static constexpr double V_INTER_DEC = 0.8;//0.3;          // Max velocity [m/s] when driving straight at intersection
-    static constexpr double V_ENTRY = 0.6;//0.5;              // Max velocity [m/s] when at entry of intersection
+    static constexpr double V_INTER_ACC = 0.5;//0.7;          // Max velocity [m/s] when driving straight at intersection
+    static constexpr double V_INTER_DEC = 0.4;//0.3;          // Max velocity [m/s] when driving straight at intersection
+    static constexpr double V_ENTRY = 0.5;//0.5;              // Max velocity [m/s] when at entry of intersection
     static constexpr double V_STEERSATURATION = 0.4;    // Velocity during steering saturation [m/s]
     static constexpr double V_OVERTAKE = 0.5;//0.5;           // Velocity during overtaking [m/s]
     // Limits
@@ -53,7 +53,7 @@ static constexpr double SIZE_FRONT_ROPOD = ROPOD_LENGTH/2.0;  // How long ropod 
     static constexpr double V_CRUISING = 1.0;//1.4;           // Max velocity [m/s] while cruising
     static constexpr double V_INTER_TURNING = 0.6;//0.5;      // Max velocity [m/s] when taking a turn
     static constexpr double V_INTER_ACC = 0.6;//0.7;          // Max velocity [m/s] when driving straight at intersection
-    static constexpr double V_INTER_DEC = 0.6;//0.3;          // Max velocity [m/s] when driving straight at intersection
+    static constexpr double V_INTER_DEC = 0.4;//0.3;          // Max velocity [m/s] when driving straight at intersection
     static constexpr double V_ENTRY = 0.6;//0.5;              // Max velocity [m/s] when at entry of intersection
     static constexpr double V_STEERSATURATION = 0.4;          // Velocity during steering saturation [m/s]
     static constexpr double V_OVERTAKE = 0.9;//0.5;           // Velocity during overtaking [m/s]
@@ -86,7 +86,7 @@ static constexpr double T_PRED_OBS_COLLISION = 04;  // Predict for n seconds if 
 static constexpr double T_MAX_PRED = 20;            // Predict for n seconds max [s]
 static constexpr double CUTOFF_FREQ = 1.0;          // Cutoff frequency for low pass filter to simulate steering delay [Hz]
 static const vector<double> V_SCALE_OPTIONS = {1.0, 0.67, 0.33, 0.0};  // Options to scale velocity with
-static constexpr double ENV_COR_WIDTH = 2.50;
+static constexpr double ENV_COR_WIDTH = 3.00;
 // Fictional hallway width. Ropod will work with lanes of this/2 [m], starting from the wall.
 // No matter what the real hallway size is. This way it will stay close to the right wall, but not too agressively.
 static constexpr double TUBE_WIDTH_C = ENV_COR_WIDTH/2; // Default tube width [m]

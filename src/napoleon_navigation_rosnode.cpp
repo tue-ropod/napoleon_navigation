@@ -34,7 +34,6 @@
 #include <std_msgs/Bool.h>
 #include <stdlib.h>
 
-
 std::vector<PointID> pointlist;
 std::vector<AreaQuadID> arealist;
 std::vector<int> assignment;
@@ -234,6 +233,7 @@ void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ro
  ******************************************/
 visualization_msgs::Marker vis_points;
 visualization_msgs::Marker vis_wall;
+visualization_msgs::Marker vis_plan;
 
 void initializeVisualizationMarkers()
 {
@@ -274,6 +274,21 @@ void initializeVisualizationMarkers()
     vis_wall.type = visualization_msgs::Marker::POINTS;
     vis_wall.scale.x = 0.3;
     vis_wall.scale.y = 0.3;
+
+        // Visualize wall the ropod is following
+    vis_plan.header.frame_id = "/map";
+    vis_plan.header.stamp = ros::Time::now();
+    // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
+    vis_plan.action = visualization_msgs::Marker::ADD;
+    vis_plan.pose.orientation.w = 1.0;
+    vis_plan.id = 1;
+    vis_plan.color.a = 0.7;
+    vis_plan.color.g = 0.3;
+    vis_plan.color.b = 0.5;
+    vis_plan.type = visualization_msgs::Marker::LINE_STRIP;
+    vis_plan.scale.x = 0.3;
+    vis_plan.scale.y = 0.3;
+
 }
 
 /*********************************************************/
@@ -377,7 +392,8 @@ int m_prev;
 int ka_max;  // Assignment length
 double v_ax = 0, theta_dot = 0, v_des, phi, v_scale;
 
-bool consider_overtaking_area1ID, consider_overtaking_area3ID;
+int delta_assignment_on_overtake;
+bool consider_overtaking_current_hallway, consider_overtaking_next_hallway;
 bool update_assignment;
 int uprev;
 bool ropod_colliding_obs = true;
@@ -388,6 +404,7 @@ AreaQuadID next_hallway;
 AreaQuad current_entry;
 AreaQuadID curr_area;
 AreaQuadID next_area;
+AreaQuadID next_second_area;
 
 PointID current_pivot, cur_next_hallway_rear, cur_next_hallway_front;
 PointID current_inter_rear_wall, current_inter_front_wall;
@@ -414,6 +431,7 @@ bool sharp_corner[100] = {false}; // quick but dirty fix! - now size is fixed to
 
 std::vector<std::vector<string>> OBJ_X_TASK;
 std::vector<std::string> task1, task2, task3;
+std::vector<std::string> current_hallway_task, next_hallway_task;
 
 int area1ID, area2ID, area3ID;
 
@@ -527,26 +545,38 @@ void considerOvertaking()
 {
     // Consider overtaking.
     // Cesar -> TODO: Because of the changes to support consecutive hallway areas, this part still needs to be adapted
+    // Cesar -> TODO: The contains function should consider not only the center but all corners. Also how to deal with multiple obstacles?
     if (u < ka_max-1 && no_obs > 0) {
         if (update_assignment) {
-            current_hallway = getAreaByID(area1ID, arealist);
-            if(next_area.type == "hallway")
+            if(curr_area.type == "hallway"){
+                current_hallway = curr_area;
+                current_hallway_task = task1;
+                if (current_hallway.contains(obs_center_global)) {
+                    consider_overtaking_current_hallway = true;
+                    // This strategy only allows to overtake 1 obstacle
+                }
+            }else if(next_area.type == "hallway")
             {
                 next_hallway = next_area;
+                next_hallway_task = task2;
+                delta_assignment_on_overtake = 1;
+                if (next_hallway.contains(obs_center_global)) {
+                    consider_overtaking_next_hallway = true;
+                    // This strategy only allows to overtake 1 obstacle
+                }
+
             }
-            else
+            else if(next_second_area.type == "hallway")
             {
-                next_hallway = getAreaByID(area3ID, arealist);
+                next_hallway = next_second_area;
+                next_hallway_task = task3;
+                delta_assignment_on_overtake = 2;
+                if (next_hallway.contains(obs_center_global)) {
+                    consider_overtaking_next_hallway = true;
+                    // This strategy only allows to overtake 1 obstacle
+                }
+
             }
-        }
-        // TODO: The contain function should consider not only the center but all corners
-        if (current_hallway.contains(obs_center_global)) {
-            consider_overtaking_area1ID = true;
-            // This strategy only allows to overtake 1 obstacle
-        }
-        if (next_hallway.contains(obs_center_global)) {
-            consider_overtaking_area3ID = true;
-            // This strategy only allows to overtake 1 obstacle
         }
     }
 }
@@ -558,10 +588,10 @@ void overtakeStateMachine()
     v_obs_sq = current_obstacle.vel.x*current_obstacle.vel.x+current_obstacle.vel.y*current_obstacle.vel.y;
     if ((v_obs_sq < V_OBS_OVERTAKE_MAX*V_OBS_OVERTAKE_MAX) && obs_in_ropod_frame_pos.x > 0) {
         //disp("Slow obstacle, check if there is space to overtake");
-        if (consider_overtaking_area1ID) {
-            rw_p_rear = getPointByID(task1[0],pointlist);
-            rw_p_front = getPointByID(task1[1],pointlist);
-            cur_obj = getAreaByID(area1ID,arealist);
+        if (consider_overtaking_current_hallway) {
+            rw_p_rear = getPointByID(current_hallway_task[0],pointlist);
+            rw_p_front = getPointByID(current_hallway_task[1],pointlist);
+            cur_obj = current_hallway;
             areaIDs = cur_obj.getPointIDs();
             ind = 0;
             qmax = areaIDs.size();
@@ -573,10 +603,10 @@ void overtakeStateMachine()
             rotate(areaIDs.begin(), areaIDs.begin() + ind, areaIDs.end());
             lw_p_rear = getPointByID(areaIDs[3],pointlist);
             lw_p_front = getPointByID(areaIDs[2],pointlist);
-        } else if (consider_overtaking_area3ID) {
-            rw_p_rear = getPointByID(task3[0],pointlist);
-            rw_p_front = getPointByID(task3[1],pointlist);
-            cur_obj = getAreaByID(area3ID,arealist);
+        } else if (consider_overtaking_next_hallway) {
+            rw_p_rear = getPointByID(next_hallway_task[0],pointlist);
+            rw_p_front = getPointByID(next_hallway_task[1],pointlist);
+            cur_obj = next_hallway;
             areaIDs = cur_obj.getPointIDs();
             ind = 0;
             qmax = areaIDs.size();
@@ -618,22 +648,22 @@ void overtakeStateMachine()
             // Start overtake
             if (space_left < TUBE_WIDTH_C) {
                 if (obs_in_ropod_frame_pos.x < MIN_DIST_TO_OVERTAKE && abs(obs_in_ropod_frame_pos.y) < MIN_DIST_TO_OVERTAKE) {
-                    ROS_INFO("Tight overtake, state 9");
+                    ROS_INFO("Tight overtake");
                     pred_state[j] = TIGHT_OVERTAKE;
                     //current_to_overtake_obs = to_overtake_obs;
-                    if (consider_overtaking_area3ID) {
-                        u = u+2;
+                    if (consider_overtaking_next_hallway) {
+                        u = u + delta_assignment_on_overtake; // Cesar TODO-> check if this works (instead of +2 with no consecutive hallways)!
                         update_assignment = true;
                     }
                     pred_tube_width[j] = 2*(SIZE_SIDE+ENV_TCTW_SIZE+ENV_TRNS_SIZE);
                 }
             } else {
                 if (obs_in_ropod_frame_pos.x < MIN_DIST_TO_OVERTAKE && abs(obs_in_ropod_frame_pos.y) < MIN_DIST_TO_OVERTAKE) {
-                    ROS_INFO("Spacious overtake, state 10");
+                    ROS_INFO("Spacious overtake");
                     pred_state[j] = SPACIOUS_OVERTAKE;
                     //current_to_overtake_obs = to_overtake_obs;
-                    if (consider_overtaking_area3ID) {
-                        u = u+2;
+                    if (consider_overtaking_next_hallway) {
+                        u = u + delta_assignment_on_overtake; // Cesar TODO-> check if this works (instead of +2 with no consecutive hallways)!
                         update_assignment = true;
                     }
                     if (current_obstacle.width > current_obstacle.depth) {
@@ -723,6 +753,7 @@ void updateAreasAndFeatures()
 
     curr_area = getAreaByID(area1ID,arealist);
     next_area = getAreaByID(area2ID,arealist);
+    next_second_area = getAreaByID(area3ID,arealist);
 }
 
 
@@ -767,6 +798,7 @@ void updateStateAndTask()
         } else if (pred_ropod_on_entry_inter[j] && pred_state[prevstate] == CRUSING) {
             // If cruising and the y position of the ropod exceeds the y
             // position of the entry
+            if(j==1)printf("Entry detected to turn intersection u = %d\n",u);
             pred_state[j] = ENTRY_BEFORE_TURN_ON_INTERSECTION;
 
         } else if (cur_pivot_local.x < SIZE_FRONT_ROPOD  && pred_state[prevstate] == ENTRY_BEFORE_TURN_ON_INTERSECTION) {
@@ -780,6 +812,7 @@ void updateStateAndTask()
 
         } else if (cur_pivot_local.x <= -ROPOD_TO_AX+START_STEERING_EARLY && pred_state[prevstate] == ALIGN_AXIS_AT_INTERSECTION) {
             // If rearaxle is aligned with the pivot minus sse
+            if(j==1)printf("Turning on  u = %d\n",u+1);
             pred_state[j] = TURNING;
 
         } else if (-ROTATED_ENOUGH_TRES < cur_next_hallway_angle && cur_next_hallway_angle < ROTATED_ENOUGH_TRES && pred_state[prevstate] == TURNING) {
@@ -788,6 +821,7 @@ void updateStateAndTask()
             pred_state[j] = CRUSING;
             //disp([num2str(i), ': Here we can switch to the next task']);
             u = u+2;
+            if(j==1)printf("Done with turning intersection, now on u = %d\n",u);
             area1ID = assignment[u];
             task1 = OBJ_X_TASK[u];
             if (u < ka_max-1)
@@ -855,21 +889,21 @@ void updateStateAndTask()
             }
             current_entry = generateEntry(area1ID, area2ID, ENTRY_LENGTH, arealist, pointlist);
 
-        }else if (pred_ropod_on_entry_inter[j] == CRUSING && pred_state[prevstate] == CRUSING) {
+        }else if (pred_ropod_on_entry_inter[j] && pred_state[prevstate] == CRUSING) {
             // If cruising and the y position of the ropod exceeds the y
             // position of the entry
-            if(j==1)printf("Entry detected to intersection u = %d\n",u);
+            if(j==1)printf("Entry detected to straight intersection u = %d\n",u);
             pred_state[j] = ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION;
         } else if (current_inter_rear_wall_local.x < SIZE_FRONT_ROPOD+START_STEERING_EARLY && pred_state[prevstate] == ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION) {
             // If in entry and the y position of the ropod exceeds the y
             // position of the intersection
-            if(j==1)printf("On entry u = %d\n",u);
+            if(j==1)printf("Staright on u = %d\n",u+1);
             pred_state[j] = GOING_STRAIGHT_ON_INTERSECTION;
         } else if (current_inter_front_wall_local.x < -D_AX/2 && pred_state[prevstate] == GOING_STRAIGHT_ON_INTERSECTION) {
 
             pred_state[j] = CRUSING;
             u = u+2;
-            if(j==1)printf("Done with intersection u = %d\n",u);
+            if(j==1)printf("Done with straight intersection, now on u = %d\n",u);
             if (u < ka_max-1) {
                 area1ID = assignment[u];
                 task1 = OBJ_X_TASK[u];
@@ -1348,9 +1382,9 @@ public:
     ropod_ros_msgs::RoutePlannerResult getPlannerResult()
     {
         return route_planner_result_;
-    }    
+    }
 
-    
+
     void plannerResultCB(const actionlib::SimpleClientGoalState& state, const ropod_ros_msgs::RoutePlannerResultConstPtr& result)
     {
         route_planner_result_ = *result;
@@ -1379,6 +1413,15 @@ public:
         }
     }
 };
+ropod_ros_msgs::RoutePlannerResult debug_route_planner_result_;
+
+void getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr& result)
+{
+    debug_route_planner_result_ = *result;
+
+    ROS_INFO("new debug plan received");
+    start_navigation = true;
+}
 
 int main(int argc, char** argv)
 {
@@ -1390,20 +1433,24 @@ int main(int argc, char** argv)
     ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
     ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, getAmclPoseCallback);
     ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, getOdomVelCallback);
+    ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod/debug_route_plan", 1, getDebugRoutePlanCallback);
+
 //    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     // Subscribe to topic with non-associated laser points (for now all laser points)
     std::string laser_topic("/projected_scan_front");
+    // std::string laser_topic("/ropod/laser/scan");
     unsigned int bufferSize = 1;
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>(laser_topic, bufferSize, scanCallback);
     // Visualize map nodes and robot
     ropodmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/ropodpoints", 1);
-    mapmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/vmnodes", 10, true);
+    mapmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/vmnodes", 100, true);
     wallmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/right_side_wall", 10, true);
     tf_listener_ = new tf::TransformListener;
 
 
     NapoleonPlanner napoleon_planner_("/ropod/goto");
+
 
     while(ros::ok())
     {
@@ -1414,10 +1461,22 @@ int main(int argc, char** argv)
         ros::spinOnce();
     }
 
+    /*
+    ROS_INFO("Wait for debug plan on topic");
+    while(ros::ok())
+    {
+        if(start_navigation)
+        {
+            break;
+        }
+        ros::spinOnce();
+    }
+    */
 
     ROS_INFO("Now preparing the plan");
-
-    std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
+    initializeVisualizationMarkers();
+    //std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
+    std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
     int intermediate_area_id_counter = 10000;
     for (int i = 0; i < planner_areas.size(); i++)
     {
@@ -1425,19 +1484,19 @@ int main(int argc, char** argv)
         {
             for (int k = 0; k < planner_areas[i].sub_areas[j].geometry.vertices.size(); k++)
             {
-                pointlist.push_back(PointID(planner_areas[i].sub_areas[j].geometry.vertices[k].x, 
-                                             planner_areas[i].sub_areas[j].geometry.vertices[k].y, 
+                pointlist.push_back(PointID(planner_areas[i].sub_areas[j].geometry.vertices[k].x,
+                                             planner_areas[i].sub_areas[j].geometry.vertices[k].y,
                                              std::to_string(planner_areas[i].sub_areas[j].geometry.vertices[k].id)));
             }
 
             int points_size = pointlist.size();
             std::string sub_area_type = planner_areas[i].type;
-            
+
             if (sub_area_type == "junction")
             {
                 sub_area_type = "inter";
             }
-            else if (sub_area_type == "corridor")
+            else
             {
                 sub_area_type = "hallway";
             }
@@ -1445,7 +1504,7 @@ int main(int argc, char** argv)
             int sub_area_id;
             if (points_size >= 4)
             {
-              
+
                 if(planner_areas[i].sub_areas[j].id != "")
                 {
                     sub_area_id = std::stoi(planner_areas[i].sub_areas[j].id.c_str());
@@ -1462,6 +1521,32 @@ int main(int argc, char** argv)
                                                pointlist[points_size-1],
                                                sub_area_id,
                                                sub_area_type));
+
+                // Plan visualization
+                vis_plan.points.clear();
+                vis_plan.header.stamp = ros::Time::now();
+                vis_plan.id = 10*i+j;
+                geometry_msgs::Point p;
+                p.x = pointlist[points_size-4].x;
+                p.y = pointlist[points_size-4].y;
+                vis_plan.points.push_back(p);
+                p.x = pointlist[points_size-3].x;
+                p.y = pointlist[points_size-3].y;
+                vis_plan.points.push_back(p);
+                p.x = pointlist[points_size-2].x;
+                p.y = pointlist[points_size-2].y;
+                vis_plan.points.push_back(p);
+                p.x = pointlist[points_size-1].x;
+                p.y = pointlist[points_size-1].y;
+                vis_plan.points.push_back(p);
+                p.x = pointlist[points_size-4].x;
+                p.y = pointlist[points_size-4].y;
+                vis_plan.points.push_back(p);
+                mapmarker_pub.publish(vis_plan);
+            }
+            else
+            {
+                ROS_ERROR("AREA WITH LESS THAN 4 POINTS");
             }
             ROS_INFO("Sub area id: %d | Sub area type: %s", sub_area_id, sub_area_type.c_str());
             assignment.push_back(sub_area_id);
@@ -1469,17 +1554,14 @@ int main(int argc, char** argv)
     }
 
     ROS_INFO("Now starting navigation");
-    start_navigation = true;
+    // start_navigation = true;
 
 
-    // update area value 
+    // update area value
     ka_max = assignment.size();  // Assignment length
 
     cur_obj = getAreaByID(assignment[0],arealist);
 
-    initializeVisualizationMarkers();
-
-    mapmarker_pub.publish(vis_points);
 
     initializeAssignment();
 
@@ -1607,8 +1689,8 @@ int main(int argc, char** argv)
                 j = j+1;
 
                 // j and m counter are initialized at 0 instead of 1 in Matlab so we dont have to change their indices
-                consider_overtaking_area1ID = false;
-                consider_overtaking_area3ID = false;
+                consider_overtaking_current_hallway = false;
+                consider_overtaking_next_hallway = false;
                 pred_tube_width[j] = pred_tube_width[j-1];  // Assume same as previous, might change later
 
 
@@ -1648,11 +1730,11 @@ int main(int argc, char** argv)
                 /**
                  * Call overtake state machine when needed
                  * */
-                if ((pred_state[prevstate] == CRUSING && consider_overtaking_area1ID) || consider_overtaking_area3ID && (pred_state[prevstate] == TURNING || pred_state[prevstate] == GOING_STRAIGHT_ON_INTERSECTION))
+                if ((pred_state[prevstate] == CRUSING && consider_overtaking_current_hallway) || consider_overtaking_next_hallway && (pred_state[prevstate] == TURNING || pred_state[prevstate] == GOING_STRAIGHT_ON_INTERSECTION))
                 {
                     overtakeStateMachine();
                 }
-                else if (!consider_overtaking_area1ID && !consider_overtaking_area3ID)
+                else if (!consider_overtaking_current_hallway && !consider_overtaking_next_hallway)
                 {
                     pred_tube_width[j] = TUBE_WIDTH_C;
                 }
