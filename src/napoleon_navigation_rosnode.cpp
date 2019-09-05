@@ -401,7 +401,6 @@ bool ropod_colliding_wall = true;
 
 AreaQuadID current_hallway;
 AreaQuadID next_hallway;
-AreaQuad current_entry;
 AreaQuadID curr_area;
 AreaQuadID next_area;
 AreaQuadID next_second_area;
@@ -445,7 +444,6 @@ double obj2frontwall_angle, obj3wall_angle, relative_angle;
 
 void initializeAssignment()
 {
-    current_entry = generateEntry(assignment[0], assignment[1], ENTRY_LENGTH, arealist, pointlist);
     current_hallway = getAreaByID(assignment[0],arealist); // TODO: This assumes we start in a hallway, which could be not the case when stuck in an intersection
     for (int arID = 1; arID < ka_max; arID++)
     {
@@ -720,7 +718,10 @@ void updateAreasAndFeatures()
                 task3 = OBJ_X_TASK[u+2];
             }
 
-            current_entry = generateEntry(assignment[u], assignment[u+1], ENTRY_LENGTH, arealist, pointlist);
+            curr_area = getAreaByID(area1ID,arealist);
+            next_area = getAreaByID(area2ID,arealist);
+            next_second_area = getAreaByID(area3ID,arealist);
+
         }
 
         // Bad but working statement to check if task2 contains 6 nonempty strings.
@@ -793,7 +794,10 @@ void updateStateAndTask()
                 area3ID = assignment[ka_max-1];
                 task3 = OBJ_X_TASK[ka_max-1];
             }
-            current_entry = generateEntry(area1ID, area2ID, ENTRY_LENGTH, arealist, pointlist);
+            curr_area = getAreaByID(area1ID,arealist);
+            next_area = getAreaByID(area2ID,arealist);
+            next_second_area = getAreaByID(area3ID,arealist);
+
 
         } else if (pred_ropod_on_entry_inter[j] && pred_state[prevstate] == CRUSING) {
             // If cruising and the y position of the ropod exceeds the y
@@ -848,13 +852,16 @@ void updateStateAndTask()
                 area3ID = assignment[ka_max-1];
                 task3 = OBJ_X_TASK[ka_max-1];
             }
-            current_entry = generateEntry(area1ID, area2ID, ENTRY_LENGTH, arealist, pointlist);
+            curr_area = getAreaByID(area1ID,arealist);
+            next_area = getAreaByID(area2ID,arealist);
+            next_second_area = getAreaByID(area3ID,arealist);
+
         } else {
 
             pred_state[j] = pred_state[prevstate];
             update_state_points = false;
         }
-    // Going straight on an intersection
+    // Going straight on an intersection / ot between hallways
     } else if (!task2[1].empty()) {
         if (pred_ropod_on_entry_hall[j] && pred_state[prevstate] == CRUSING) {
             pred_state[j] = CRUSING;
@@ -887,7 +894,10 @@ void updateStateAndTask()
                 area3ID = assignment[ka_max-1];
                 task3 = OBJ_X_TASK[ka_max-1];
             }
-            current_entry = generateEntry(area1ID, area2ID, ENTRY_LENGTH, arealist, pointlist);
+            curr_area = getAreaByID(area1ID,arealist);
+            next_area = getAreaByID(area2ID,arealist);
+            next_second_area = getAreaByID(area3ID,arealist);
+
 
         }else if (pred_ropod_on_entry_inter[j] && pred_state[prevstate] == CRUSING) {
             // If cruising and the y position of the ropod exceeds the y
@@ -929,7 +939,9 @@ void updateStateAndTask()
                 area3ID = assignment[ka_max-1];
                 task3 = OBJ_X_TASK[ka_max-1];
             }
-            current_entry = generateEntry(area1ID, area2ID, ENTRY_LENGTH, arealist, pointlist);
+            curr_area = getAreaByID(area1ID,arealist);
+            next_area = getAreaByID(area2ID,arealist);
+            next_second_area = getAreaByID(area3ID,arealist);
 
 
         } else {
@@ -1439,7 +1451,7 @@ int main(int argc, char** argv)
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     // Subscribe to topic with non-associated laser points (for now all laser points)
     std::string laser_topic("/projected_scan_front");
-    // std::string laser_topic("/ropod/laser/scan");
+    //std::string laser_topic("/ropod/laser/scan");
     unsigned int bufferSize = 1;
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>(laser_topic, bufferSize, scanCallback);
     // Visualize map nodes and robot
@@ -1706,12 +1718,24 @@ int main(int argc, char** argv)
                 pred_ropod_on_entry_inter[j] = false;
                 pred_ropod_on_entry_hall[j] = false;
                 if (curr_area.type == "hallway" && next_area.type == "inter")
-                {
-                    pred_ropod_on_entry_inter[j] = current_entry.contains(pred_xy_ropod[j-1]);
+                {                   
+                    point_front = getPointByID(task1[1],pointlist);
+                    local_wallpoint_front = coordGlobalToRopod(point_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+                    if(local_wallpoint_front.x < ENTRY_LENGTH) 
+                        pred_ropod_on_entry_inter[j] = true;
+                    else
+                        pred_ropod_on_entry_inter[j] = false;
+                        
                 }
                 else if (area1ID!=area2ID && curr_area.type == "hallway" && next_area.type == "hallway")
                 {
-                    pred_ropod_on_entry_hall[j] = current_entry.contains(pred_xy_ropod[j-1]);
+                    point_front = getPointByID(task1[1],pointlist);
+                    local_wallpoint_front = coordGlobalToRopod(point_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+                    if(local_wallpoint_front.x < SIZE_FRONT_RAX) 
+                        pred_ropod_on_entry_hall[j] = true;
+                    else
+                        pred_ropod_on_entry_hall[j] = false;
+                        
                 }
 
                 update_state_points = true; // Initially true, might change to false when not necessary
@@ -1832,12 +1856,11 @@ int main(int argc, char** argv)
             vel_pub.publish(cmd_vel);
         }
 
+        if (prev_sim_task_counter == (ka_max-1) ) {
 
-        if (prev_sim_task_counter == ka_max-1) {
-            AreaQuadID OBJ_LAST = getAreaByID(assignment[ka_max-1],arealist);
-            Point OBJ_LAST_center = OBJ_LAST.center();
-            dist_to_middle_final = sqrt((OBJ_LAST_center.x-pred_x_rearax[1])*(OBJ_LAST_center.x-pred_x_rearax[1])+(OBJ_LAST_center.y-pred_y_rearax[1])*(OBJ_LAST_center.y-pred_y_rearax[1]));
-            if(dist_to_middle_final < REACHEDTARGETTRESHOLD)
+            point_front = getPointByID(task1[1],pointlist);
+            local_wallpoint_front = coordGlobalToRopod(point_front, pred_xy_ropod[1], pred_plan_theta[1]);
+            if(local_wallpoint_front.x < REACHEDTARGETTRESHOLD)
             {
                 ropod_reached_target = true;
                 ROS_INFO("Ropod has reached its target, yay!");
