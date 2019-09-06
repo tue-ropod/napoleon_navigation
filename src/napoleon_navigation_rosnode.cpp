@@ -1461,9 +1461,9 @@ int main(int argc, char** argv)
     tf_listener_ = new tf::TransformListener;
 
 
+    
+    
     NapoleonPlanner napoleon_planner_("/ropod/goto");
-
-
     while(ros::ok())
     {
         if(napoleon_planner_.getStatus())
@@ -1472,6 +1472,7 @@ int main(int argc, char** argv)
         }
         ros::spinOnce();
     }
+    std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
 
     /*
     ROS_INFO("Wait for debug plan on topic");
@@ -1483,12 +1484,12 @@ int main(int argc, char** argv)
         }
         ros::spinOnce();
     }
+    std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
     */
 
     ROS_INFO("Now preparing the plan");
     initializeVisualizationMarkers();
-    //std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
-    std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
+
     int intermediate_area_id_counter = 10000;
     for (int i = 0; i < planner_areas.size(); i++)
     {
