@@ -618,11 +618,11 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: 34.7313194275
                 id: 1619
               - 
-                x: 4.5517077446
+                x: 6
                 y: 34.8000984192
                 id: 1620
               - 
-                x: 4.53251361847
+                x: 6
                 y: 33.7325172424
                 id: 1617
               - 
@@ -631,7 +631,7 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 id: 1618
           right: 
             point1: 
-              x: 4.53251361847
+              x: 6
               y: 33.7325172424
               id: 1617
             point2: 
@@ -640,7 +640,7 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
               id: 1618
           left: 
             point1: 
-              x: 4.5517077446
+              x: 6
               y: 34.8000984192
               id: 1620
             point2: 
@@ -670,7 +670,7 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
           geometry: 
             vertices: 
               - 
-                x: 4.5517077446
+                x: 6
                 y: 34.8000984192
                 id: 1620
               - 
@@ -682,7 +682,7 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: 32.597328186
                 id: 1622
               - 
-                x: 4.53251361847
+                x: 6
                 y: 33.7325172424
                 id: 1617
           right: 
@@ -732,11 +732,11 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
           geometry: 
             vertices: 
               - 
-                x: -0.20008726418
+                x: 0.9
                 y: 34.8946800232
                 id: 1624
               - 
-                x: -0.288643121719
+                x: 0.9
                 y: 32.7273712158
                 id: 1621
               - 
@@ -758,11 +758,11 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
               id: 1623
           left: 
             point1: 
-              x: -0.288643121719
+              x: 0.9
               y: 32.7273712158
               id: 1621
             point2: 
-              x: -0.20008726418
+              x: 0.9
               y: 34.8946800232
               id: 1624
           turn_point: 
@@ -794,7 +794,7 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
           geometry: 
             vertices: 
               - 
-                x: -0.288643121719
+                x: 0.9
                 y: 32.7273712158
                 id: 1621
               - 
@@ -855,11 +855,11 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 id: 1627
               - 
                 x: 0.738003671169
-                y: 25.4260139465
+                y: 24
                 id: 1630
               - 
                 x: 1.68152213097
-                y: 25.3583126068
+                y: 24
                 id: 1629
               - 
                 x: 1.90024352074
@@ -907,7 +907,7 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
             vertices: 
               - 
                 x: 0.738003671169
-                y: 25.4260139465
+                y: 24
                 id: 1630
               - 
                 x: -0.429765343666
@@ -919,7 +919,7 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 id: 1472
               - 
                 x: 1.68152213097
-                y: 25.3583126068
+                y: 24
                 id: 1629
           right: 
             point1: 
