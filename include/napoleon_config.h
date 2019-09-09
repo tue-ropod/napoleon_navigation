@@ -6,7 +6,7 @@
 #include <vector>
 using namespace std;
 
-//#define MOBIDIK
+// #define MOBIDIK
 
 // Define environment
 // static constexpr double TUBE_WIDTH = 2.45;

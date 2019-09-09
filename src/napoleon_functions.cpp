@@ -612,6 +612,22 @@ AreaQuad generateEntry(int hallwayID, int interID, double e_length, vector<AreaQ
     return entry;
 }
 
+double getAngleBetweenHallways(vector<string> taskhallway1, vector<string> taskhallway2, vector<PointID> pointlist) {
+    PointID s_wall1 = getPointByID(taskhallway1[0], pointlist);
+    PointID e_wall1 = getPointByID(taskhallway1[1], pointlist);
+    PointID s_wall2 = getPointByID(taskhallway2[0], pointlist);
+    PointID e_wall2 = getPointByID(taskhallway2[1], pointlist);
+    
+
+    double wall1_angle = atan2(e_wall1.y-s_wall1.y,e_wall1.x-s_wall1.x);
+    double wall2_angle = atan2(e_wall2.y-s_wall2.y,e_wall2.x-s_wall2.x);
+    
+    double angle = wall2_angle - wall1_angle;
+    
+    return remainder(angle, 2.0*M_PI);
+}
+
+
 AreaQuadID getAreaByID(int wantedID, vector<AreaQuadID> arealist) {
     int listlength = arealist.size();
     for (int i = 0; i < listlength; ++i) {

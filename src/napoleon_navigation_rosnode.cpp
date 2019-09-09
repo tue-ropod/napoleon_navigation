@@ -1450,8 +1450,8 @@ int main(int argc, char** argv)
 //    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     // Subscribe to topic with non-associated laser points (for now all laser points)
-    std::string laser_topic("/projected_scan_front");
-    //std::string laser_topic("/ropod/laser/scan");
+    //std::string laser_topic("/projected_scan_front");
+    std::string laser_topic("/ropod/laser/scan");
     unsigned int bufferSize = 1;
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>(laser_topic, bufferSize, scanCallback);
     // Visualize map nodes and robot
@@ -1461,8 +1461,6 @@ int main(int argc, char** argv)
     tf_listener_ = new tf::TransformListener;
 
 
-    
-    
     NapoleonPlanner napoleon_planner_("/ropod/goto");
     while(ros::ok())
     {
@@ -1474,7 +1472,7 @@ int main(int argc, char** argv)
     }
     std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
 
-    /*
+/*
     ROS_INFO("Wait for debug plan on topic");
     while(ros::ok())
     {
@@ -1485,7 +1483,7 @@ int main(int argc, char** argv)
         ros::spinOnce();
     }
     std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
-    */
+*/
 
     ROS_INFO("Now preparing the plan");
     initializeVisualizationMarkers();
@@ -1719,24 +1717,30 @@ int main(int argc, char** argv)
                 pred_ropod_on_entry_inter[j] = false;
                 pred_ropod_on_entry_hall[j] = false;
                 if (curr_area.type == "hallway" && next_area.type == "inter")
-                {                   
-                    point_front = getPointByID(task1[1],pointlist);
-                    local_wallpoint_front = coordGlobalToRopod(point_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-                    if(local_wallpoint_front.x < ENTRY_LENGTH) 
-                        pred_ropod_on_entry_inter[j] = true;
-                    else
-                        pred_ropod_on_entry_inter[j] = false;
-                        
-                }
-                else if (area1ID!=area2ID && curr_area.type == "hallway" && next_area.type == "hallway")
                 {
                     point_front = getPointByID(task1[1],pointlist);
                     local_wallpoint_front = coordGlobalToRopod(point_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-                    if(local_wallpoint_front.x < SIZE_FRONT_ROPOD-0.5*D_AX) 
+                    if(local_wallpoint_front.x < ENTRY_LENGTH)
+                        pred_ropod_on_entry_inter[j] = true;
+                    else
+                        pred_ropod_on_entry_inter[j] = false;
+
+                }
+                else if (area1ID!=area2ID && curr_area.type == "hallway" && next_area.type == "hallway")
+                {
+                    double walls_angle = getAngleBetweenHallways(task1, task2, pointlist);
+                    double distance_to_switch_halls;
+                    if(walls_angle > 0) // Concave, switch early                        
+                        distance_to_switch_halls = SIZE_FRONT_ROPOD+1.0;
+                    else // Convex, switch close to turning axis
+                        distance_to_switch_halls = -0.5*D_AX;
+
+                    point_front = getPointByID(task1[1],pointlist);
+                    local_wallpoint_front = coordGlobalToRopod(point_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+                    if(local_wallpoint_front.x < distance_to_switch_halls)
                         pred_ropod_on_entry_hall[j] = true;
                     else
                         pred_ropod_on_entry_hall[j] = false;
-                        
                 }
 
                 update_state_points = true; // Initially true, might change to false when not necessary

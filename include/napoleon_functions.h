@@ -29,6 +29,7 @@ bool do_shapes_overlap(double shape1[][2], double shape2[][2]);
 bool does_line_intersect_shape(Point p0, Point p1, double shape[][2]);
 bool doesShapeCollideWithCircle(double shape[][2], Point c, double r);
 AreaQuad generateEntry(int hallwayID, int interID, double e_length, vector<AreaQuadID> arealist, vector<PointID> pointlist);
+double getAngleBetweenHallways(vector<string> taskhallway1, vector<string> taskhallway2, vector<PointID> pointlist);
 AreaQuadID getAreaByID(int wantedID, vector<AreaQuadID> arealist);
 vector<string> getWallPointsTowardsB(AreaQuadID A, AreaQuadID B);
 vector<string> getWallPointsAwayFromB(AreaQuadID A, AreaQuadID B);
