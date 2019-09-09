@@ -146,13 +146,13 @@ action:
               w: 1.0
     -
       id: '13'
-      name: 'BRSU_C_L0_C2'
+      name: ''
       type: 'corridor'
       floor_number: 0
       sub_areas:
         -
-          name: 'BRSU_C_L0_C2_LA2'
-          id: '76'
+          name: ''
+          id: '77'
           floor_number: 0
           waypoint_pose:
             position:
@@ -165,13 +165,18 @@ action:
               z: 0.0
               w: 1.0
     -
+      id: '91'
+      name: 'BRSU_C_L0_C1_Door1'
+      type: 'door'
+      floor_number: 0
+    -
       id: '123'
-      name: 'BRSU_C_L0_C2'
-      type: 'corridor'
+      name: ''
+      type: 'area'
       floor_number: 0
       sub_areas:
         -
-          name: 'BRSU_C_L0_C2_LA2'
+          name: ''
           id: '117'
           floor_number: 0
           waypoint_pose:
@@ -186,12 +191,12 @@ action:
               w: 1.0
     -
       id: '124'
-      name: 'BRSU_C_L0_C2'
-      type: 'corridor'
+      name: ''
+      type: 'area'
       floor_number: 0
       sub_areas:
         -
-          name: 'BRSU_C_L0_C2_LA2'
+          name: ''
           id: '118'
           floor_number: 0
           waypoint_pose:
@@ -206,12 +211,12 @@ action:
               w: 1.0
     -
       id: '126'
-      name: 'BRSU_C_L0_C2'
-      type: 'corridor'
+      name: ''
+      type: 'area'
       floor_number: 0
       sub_areas:
         -
-          name: 'BRSU_C_L0_C2_LA2'
+          name: ''
           id: '119'
           floor_number: 0
           waypoint_pose:
@@ -226,12 +231,12 @@ action:
               w: 1.0
     -
       id: '125'
-      name: 'BRSU_C_L0_C2'
-      type: 'corridor'
+      name: ''
+      type: 'area'
       floor_number: 0
       sub_areas:
         -
-          name: 'BRSU_C_L0_C2_LA2'
+          name: ''
           id: '120'
           floor_number: 0
           waypoint_pose:
