@@ -190,14 +190,14 @@ action:
               z: 0.0
               w: 1.0
     -
-      id: '124'
+      id: '269'
       name: ''
       type: 'area'
       floor_number: 0
       sub_areas:
         -
           name: ''
-          id: '118'
+          id: '265'
           floor_number: 0
           waypoint_pose:
             position:
@@ -210,14 +210,14 @@ action:
               z: 0.0
               w: 1.0
     -
-      id: '126'
+      id: '270'
       name: ''
       type: 'area'
       floor_number: 0
       sub_areas:
         -
           name: ''
-          id: '119'
+          id: '264'
           floor_number: 0
           waypoint_pose:
             position:
@@ -230,14 +230,14 @@ action:
               z: 0.0
               w: 1.0
     -
-      id: '125'
+      id: '274'
       name: ''
       type: 'area'
       floor_number: 0
       sub_areas:
         -
           name: ''
-          id: '120'
+          id: '262'
           floor_number: 0
           waypoint_pose:
             position:
@@ -249,6 +249,126 @@ action:
               y: 0.0
               z: 0.0
               w: 1.0
+    -
+      id: '276'
+      name: ''
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: ''
+          id: '261'
+          floor_number: 0
+          waypoint_pose:
+            position:
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+    -
+      id: '268'
+      name: ''
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: ''
+          id: '259'
+          floor_number: 0
+          waypoint_pose:
+            position:
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+    -
+      id: '267'
+      name: ''
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: ''
+          id: '258'
+          floor_number: 0
+          waypoint_pose:
+            position:
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+    -
+      id: '278'
+      name: ''
+      type: 'junction'
+      floor_number: 0
+      sub_areas:
+        -
+          name: ''
+          id: '252'
+          floor_number: 0
+          waypoint_pose:
+            position:
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+    -
+      id: '273'
+      name: ''
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: ''
+          id: '251'
+          floor_number: 0
+          waypoint_pose:
+            position:
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+    -
+      id: '281'
+      name: ''
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: ''
+          id: '249'
+          floor_number: 0
+          waypoint_pose:
+            position:
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0  
   sub_areas: []
   elevator: 
     elevator_id: 0
