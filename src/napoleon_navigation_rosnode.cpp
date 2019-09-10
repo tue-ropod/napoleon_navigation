@@ -1449,11 +1449,7 @@ int main(int argc, char** argv)
 
 //    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
-    // Subscribe to topic with non-associated laser points (for now all laser points)
-    //std::string laser_topic("/projected_scan_front");
-    std::string laser_topic("/ropod/laser/scan");
-    unsigned int bufferSize = 1;
-    ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>(laser_topic, bufferSize, scanCallback);
+
     // Visualize map nodes and robot
     ropodmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/ropodpoints", 1);
     mapmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/vmnodes", 100, true);
@@ -1461,6 +1457,8 @@ int main(int argc, char** argv)
     tf_listener_ = new tf::TransformListener;
 
 
+    // Subscribe to topic with non-associated laser points (for now all laser points)    
+    std::string laser_topic("/projected_scan_front");
     NapoleonPlanner napoleon_planner_("/ropod/goto");
     while(ros::ok())
     {
@@ -1473,6 +1471,8 @@ int main(int argc, char** argv)
     std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
 
 /*
+    // Subscribe to topic with non-associated laser points (for now all laser points)    
+    std::string laser_topic("/ropod/laser/scan");
     ROS_INFO("Wait for debug plan on topic");
     while(ros::ok())
     {
@@ -1484,7 +1484,10 @@ int main(int argc, char** argv)
     }
     std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
 */
-
+    // TODO: Move to the beginning and make action serve and topic work non-blocking. For now I placed it here for not forgetting to change the laser topic as well
+    unsigned int bufferSize = 1;
+    ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>(laser_topic, bufferSize, scanCallback);
+    
     ROS_INFO("Now preparing the plan");
     initializeVisualizationMarkers();
 
