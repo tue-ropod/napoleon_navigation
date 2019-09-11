@@ -1456,7 +1456,7 @@ int main(int argc, char** argv)
     wallmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/right_side_wall", 10, true);
     tf_listener_ = new tf::TransformListener;
 
-
+/*
     // Subscribe to topic with non-associated laser points (for now all laser points)    
     std::string laser_topic("/projected_scan_front");
     NapoleonPlanner napoleon_planner_("/ropod/goto");
@@ -1469,8 +1469,8 @@ int main(int argc, char** argv)
         ros::spinOnce();
     }
     std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
+*/
 
-/*
     // Subscribe to topic with non-associated laser points (for now all laser points)    
     std::string laser_topic("/ropod/laser/scan");
     ROS_INFO("Wait for debug plan on topic");
@@ -1483,7 +1483,7 @@ int main(int argc, char** argv)
         ros::spinOnce();
     }
     std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
-*/
+
     // TODO: Move to the beginning and make action serve and topic work non-blocking. For now I placed it here for not forgetting to change the laser topic as well
     unsigned int bufferSize = 1;
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>(laser_topic, bufferSize, scanCallback);

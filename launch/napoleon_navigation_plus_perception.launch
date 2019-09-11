@@ -10,16 +10,16 @@
 <!--
          <arg name="map_file" default="$(find ed_object_models)/models/tue_hallway_RLtoAL/walls/shape/map.yaml" />
 -->
-       <arg name="map_file" default="/home/ropod/ropod-project-software/catkin_workspace/src/applications/occupancy_grids/brsu/brsu-c-floor0_osm/map.yaml" />
+       <arg name="map_file" default="/home/wouter/ropod-project-software/catkin_workspace/src/applications/occupancy_grids/brsu/brsu-c-floor0_osm/map.yaml" />
 
    <!-- Run the map server -->
      <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
 
     <!--- Run AMCL -->
     <node pkg="amcl" type="amcl" name="amcl">
-        <!-- <remap from="scan" to="/$(arg robotName)/$(arg laser1_name)/scan"/> -->
+         <remap from="scan" to="/$(arg robotName)/$(arg laser1_name)/scan"/>
         
-        <remap from="scan" to="/projected_scan_front"/> <!-- for BRSU ropod -->
+        <!-- <remap from="scan" to="/projected_scan_front"/> --> <!-- for BRSU ropod -->
 
         <!--- Odometery model parameters  -->
         <param name="odom_model_type" value="omni"/>
