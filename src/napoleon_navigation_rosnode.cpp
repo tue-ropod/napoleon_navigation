@@ -364,7 +364,7 @@ AreaQuadID cur_obj;
 
 vector<string> areaIDs;
 int ind, qmax;
-double space_left, space_right, shift_wall, wallang;;
+double space_left, space_right, shift_wall, wallang;
 
 int prev_sim_state = 1;
 int pred_state[size_p] {1};

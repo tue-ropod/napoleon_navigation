@@ -15,7 +15,6 @@ Point::Point(double xval , double yval) {
     y = yval;
 }
 
-// Code can be cleaner if PointID inherits Point
 Point Point::sub(Point &b) {
     return Point(x - b.x, y - b.y);
 }
