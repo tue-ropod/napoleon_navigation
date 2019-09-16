@@ -1,0 +1,343 @@
+#include "napoleon_model.h"
+
+void NapoleonModel::getOdomVelCallback(const nav_msgs::Odometry::ConstPtr& odom_vel){
+    odom_xdot_ropod_global = odom_vel->twist.twist.linear.x;
+    odom_ydot_ropod_global = odom_vel->twist.twist.linear.y;
+    odom_thetadot_global = odom_vel->twist.twist.angular.z;
+    odom_phi_local = atan2(odom_ydot_ropod_global, odom_xdot_ropod_global);
+    odom_vropod_global = sqrt(odom_xdot_ropod_global*odom_xdot_ropod_global+odom_ydot_ropod_global*odom_ydot_ropod_global);
+    //ROS_INFO("xdot: %f, ydot: %f, vabs: %f", odom_xdot_ropod_global, odom_ydot_ropod_global, odom_vropod_global);
+}
+
+void NapoleonModel::getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& pose_msg){
+    //ROS_INFO("Amcl pose received");
+    //ROS_INFO("X: %f, Y: %f", pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y);
+    this_amcl_x = pose_msg->pose.pose.position.x;
+    this_amcl_y = pose_msg->pose.pose.position.y;
+    quaternion_x = pose_msg->pose.pose.orientation.x;
+    quaternion_y = pose_msg->pose.pose.orientation.y;
+    quaternion_z = pose_msg->pose.pose.orientation.z;
+    quaternion_w = pose_msg->pose.pose.orientation.w;
+
+    // yaw (z-axis rotation)
+    siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
+    cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
+    this_amcl_theta = atan2(siny_cosp, cosy_cosp);
+}
+
+void NapoleonModel::scanCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
+    scan_available = true;
+    scan_buffer_.push(msg);
+}
+
+void NapoleonModel::getLatestScanData()
+{
+
+    if(scan_available)
+    {
+        while(!scan_buffer_.empty())
+        {
+            scan = scan_buffer_.front();
+
+            // - - - - - - - - - - - - - - - - - -
+            // Determine absolute laser pose based on TF
+
+            try
+            {
+                tf::StampedTransform t_sensor_pose;
+                tf_listener_->lookupTransform("map", scan->header.frame_id, scan->header.stamp, t_sensor_pose);
+                scan_buffer_.pop();
+
+                tf::Quaternion q = t_sensor_pose.getRotation(); //( t_sensor_pose.getRotation().x, t_sensor_pose.getRotation().y, t_sensor_pose.getRotation().z, t_sensor_pose.getRotation().w );
+                tf::Matrix3x3 matrix ( q );
+                double rollSensor, pitchSensor, yawSensor;
+                matrix.getRPY ( rollSensor, pitchSensor, yawSensor );
+
+                double scan_size =  scan->ranges.size();
+                laser_meas_points.resize(scan_size);
+
+                for(unsigned int iScan = 0; iScan < scan_size; iScan ++)
+                {
+                    double angle = yawSensor + scan->angle_min + scan->angle_increment*iScan;
+                    laser_meas_points[iScan].x = t_sensor_pose.getOrigin().getX() + scan->ranges[iScan]*cos( angle );
+                    laser_meas_points[iScan].y = t_sensor_pose.getOrigin().getY() + scan->ranges[iScan]*sin( angle );
+                }
+            }
+            catch(tf::ExtrapolationException& ex)
+            {
+                ROS_WARN_STREAM_DELAYED_THROTTLE(10, "ED Laserplugin tracking: " << ex.what());
+                try
+                {
+                    // Now we have to check if the error was an interpolation or extrapolation error
+                    // (i.e., the scan is too old or too new, respectively)
+                    tf::StampedTransform latest_transform;
+                    tf_listener_->lookupTransform("map", scan->header.frame_id, ros::Time(0), latest_transform);
+
+                    if (scan_buffer_.front()->header.stamp > latest_transform.stamp_)
+                    {
+                        // Scan is too new
+                        break;
+                    }
+                    else
+                    {
+                        // Otherwise it has to be too old (pop it because we cannot use it anymore)
+                        scan_buffer_.pop();
+                    }
+                }
+                catch(tf::TransformException& exc)
+                {
+                    scan_buffer_.pop();
+                }
+            }
+            catch(tf::TransformException& exc)
+            {
+                ROS_ERROR_STREAM_DELAYED_THROTTLE(10, "ED Laserplugin tracking: " << exc.what());
+                scan_buffer_.pop();
+            }
+        }
+        scan_available = false;
+    }
+}
+
+void NapoleonModel::updatePosition(NapoleonPrediction &P){
+    // AMCL data (around 3Hz) - update to AMCL data if new AMCL pose received
+    // otherwise make a guess
+    if (this_amcl_x == prev_amcl_x && this_amcl_y == prev_amcl_y && this_amcl_theta == prev_amcl_theta) {
+        // No AMCL update, so estimate initial values for prediction
+        ropod_x = P.pred_x_ropod[1];
+        ropod_y = P.pred_y_ropod[1];
+        ropod_theta = P.pred_plan_theta[1];
+    } else {
+        // Set latest values from AMCL to previous AMCL values for next iteration
+        // And take AMCL values as initial for the prediction
+        prev_amcl_x = this_amcl_x;
+        prev_amcl_y = this_amcl_y;
+        prev_amcl_theta = this_amcl_theta;
+        ropod_x = this_amcl_x;
+        ropod_y = this_amcl_y;
+        ropod_theta = this_amcl_theta;
+    }
+}
+
+void NapoleonModel::computeSteeringAndVelocity(NapoleonPrediction &P, NapoleonAssignment &A, NapoleonS)
+{
+    /**
+     * Compute steering and default forward acceleration based on computed state and local features
+     * */
+    // Perform the appropriate action according to finite state machine
+    if (P.pred_state[j] == CRUSING || P.pred_state[j] == GOING_STRAIGHT_ON_INTERSECTION || P.pred_state[j] == TIGHT_OVERTAKE || P.pred_state[j] == SPACIOUS_OVERTAKE) {
+        // disp([num2str[j],' - Ropod is now cruising']);
+        if (P.pred_state[j] == CRUSING) {   // Cruising up
+            if (P.update_state_points) {
+                A.point_rear = getPointByID(A.task1[0],A.pointlist);
+                A.point_front = getPointByID(A.task1[1],A.pointlist);
+                //if(j==1 && u == ka_max-1) ROS_INFO("Cruising Point rear: %s, Point front: %s", point_rear.id.c_str(), point_front.id.c_str());
+                A.glob_wallpoint_front.x = A.point_front.x;
+                A.glob_wallpoint_front.y = A.point_front.y;
+                A.glob_wallpoint_rear.x = A.point_rear.x;
+                A.glob_wallpoint_rear.y = A.point_rear.y;
+            }
+            v_des = V_CRUISING;
+        } else if (P.pred_state[j] == GOING_STRAIGHT_ON_INTERSECTION) { // Straight on inter
+            if (P.update_state_points) {
+                A.point_rear = getPointByID(A.task2[0],A.pointlist);
+                A.point_front = getPointByID(A.task2[1],A.pointlist);
+                A.glob_wallpoint_front.x = A.point_front.x;
+                A.glob_wallpoint_front.y = A.point_front.y;
+                A.glob_wallpoint_rear.x = A.point_rear.x;
+                A.glob_wallpoint_rear.y = A.point_rear.y;
+            }
+            v_des = V_INTER_ACC;
+        } else if (P.pred_state[j] == TIGHT_OVERTAKE) { // Tight overtake
+            rw_p_rear = getPointByID(A.task1[0],A.pointlist);
+            A.cur_obj = getAreaByID(A.area1ID,A.arealist);
+            A.areaIDs = A.cur_obj.getPointIDs();
+            ind = 0;
+            qmax = areaIDs.size();
+            for (int q = 0; q < qmax; ++q) {
+                if (areaIDs[q].compare(rw_p_rear.id) == 0) {
+                    ind = q;
+                }
+            }
+            rotate(areaIDs.begin(), areaIDs.begin() + ind, areaIDs.end());
+            lw_p_rear = getPointByID(areaIDs[3],pointlist);
+            lw_p_front = getPointByID(areaIDs[2],pointlist);
+            wallang = atan2(lw_p_front.y-lw_p_rear.y,lw_p_front.x-lw_p_rear.x);
+            //A.glob_wallpoint_front = [lw_front.x, lw_front.y]+pred_tube_width[j]*[cos(wallang-M_PI/2), sin(wallang-M_PI/2)];
+            A.glob_wallpoint_front.x = lw_p_front.x+pred_tube_width[j]*cos(wallang-M_PI/2);
+            A.glob_wallpoint_front.y = lw_p_front.y+pred_tube_width[j]*sin(wallang-M_PI/2);
+            //A.glob_wallpoint_rear = [lw_rear.x, lw_rear.y]+pred_tube_width[j]*[cos(wallang-M_PI/2), sin(wallang-M_PI/2)];
+            A.glob_wallpoint_rear.x = lw_p_rear.x+pred_tube_width[j]*cos(wallang-M_PI/2);
+            A.glob_wallpoint_rear.y = lw_p_rear.y+pred_tube_width[j]*sin(wallang-M_PI/2);
+            v_des = V_OVERTAKE;
+        } else if (pred_state[j] == SPACIOUS_OVERTAKE) { // Spacious overtake
+            point_rear = getPointByID(task1[0],pointlist);
+            point_front = getPointByID(task1[1],pointlist);
+            wallang = atan2(point_front.y-point_rear.y,point_front.x-point_rear.x);
+            //A.glob_wallpoint_front = [point_front.x, point_front.y]+shift_wall*[cos(wallang+M_PI/2), sin(wallang+M_PI/2)];
+            //A.glob_wallpoint_rear = [point_rear.x, point_rear.y]+shift_wall*[cos(wallang+M_PI/2), sin(wallang+M_PI/2)];
+            A.glob_wallpoint_front.x = point_front.x+shift_wall*cos(wallang+M_PI/2);
+            A.glob_wallpoint_front.y = point_front.y+shift_wall*sin(wallang+M_PI/2);
+            A.glob_wallpoint_rear.x = point_rear.x+shift_wall*cos(wallang+M_PI/2);
+            A.glob_wallpoint_rear.y = point_rear.y+shift_wall*sin(wallang+M_PI/2);
+            v_des = V_OVERTAKE;
+        }
+        local_wallpoint_front = coordGlobalToRopod(A.glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        local_wallpoint_rear = coordGlobalToRopod(A.glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
+
+        pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
+        
+    } else if (pred_state[j] == ENTRY_BEFORE_TURN_ON_INTERSECTION || pred_state[j] == ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION) {
+        // disp([num2str[j],' - Ropod is now in entry']);
+        if (update_state_points) {
+            point_rear = getPointByID(task1[0],pointlist);
+            point_front = getPointByID(task1[1],pointlist);
+            A.glob_wallpoint_front.x = point_front.x;
+            A.glob_wallpoint_front.y = point_front.y;
+            A.glob_wallpoint_rear.x = point_rear.x;
+            A.glob_wallpoint_rear.y = point_rear.y;
+        }
+        local_wallpoint_front = coordGlobalToRopod(A.glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        local_wallpoint_rear = coordGlobalToRopod(A.glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
+        pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
+        v_des = V_ENTRY;
+        
+    } else if (pred_state[j] == ACCELERATE_ON_INTERSECTION) {
+        // disp([num2str[j],' - Ropod is at inter, driving forward']);
+        if (update_state_points) {
+            point_rear = getPointByID(task1[0],pointlist);
+            point_front = getPointByID(task1[1],pointlist);
+            A.glob_wallpoint_front.x = point_front.x;
+            A.glob_wallpoint_front.y = point_front.y;
+            A.glob_wallpoint_rear.x = point_rear.x;
+            A.glob_wallpoint_rear.y = point_rear.y;
+        }
+
+        local_wallpoint_front = coordGlobalToRopod(A.glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        local_wallpoint_rear = coordGlobalToRopod(A.glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
+        pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
+        v_des = V_INTER_ACC;
+
+        // Monitor if we don't bump into front wall
+        if (update_state_points) {
+            wall_front_p0 = getPointByID(task2[0],pointlist);
+            wall_front_p1 = getPointByID(task2[1],pointlist);
+
+            global_wall_front_p0.x = wall_front_p0.x;
+            global_wall_front_p0.y = wall_front_p0.y;
+            global_wall_front_p1.x = wall_front_p1.x;
+            global_wall_front_p1.y = wall_front_p1.y;
+        }
+
+        local_wall_front_p0 = coordGlobalToRopod(global_wall_front_p0, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        local_wall_front_p1 = coordGlobalToRopod(global_wall_front_p1, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        if (do_lines_intersect(local_front_ropod_dilated_p0, local_front_ropod_dilated_p1, local_wall_front_p0, local_wall_front_p1)) {
+            pred_state[j] = TURNING;
+            update_state_points = true;
+            //disp("Switched early while aligning pivot because too close to front wall");
+        }
+        
+    } else if (pred_state[j] == ALIGN_AXIS_AT_INTERSECTION) {
+        // disp([num2str[j],' - Ropod is at inter, driving forward']);
+        if (update_state_points) {
+            point_rear = getPointByID(task1[0],pointlist);
+            point_front = getPointByID(task1[1],pointlist);
+            A.glob_wallpoint_front.x = point_front.x;
+            A.glob_wallpoint_front.y = point_front.y;
+            A.glob_wallpoint_rear.x = point_rear.x;
+            A.glob_wallpoint_rear.y = point_rear.y;
+        }
+
+        local_wallpoint_front = coordGlobalToRopod(A.glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        local_wallpoint_rear = coordGlobalToRopod(A.glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
+        pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
+        v_des = V_INTER_DEC;
+
+        // Monitor if we don't bump into front wall
+        if (update_state_points) {
+            wall_front_p0 = getPointByID(task2[0],pointlist);
+            wall_front_p1 = getPointByID(task2[1],pointlist);
+            global_wall_front_p0.x = wall_front_p0.x;
+            global_wall_front_p0.y = wall_front_p0.y;
+            global_wall_front_p1.x = wall_front_p1.x;
+            global_wall_front_p1.y = wall_front_p1.y;
+        }
+
+        local_wall_front_p0 = coordGlobalToRopod(global_wall_front_p0, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        local_wall_front_p1 = coordGlobalToRopod(global_wall_front_p1, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        if (do_lines_intersect(local_front_ropod_dilated_p0, local_front_ropod_dilated_p1, local_wall_front_p0, local_wall_front_p1)) {
+            pred_state[j] = TURNING;
+            update_state_points = true;
+            //disp("Switched early while aligning pivot because too close to front wall");
+        }
+        
+    } else if (pred_state[j] == TURNING) {
+        // disp([num2str[j],' - Ropod is at inter, taking the turn']);
+        if (update_state_points) {
+            point_rear = getPointByID(task2[0],pointlist);
+            point_front = getPointByID(task2[1],pointlist);
+            point_pivot = getPointByID(task2[4],pointlist);
+            A.glob_wallpoint_front.x = point_front.x;
+            A.glob_wallpoint_front.y = point_front.y;
+            A.glob_wallpoint_rear.x = point_rear.x;
+            A.glob_wallpoint_rear.y = point_rear.y;
+        }
+
+        dir_cw = true;
+        if (task2[5].compare("left") == 0) {
+        //if (strcmp(task2{6},'left')) {
+            dir_cw = false; // direction 0 = CCW, 1 = CW
+        }
+
+        local_pivot = coordGlobalToRopod(point_pivot, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        if (!sharp_corner[u+1]) {
+            local_wallpoint_front = coordGlobalToRopod(A.glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+            local_wallpoint_rear = coordGlobalToRopod(A.glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+            //pred_phi_des[j] = getSteeringTurn(ropod_length, size_side, feeler_size_steering, d_ax, dir_cw, local_pivot, local_wallpoint_front, local_wallpoint_rear,  follow_wall_distance, env_tctw_size, env_trns_size_cornering, env_carrot_size);
+            pred_phi_des[j] = getSteeringTurn(local_pivot, dir_cw, local_wallpoint_front, local_wallpoint_rear);
+        } else {
+            //pred_phi_des[j] = getSteeringTurnSharp(pred_x_ropod(j-1), pred_y_ropod(j-1), pred_plan_theta[j-1], size_front_ropod, size_side, feeler_size_steering, d_ax, dir_cw, task2, pointlist, follow_wall_distance, env_tctw_size, env_trns_size_cornering, env_carrot_size);
+            pred_phi_des[j] = getSteeringTurnSharp(pred_xy_ropod[j-1], pred_plan_theta[j-1], dir_cw, task2, pointlist);
+        }
+
+        v_des = V_INTER_TURNING;
+    }
+
+    // Wrap to [-pi,pi] domain
+    pred_phi_des[j] = wrapToPi(pred_phi_des[j]);
+
+    // Saturate steering rate
+    if (abs(pred_phi_des[j]-prev_pred_phi_des) > DELTA_DOT_LIMIT/(double)F_PLANNER) {
+        //disp("Delta steering too large, steering saturated");
+        pred_phi_des[j] = prev_pred_phi_des + sgn(pred_phi_des[j]-prev_pred_phi_des)*DELTA_DOT_LIMIT/(double)F_PLANNER;
+        // Decrease vel leads to better corners
+        // The velocity is already decreased in the state machine, but this is just a harsh backup
+        // pred_steer_rate_saturation[j] = 1;
+        if (v_des > V_STEERSATURATION) {
+            v_des = V_STEERSATURATION;
+        }
+        //disp(['In saturation - j: ', num2str(j) ,', Phides: ', num2str(pred_phi_des(j)), ' // Prev phides: ' , num2str(prev_pred_phi_des), ', v_des = ', num2str(v_des)]);
+    }
+    prev_pred_phi_des = pred_phi_des[j];
+
+    // Applying the v_scale (scales down vel if collision is detected in previous prediction and therefore it failed)
+    // And then we calculate the acceleration for the predictions.
+    v_des_scaled[j] = v_des*v_scale;
+    vel_dif = abs(pred_v_ropod_plan[j-1]-v_des_scaled[j]);   // Difference between actual and desired velocity
+    if (vel_dif < max_delta_v) {
+        v_new = v_des_scaled[j];
+        pred_accel[j] = (v_des_scaled[j]-pred_v_ropod_plan[j-1])/delta_t;
+    } else { // Adapt velocity with maximum acceleration
+        v_new = pred_v_ropod_plan[j-1]+sgn(v_des_scaled[j]-pred_v_ropod_plan[j-1])*max_delta_v;
+        pred_accel[j] = sgn(v_des_scaled[j]-pred_v_ropod_plan[j-1])*A_MAX;
+    }
+    //ROS_INFO("pred_accel: %f", pred_accel[j]);
+}
+
+void NapoleonModel::updateControlVelocity(){
+    control_v = pred_v_ropod[0]+pred_accel[1]*1/F_PLANNER;
+}

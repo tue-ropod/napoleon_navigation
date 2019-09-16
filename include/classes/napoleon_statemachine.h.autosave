@@ -1,0 +1,38 @@
+#ifndef NAP_STA_H
+#define NAP_STA_H
+
+#include "napoleon_geometry.h"
+
+class NapoleonStatemachine{
+
+public:
+
+    // Counters
+    int i = 0; // - simulation/experiment plan
+    int n = 1; // - simulation/experiment movement
+    int k = -1; //- velocity scaling
+    int q = 1; // - for loop for movement simulation (in prediction)
+    int j = 0; // - prediction plan
+    int m = 0; // - prediction movement
+    int u = 0; // - Pred task counter
+    int prevstate; // Actually just j-1
+    int m_prev;
+
+    int delta_assignment_on_overtake;
+    bool consider_overtaking_current_hallway, consider_overtaking_next_hallway;
+    
+    int ind, qmax;
+
+public:
+
+    NapoleonStatemachine()
+    {
+    }
+
+    void considerOvertaking();
+    void overtakeStateMachine();
+    void updateStateAndTask();
+
+}
+
+#endif

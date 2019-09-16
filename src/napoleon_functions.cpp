@@ -627,7 +627,6 @@ double getAngleBetweenHallways(vector<string> taskhallway1, vector<string> taskh
     return remainder(angle, 2.0*M_PI);
 }
 
-
 AreaQuadID getAreaByID(int wantedID, vector<AreaQuadID> arealist) {
     int listlength = arealist.size();
     for (int i = 0; i < listlength; ++i) {
@@ -1101,7 +1100,6 @@ double modf(double x, double y) {
     }
     return m;
 }
-
 
 string get_date(void) {
    time_t now;

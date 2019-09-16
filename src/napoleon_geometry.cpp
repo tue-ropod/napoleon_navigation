@@ -16,11 +16,11 @@ Point::Point(double xval , double yval) {
 }
 
 Point Point::sub(Point &b) {
-    return Point(x - b.x, y - b.y);
+    return {x - b.x, y - b.y};
 }
 
 Point Point::add(Point &b) {
-    return Point(x + b.x, y + b.y);
+    return {x + b.x, y + b.y};
 }
 
 // For map points

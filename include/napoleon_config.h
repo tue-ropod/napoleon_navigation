@@ -99,6 +99,4 @@ static constexpr double DILATE_ROPOD_ALIGNING = 0.90;   // Dilation from center 
 //static constexpr double ROPOD_TO_OBS_MARGIN = (OBS_AVOID_MARGIN+SIZE_FRONT_ROPOD)/SIZE_FRONT_ROPOD;
 static constexpr double SHARP_ANGLE_TRESHOLD = 0.1;     // Angle how much the next hallway must be sharper than perpendicular to be considered sharp [rad]
 
-
-
 #endif

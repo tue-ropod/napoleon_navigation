@@ -8,7 +8,6 @@ using namespace std;
 #include "napoleon_config.h"
 #include <vector>
 
-
 static constexpr double     _PI= 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348;
 static constexpr double _TWO_PI= 6.2831853071795864769252867665590057683943387987502116419498891846156328125724179972560696;
 
@@ -40,7 +39,6 @@ vector<string> getWalls(int id_OBJ1, int id_OBJ2, int id_OBJ3, vector<AreaQuadID
 
 double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, double tubewidth);
 double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_front, Point local_wallpoint_rear);
-
 double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist);
 
 double wrapToPi(double angle);
@@ -49,18 +47,5 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 string get_date(void);
-
-// State of ropod
-enum{
-    CRUSING = 1,
-    ENTRY_BEFORE_TURN_ON_INTERSECTION,
-    ACCELERATE_ON_INTERSECTION,
-    ALIGN_AXIS_AT_INTERSECTION, //  (& slow down)
-    TURNING,
-    ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION,
-    GOING_STRAIGHT_ON_INTERSECTION,
-    TIGHT_OVERTAKE,     // (follow left wall)
-    SPACIOUS_OVERTAKE   // (shift right wall to left virtually)
-};
 
 #endif
