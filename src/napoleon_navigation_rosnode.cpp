@@ -62,17 +62,6 @@ void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray)
         
     ROS_INFO("%lu obstacles detected", obsarray->objects.size());
     
-    //string s;
-    // For the sake of proof of concept, the assumption is made that there will
-    // only be one obstacle to avoid or overtake.
-    // This scenario is not realistic and only serves as showcase.
-    // A counter will decide which obstacle to choose
-    // for (int q = 0; q < no_obs; ++q) {
-    //     s = obsarray->objects[q].id;
-    //     std::cout << s << std::endl;
-    //     current_obstacle = obsarray->objects[q];
-    // }
-    
     // For now, only take all obstacles which are assumed to be a rectangle with 
     // one of the dimensions having a size of approximately 1m.
     // Then, take the closest one.
