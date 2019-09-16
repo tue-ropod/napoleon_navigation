@@ -106,7 +106,7 @@ void NapoleonModel::overtakeStateMachine(NapoleonPrediction &P, NapoleonObstacle
     O.v_obs_sq = O.current_obstacle.vel.x*O.current_obstacle.vel.x+O.current_obstacle.vel.y*O.current_obstacle.vel.y;
     if ((O.v_obs_sq < V_OBS_OVERTAKE_MAX*V_OBS_OVERTAKE_MAX) && O.obs_in_ropod_frame_pos.x > 0) {
         //disp("Slow obstacle, check if there is space to overtake");
-        if (consider_overtaking_current_hallway) {
+        if (P.consider_overtaking_current_hallway) {
             P.rw_p_rear = getPointByID(A.current_hallway_task[0],A.pointlist);
             P.rw_p_front = getPointByID(A.current_hallway_task[1],A.pointlist);
             A.cur_obj = A.current_hallway;
@@ -121,7 +121,7 @@ void NapoleonModel::overtakeStateMachine(NapoleonPrediction &P, NapoleonObstacle
             rotate(A.areaIDs.begin(), A.areaIDs.begin() + P.ind, A.areaIDs.end());
             P.lw_p_rear = getPointByID(A.areaIDs[3],A.pointlist);
             P.lw_p_front = getPointByID(A.areaIDs[2],A.pointlist);
-        } else if (consider_overtaking_next_hallway) {
+        } else if (P.consider_overtaking_next_hallway) {
             P.rw_p_rear = getPointByID(A.next_hallway_task[0],A.pointlist);
             P.rw_p_front = getPointByID(A.next_hallway_task[1],A.pointlist);
             A.cur_obj = A.next_hallway;
@@ -169,7 +169,7 @@ void NapoleonModel::overtakeStateMachine(NapoleonPrediction &P, NapoleonObstacle
                     ROS_INFO("Tight overtake");
                     P.pred_state[P.j] = TIGHT_OVERTAKE;
                     //current_to_overtake_obs = to_overtake_obs;
-                    if (consider_overtaking_next_hallway) {
+                    if (P.consider_overtaking_next_hallway) {
                         P.u = P.u + P.delta_assignment_on_overtake; // Cesar TODO-> check if this works (instead of +2 with no consecutive hallways)!
                         A.update_assignment = true;
                     }
@@ -180,7 +180,7 @@ void NapoleonModel::overtakeStateMachine(NapoleonPrediction &P, NapoleonObstacle
                     ROS_INFO("Spacious overtake");
                     P.pred_state[P.j] = SPACIOUS_OVERTAKE;
                     //current_to_overtake_obs = to_overtake_obs;
-                    if (consider_overtaking_next_hallway) {
+                    if (P.consider_overtaking_next_hallway) {
                         P.u = P.u + P.delta_assignment_on_overtake; // Cesar TODO-> check if this works (instead of +2 with no consecutive hallways)!
                         A.update_assignment = true;
                     }

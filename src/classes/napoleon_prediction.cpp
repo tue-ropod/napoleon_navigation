@@ -21,7 +21,7 @@ void NapoleonPrediction::checkForCollisions(NapoleonModel &M, NapoleonObstacle &
     pred_ropod_dil_rt.x = pred_x_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*M.v_scale))*cos(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*M.v_scale))*cos(pred_theta[m]-M_PI/2);
     pred_ropod_dil_rt.y = pred_y_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*M.v_scale))*sin(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*M.v_scale))*sin(pred_theta[m]-M_PI/2);
 
-    ropod_colliding_obs = false;
+    M.ropod_colliding_obs = false;
     pred_ropod_colliding_obs[j] = false;
     // Obstacle detection (crappy implementation in C++)
     if (t_pred[m] < T_PRED_OBS_COLLISION && O.no_obs > 0) {
@@ -34,7 +34,7 @@ void NapoleonPrediction::checkForCollisions(NapoleonModel &M, NapoleonObstacle &
         obsrb.x = pred_x_obs[j]-O.current_obstacle.width/2*cos(O.obs_theta)+O.current_obstacle.depth/2*sin(O.obs_theta);
         obsrb.y = pred_y_obs[j]-O.current_obstacle.width/2*sin(O.obs_theta)-O.current_obstacle.depth/2*cos(O.obs_theta);
         pred_ropod_colliding_obs[j] = do_shapes_overlap(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt, obsrt, obslt, obslb, obsrb);
-        ropod_colliding_obs = pred_ropod_colliding_obs[j];
+        M.ropod_colliding_obs = pred_ropod_colliding_obs[j];
     }
 
     // TODO: Add here also check with raw laser (for instance of non-associated objects) data or costmap
@@ -47,15 +47,15 @@ void NapoleonPrediction::checkForCollisions(NapoleonModel &M, NapoleonObstacle &
             AreaQuad robot_footprint(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt);
             Point laser_point(M.laser_meas_points[iScan].x, M.laser_meas_points[iScan].y);
             pred_ropod_colliding_obs[j] = robot_footprint.contains(laser_point);
-            ropod_colliding_obs = pred_ropod_colliding_obs[j];
-            if(ropod_colliding_obs)
+            M.ropod_colliding_obs = pred_ropod_colliding_obs[j];
+            if(M.ropod_colliding_obs)
                 break;
         }
     }
 
 
     // Predict intersection times (left out for now)
-    ropod_colliding_wall = false;
+    M.ropod_colliding_wall = false;
 
     // TODO: Finish next line to add checking collision with walls!
 
@@ -142,7 +142,7 @@ void NapoleonPrediction::initialize(NapoleonModel &M, NapoleonObstacle &O)
     pred_y_obs[0] = O.current_obstacle.pose.position.y;
 }
 
-void NapoleonPrediction::update(NapoleonAssignment &A, NapoleonModel &M){
+void NapoleonPrediction::update(NapoleonAssignment &A, NapoleonModel &M, NapoleonObstacle &O, NapoleonVisualization &V){
 
     // Prediction
     while (t_pred[m] < T_MIN_PRED) {
@@ -167,10 +167,7 @@ void NapoleonPrediction::update(NapoleonAssignment &A, NapoleonModel &M){
         {
             A.point_front = getPointByID(A.task1[1],A.pointlist);
             A.local_wallpoint_front = coordGlobalToRopod(A.point_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-            if(A.local_wallpoint_front.x < ENTRY_LENGTH)
-                pred_ropod_on_entry_inter[j] = true;
-            else
-                pred_ropod_on_entry_inter[j] = false;
+            pred_ropod_on_entry_inter[j] = A.local_wallpoint_front.x < ENTRY_LENGTH;
 
         }
         else if (A.area1ID!=A.area2ID && A.curr_area.type == "hallway" && A.next_area.type == "hallway")
@@ -184,15 +181,11 @@ void NapoleonPrediction::update(NapoleonAssignment &A, NapoleonModel &M){
 
             A.point_front = getPointByID(A.task1[1],A.pointlist);
             A.local_wallpoint_front = coordGlobalToRopod(A.point_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-            if(A.local_wallpoint_front.x < distance_to_switch_halls)
-                pred_ropod_on_entry_hall[j] = true;
-            else
-                pred_ropod_on_entry_hall[j] = false;
+            pred_ropod_on_entry_hall[j] = A.local_wallpoint_front.x < distance_to_switch_halls;
         }
 
         update_state_points = true; // Initially true, might change to false when not necessary
         prevstate = j-1;
-
 
         /**
          * Based on predicted position, state, areas, features, update state and task
@@ -201,12 +194,12 @@ void NapoleonPrediction::update(NapoleonAssignment &A, NapoleonModel &M){
         /**
          * Check wether an overtake should be considered at all
          * */
-        considerOvertaking();
+        considerOvertaking(A, O);
 
         /**
          * Call overtake state machine when needed
          * */
-        if ((pred_state[prevstate] == M.CRUSING && consider_overtaking_current_hallway) || consider_overtaking_next_hallway && (pred_state[prevstate] == TURNING || pred_state[prevstate] == GOING_STRAIGHT_ON_INTERSECTION))
+        if ((pred_state[prevstate] == M.CRUSING && consider_overtaking_current_hallway) || (consider_overtaking_next_hallway && (pred_state[prevstate] == M.TURNING || pred_state[prevstate] == M.GOING_STRAIGHT_ON_INTERSECTION)))
         {
             M.overtakeStateMachine();
         }
@@ -218,7 +211,7 @@ void NapoleonPrediction::update(NapoleonAssignment &A, NapoleonModel &M){
         /**
          * Compute steering and default forward acceleration based on computed state and local features
          * */
-        computeSteeringAndVelocity();
+        M.computeSteeringAndVelocity();
 
         /**
          * Simulate robot during current prediction step.
@@ -230,12 +223,12 @@ void NapoleonPrediction::update(NapoleonAssignment &A, NapoleonModel &M){
          * Check for collision
          * Either for obstacles or virtual walls(to be added)
          * */
-        checkForCollisions();
-        if(ropod_colliding_obs || ropod_colliding_wall) // Do not execute current plan when collision is precited
+        checkForCollisions(M, O);
+        if(M.ropod_colliding_obs || M.ropod_colliding_wall) // Do not execute current plan when collision is precited
             break;
 
 
-        visualizeRopodMarkers();
+        V.visualizeRopodMarkers();
 
         // Update positions used to make the prediction plan with
         // Cesar-> TODO: In theory D_AX should be replaced by ROPOD_TO_AX, but it brings issues.
@@ -256,38 +249,38 @@ void NapoleonPrediction::update(NapoleonAssignment &A, NapoleonModel &M){
     } // endwhile prediction
 }
 
-void NapoleonPrediction::considerOvertaking()
+void NapoleonPrediction::considerOvertaking(NapoleonAssignment &A, NapoleonObstacle &O)
 {
 
     // Consider overtaking.
     // Cesar -> TODO: Because of the changes to support consecutive hallway areas, this part still needs to be adapted
     // Cesar -> TODO: The contains function should consider not only the center but all corners. Also how to deal with multiple obstacles?
-    if (u < ka_max-1 && no_obs > 0) {
-        if (update_assignment) {
-            if(curr_area.type == "hallway"){
-                current_hallway = curr_area;
-                current_hallway_task = task1;
-                if (current_hallway.contains(obs_center_global)) {
+    if (u < A.ka_max-1 && O.no_obs > 0) {
+        if (A.update_assignment) {
+            if(A.curr_area.type == "hallway"){
+                A.current_hallway = A.curr_area;
+                A.current_hallway_task = A.task1;
+                if (A.current_hallway.contains(O.obs_center_global)) {
                     consider_overtaking_current_hallway = true;
                     // This strategy only allows to overtake 1 obstacle
                 }
-            }else if(next_area.type == "hallway")
+            }else if(A.next_area.type == "hallway")
             {
-                next_hallway = next_area;
-                next_hallway_task = task2;
+                A.next_hallway = A.next_area;
+                A.next_hallway_task = A.task2;
                 delta_assignment_on_overtake = 1;
-                if (next_hallway.contains(obs_center_global)) {
+                if (A.next_hallway.contains(O.obs_center_global)) {
                     consider_overtaking_next_hallway = true;
                     // This strategy only allows to overtake 1 obstacle
                 }
 
             }
-            else if(next_second_area.type == "hallway")
+            else if(A.next_second_area.type == "hallway")
             {
-                next_hallway = next_second_area;
-                next_hallway_task = task3;
+                A.next_hallway = A.next_second_area;
+                A.next_hallway_task = A.task3;
                 delta_assignment_on_overtake = 2;
-                if (next_hallway.contains(obs_center_global)) {
+                if (A.next_hallway.contains(O.obs_center_global)) {
                     consider_overtaking_next_hallway = true;
                     // This strategy only allows to overtake 1 obstacle
                 }

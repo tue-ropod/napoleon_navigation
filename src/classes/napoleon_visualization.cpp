@@ -1,6 +1,6 @@
 #include "napoleon_visualization.h"
 
-void NapoleonVisualization::visualizeRopodMarkers()
+void NapoleonVisualization::visualizeRopodMarkers(ros::Publisher &ropodmarker_pub, NapoleonPrediction &P)
 {
     vis_points.id = 1;
     vis_points.color.r = 0.0;
@@ -9,10 +9,10 @@ void NapoleonVisualization::visualizeRopodMarkers()
     vis_points.scale.x = 0.1;
     vis_points.scale.y = 0.1;
     geometry_msgs::Point vis_p;
-    vis_p.x = obsrt.x; vis_p.y = obsrt.y; vis_points.points.push_back(vis_p);
-    vis_p.x = obslt.x; vis_p.y = obslt.y; vis_points.points.push_back(vis_p);
-    vis_p.x = obslb.x; vis_p.y = obslb.y; vis_points.points.push_back(vis_p);
-    vis_p.x = obsrb.x; vis_p.y = obsrb.y; vis_points.points.push_back(vis_p);
+    vis_p.x = P.obsrt.x; vis_p.y = P.obsrt.y; vis_points.points.push_back(vis_p);
+    vis_p.x = P.obslt.x; vis_p.y = P.obslt.y; vis_points.points.push_back(vis_p);
+    vis_p.x = P.obslb.x; vis_p.y = P.obslb.y; vis_points.points.push_back(vis_p);
+    vis_p.x = P.obsrb.x; vis_p.y = P.obsrb.y; vis_points.points.push_back(vis_p);
     ropodmarker_pub.publish(vis_points);
 }
 
@@ -44,7 +44,7 @@ void NapoleonVisualization::showWallPoints(Point local_wallpoint_front, Point lo
     pub.publish(vis_wall);
 }
 
-void NapoleonVisualization::initializeVisualizationMarkers()
+void NapoleonVisualization::initializeVisualizationMarkers(NapoleonAssignment &A)
 {
     // Visualize map nodes
     vis_points.header.frame_id = "/map";
@@ -60,10 +60,10 @@ void NapoleonVisualization::initializeVisualizationMarkers()
     vis_points.scale.y = 0.2;
     geometry_msgs::Point vis_p;
 
-    for (int imap = 0; imap < pointlist.size(); ++imap)
+    for (int imap = 0; imap < A.pointlist.size(); ++imap)
     {
-        vis_p.x = pointlist[imap].x;
-        vis_p.y = pointlist[imap].y;
+        vis_p.x = A.pointlist[imap].x;
+        vis_p.y = A.pointlist[imap].y;
         vis_p.z = 0;
         vis_points.points.push_back(vis_p);
     }
@@ -100,7 +100,7 @@ void NapoleonVisualization::initializeVisualizationMarkers()
 
 }
 
-void NapoleonVisualization::publish(ros::Publisher &ropodmarker_pub){
+void NapoleonVisualization::publish(ros::Publisher &ropodmarker_pub, NapoleonModel &M, NapoleonPrediction &P, NapoleonAssignment &A){
     // Publish ropod points to rostopic
     vis_points.id = 2;
     vis_points.color.r = 0.0;
@@ -109,23 +109,23 @@ void NapoleonVisualization::publish(ros::Publisher &ropodmarker_pub){
     vis_points.scale.x = 0.2;
     vis_points.scale.y = 0.2;
     geometry_msgs::Point vis_p;
-    vis_p.x = ropod_x;
-    vis_p.y = ropod_y;
+    vis_p.x = M.ropod_x;
+    vis_p.y = M.ropod_y;
     vis_points.points.push_back(vis_p);
     vis_points.id = 3;
     vis_points.color.r = 1.0;
     vis_points.color.g = 0.0;
     vis_points.color.b = 0.0;
-    x_rearax = ropod_x - D_AX*cos(ropod_theta); // X position of center of rear axle [m]
-    y_rearax = ropod_y - D_AX*sin(ropod_theta); // Y position of center of rear axle [m]
-    vis_rt.x = x_rearax+(D_AX+SIZE_FRONT_ROPOD)*cos(ropod_theta)+SIZE_SIDE*cos(ropod_theta-0.5*M_PI);
-    vis_rt.y = y_rearax+(D_AX+SIZE_FRONT_ROPOD)*sin(ropod_theta)+SIZE_SIDE*sin(ropod_theta-0.5*M_PI);
-    vis_lt.x = x_rearax+(D_AX+SIZE_FRONT_ROPOD)*cos(ropod_theta)+SIZE_SIDE*cos(ropod_theta+0.5*M_PI);
-    vis_lt.y = y_rearax+(D_AX+SIZE_FRONT_ROPOD)*sin(ropod_theta)+SIZE_SIDE*sin(ropod_theta+0.5*M_PI);
-    vis_fr.x = FEELER_SIZE_STEERING*cos(ropod_theta+prev_sim_phi_des);
-    vis_fr.y = FEELER_SIZE_STEERING*sin(ropod_theta+prev_sim_phi_des);
-    vis_fl.x = FEELER_SIZE_STEERING*cos(ropod_theta+prev_sim_phi_des);
-    vis_fl.y = FEELER_SIZE_STEERING*sin(ropod_theta+prev_sim_phi_des);
+    M.x_rearax = M.ropod_x - D_AX*cos(M.ropod_theta); // X position of center of rear axle [m]
+    M.y_rearax = M.ropod_y - D_AX*sin(M.ropod_theta); // Y position of center of rear axle [m]
+    vis_rt.x = M.x_rearax+(D_AX+SIZE_FRONT_ROPOD)*cos(M.ropod_theta)+SIZE_SIDE*cos(M.ropod_theta-0.5*M_PI);
+    vis_rt.y = M.y_rearax+(D_AX+SIZE_FRONT_ROPOD)*sin(M.ropod_theta)+SIZE_SIDE*sin(M.ropod_theta-0.5*M_PI);
+    vis_lt.x = M.x_rearax+(D_AX+SIZE_FRONT_ROPOD)*cos(M.ropod_theta)+SIZE_SIDE*cos(M.ropod_theta+0.5*M_PI);
+    vis_lt.y = M.y_rearax+(D_AX+SIZE_FRONT_ROPOD)*sin(M.ropod_theta)+SIZE_SIDE*sin(M.ropod_theta+0.5*M_PI);
+    vis_fr.x = FEELER_SIZE_STEERING*cos(M.ropod_theta+P.prev_sim_phi_des);
+    vis_fr.y = FEELER_SIZE_STEERING*sin(M.ropod_theta+P.prev_sim_phi_des);
+    vis_fl.x = FEELER_SIZE_STEERING*cos(M.ropod_theta+P.prev_sim_phi_des);
+    vis_fl.y = FEELER_SIZE_STEERING*sin(M.ropod_theta+P.prev_sim_phi_des);
     vis_fr = vis_fr.add(vis_rt); vis_fl = vis_fl.add(vis_lt);
     vis_p.x = vis_lt.x; vis_p.y = vis_lt.y; vis_points.points.push_back(vis_p);
     vis_p.x = vis_rt.x; vis_p.y = vis_rt.y; vis_points.points.push_back(vis_p);

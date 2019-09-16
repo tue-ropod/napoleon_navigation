@@ -76,6 +76,7 @@ public:
     double t_pred_prev;
     double dist_to_middle_final;
     bool pred_ropod_colliding_obs[size_p] {false};
+    bool consider_overtaking_current_hallway, consider_overtaking_next_hallway;
 
     double lpf = fmax(1.0,2*M_PI*TS*CUTOFF_FREQ);   // Low pass filter [-]
 
@@ -95,8 +96,8 @@ public:
     void checkForCollisions(NapoleonModel &M, NapoleonObstacle &O);
     void simulateRobotDuringCurrentPredictionStep();
     void initialize(NapoleonModel &M, NapoleonObstacle &O);
-    void update();
-    void considerOvertaking();
+    void update(NapoleonAssignment &A, NapoleonModel &M, NapoleonObstacle &O, NapoleonVisualization &V);
+    void considerOvertaking(NapoleonAssignment &A, NapoleonObstacle &O);
     bool checkIfFinished(NapoleonAssignment &A);
     void step();
 

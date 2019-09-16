@@ -26,11 +26,11 @@ public:
     {
     }
 
-    void visualizeRopodMarkers();
+    void visualizeRopodMarkers(ros::Publisher &ropodmarker_pub, NapoleonPrediction &P);
     void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ros::Publisher &pub);
-    void initializeVisualizationMarkers();
+    void initializeVisualizationMarkers(NapoleonAssignment &A);
     void visualizePlan(ros::Publisher &mapmarker_pub, NapoleonAssignment &A, NapoleonPrediction &P);
-    void publish(ros::Publisher &ropodmarker_pub);
+    void publish(ros::Publisher &ropodmarker_pub, NapoleonModel &M, NapoleonPrediction &P, NapoleonAssignment &A);
 
 };
 
