@@ -143,11 +143,11 @@ void NapoleonVisualization::publish(ros::Publisher &ropodmarker_pub){
     
 }
 
-void NapoleonVisualization::visualizePlan(ros::Publisher &mapmarker_pub, NapoleonAssignment &A, NapoleonStatemachine &S){
+void NapoleonVisualization::visualizePlan(ros::Publisher &mapmarker_pub, NapoleonAssignment &A, NapoleonPrediction &P){
     // Plan visualization
     vis_plan.points.clear();
     vis_plan.header.stamp = ros::Time::now();
-    vis_plan.id = 10*S.i+S.j;
+    vis_plan.id = 10*P.i+P.j;
     geometry_msgs::Point p;
     int points_size = A.pointlist.size();
 

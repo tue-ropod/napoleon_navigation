@@ -1,5 +1,5 @@
-#ifndef NAP_TUB_H
-#define NAP_TUB_H
+#ifndef NAP_PLA_H
+#define NAP_PLA_H
 
 using namespace std;
 

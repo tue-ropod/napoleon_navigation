@@ -107,98 +107,310 @@ void NapoleonModel::overtakeStateMachine(NapoleonPrediction &P, NapoleonObstacle
     if ((O.v_obs_sq < V_OBS_OVERTAKE_MAX*V_OBS_OVERTAKE_MAX) && O.obs_in_ropod_frame_pos.x > 0) {
         //disp("Slow obstacle, check if there is space to overtake");
         if (consider_overtaking_current_hallway) {
-            rw_p_rear = getPointByID(A.current_hallway_task[0],A.pointlist);
-            rw_p_front = getPointByID(A.current_hallway_task[1],A.pointlist);
-            cur_obj = current_hallway;
-            areaIDs = cur_obj.getPointIDs();
-            ind = 0;
-            qmax = areaIDs.size();
-            for (int q = 0; q < qmax; ++q) {
-                if (areaIDs[q].compare(rw_p_rear.id) == 0) {
-                    ind = q;
+            P.rw_p_rear = getPointByID(A.current_hallway_task[0],A.pointlist);
+            P.rw_p_front = getPointByID(A.current_hallway_task[1],A.pointlist);
+            A.cur_obj = A.current_hallway;
+            A.areaIDs = A.cur_obj.getPointIDs();
+            P.ind = 0;
+            P.qmax = A.areaIDs.size();
+            for (int q = 0; q < P.qmax; ++q) {
+                if (A.areaIDs[q].compare(P.rw_p_rear.id) == 0) {
+                    P.ind = q;
                 }
             }
-            rotate(areaIDs.begin(), areaIDs.begin() + ind, areaIDs.end());
-            lw_p_rear = getPointByID(areaIDs[3],pointlist);
-            lw_p_front = getPointByID(areaIDs[2],pointlist);
+            rotate(A.areaIDs.begin(), A.areaIDs.begin() + P.ind, A.areaIDs.end());
+            P.lw_p_rear = getPointByID(A.areaIDs[3],A.pointlist);
+            P.lw_p_front = getPointByID(A.areaIDs[2],A.pointlist);
         } else if (consider_overtaking_next_hallway) {
-            rw_p_rear = getPointByID(next_hallway_task[0],pointlist);
-            rw_p_front = getPointByID(next_hallway_task[1],pointlist);
-            cur_obj = next_hallway;
-            areaIDs = cur_obj.getPointIDs();
-            ind = 0;
-            qmax = areaIDs.size();
-            for (int q = 0; q < qmax; ++q) {
-                if (areaIDs[q].compare(rw_p_rear.id) == 0) {
-                    ind = q;
+            P.rw_p_rear = getPointByID(A.next_hallway_task[0],A.pointlist);
+            P.rw_p_front = getPointByID(A.next_hallway_task[1],A.pointlist);
+            A.cur_obj = A.next_hallway;
+            A.areaIDs = A.cur_obj.getPointIDs();
+            P.ind = 0;
+            P.qmax = A.areaIDs.size();
+            for (int q = 0; q < P.qmax; ++q) {
+                if (A.areaIDs[q].compare(P.rw_p_rear.id) == 0) {
+                    P.ind = q;
                 }
             }
-            rotate(areaIDs.begin(), areaIDs.begin() + ind, areaIDs.end());
-            lw_p_rear = getPointByID(areaIDs[3],pointlist);
-            lw_p_front = getPointByID(areaIDs[2],pointlist);
+            rotate(A.areaIDs.begin(), A.areaIDs.begin() + P.ind, A.areaIDs.end());
+            P.lw_p_rear = getPointByID(A.areaIDs[3],A.pointlist);
+            P.lw_p_front = getPointByID(A.areaIDs[2],A.pointlist);
         }
 
-        space_left = distToSegment(obs_center_global,lw_p_rear,lw_p_front);
-        space_right = distToSegment(obs_center_global,rw_p_rear,rw_p_front);
-        if (current_obstacle.width > current_obstacle.depth) {
-            space_left = space_left-current_obstacle.width/2;
-            space_right = space_right-current_obstacle.width/2;
+        P.space_left = distToSegment(O.obs_center_global,P.lw_p_rear,P.lw_p_front);
+        P.space_right = distToSegment(O.obs_center_global,P.rw_p_rear,P.rw_p_front);
+        if (O.current_obstacle.width > O.current_obstacle.depth) {
+            P.space_left = P.space_left-O.current_obstacle.width/2;
+            P.space_right = P.space_right-O.current_obstacle.width/2;
         } else {
-            space_left = space_left-current_obstacle.depth/2;
-            space_right = space_right-current_obstacle.depth/2;
+            P.space_left = P.space_left-O.current_obstacle.depth/2;
+            P.space_right = P.space_right-O.current_obstacle.depth/2;
         }
 
-        if (space_right > TUBE_WIDTH_C) {
-            if (j == 1) {
+        if (P.space_right > TUBE_WIDTH_C) {
+            if (P.j == 1) {
                 ROS_INFO("No overtake necessary, passing on right should be possible");
             }
-        } else if (space_right > 2*(SIZE_SIDE+ENV_TCTW_SIZE)+OBS_AVOID_MARGIN) {
+        } else if (P.space_right > 2*(SIZE_SIDE+ENV_TCTW_SIZE)+OBS_AVOID_MARGIN) {
             // Same state, but change tube width so ropod will
             // fit through space right
-            pred_tube_width[j] = space_right;
-            if (j == 1) {
+            P.pred_tube_width[P.j] = P.space_right;
+            if (P.j == 1) {
                 ROS_INFO("No overtake necessary, but tube size scaled down");
             }
-        } else if (space_left > 2*(SIZE_SIDE+ENV_TRNS_SIZE)+ENV_TCTW_SIZE) {
-            if (j == 1) {
+        } else if (P.space_left > 2*(SIZE_SIDE+ENV_TRNS_SIZE)+ENV_TCTW_SIZE) {
+            if (P.j == 1) {
                 ROS_INFO("Can overtake on left side, there should be enough space there");
             }
             // Start overtake
-            if (space_left < TUBE_WIDTH_C) {
-                if (obs_in_ropod_frame_pos.x < MIN_DIST_TO_OVERTAKE && abs(obs_in_ropod_frame_pos.y) < MIN_DIST_TO_OVERTAKE) {
+            if (P.space_left < TUBE_WIDTH_C) {
+                if (O.obs_in_ropod_frame_pos.x < MIN_DIST_TO_OVERTAKE && abs(O.obs_in_ropod_frame_pos.y) < MIN_DIST_TO_OVERTAKE) {
                     ROS_INFO("Tight overtake");
-                    pred_state[j] = TIGHT_OVERTAKE;
+                    P.pred_state[P.j] = TIGHT_OVERTAKE;
                     //current_to_overtake_obs = to_overtake_obs;
                     if (consider_overtaking_next_hallway) {
-                        u = u + delta_assignment_on_overtake; // Cesar TODO-> check if this works (instead of +2 with no consecutive hallways)!
-                        update_assignment = true;
+                        P.u = P.u + P.delta_assignment_on_overtake; // Cesar TODO-> check if this works (instead of +2 with no consecutive hallways)!
+                        A.update_assignment = true;
                     }
-                    pred_tube_width[j] = 2*(SIZE_SIDE+ENV_TCTW_SIZE+ENV_TRNS_SIZE);
+                    P.pred_tube_width[P.j] = 2*(SIZE_SIDE+ENV_TCTW_SIZE+ENV_TRNS_SIZE);
                 }
             } else {
-                if (obs_in_ropod_frame_pos.x < MIN_DIST_TO_OVERTAKE && abs(obs_in_ropod_frame_pos.y) < MIN_DIST_TO_OVERTAKE) {
+                if (O.obs_in_ropod_frame_pos.x < MIN_DIST_TO_OVERTAKE && abs(O.obs_in_ropod_frame_pos.y) < MIN_DIST_TO_OVERTAKE) {
                     ROS_INFO("Spacious overtake");
-                    pred_state[j] = SPACIOUS_OVERTAKE;
+                    P.pred_state[P.j] = SPACIOUS_OVERTAKE;
                     //current_to_overtake_obs = to_overtake_obs;
                     if (consider_overtaking_next_hallway) {
-                        u = u + delta_assignment_on_overtake; // Cesar TODO-> check if this works (instead of +2 with no consecutive hallways)!
-                        update_assignment = true;
+                        P.u = P.u + P.delta_assignment_on_overtake; // Cesar TODO-> check if this works (instead of +2 with no consecutive hallways)!
+                        A.update_assignment = true;
                     }
-                    if (current_obstacle.width > current_obstacle.depth) {
-                        shift_wall = space_right+current_obstacle.width+OBS_AVOID_MARGIN;
+                    if (O.current_obstacle.width > O.current_obstacle.depth) {
+                        P.shift_wall = P.space_right+O.current_obstacle.width+OBS_AVOID_MARGIN;
                     } else {
-                        shift_wall = space_right+current_obstacle.depth+OBS_AVOID_MARGIN;
+                        P.shift_wall = P.space_right+O.current_obstacle.depth+OBS_AVOID_MARGIN;
                     }
-                    pred_tube_width[j] = TUBE_WIDTH_C;
+                    P.pred_tube_width[P.j] = TUBE_WIDTH_C;
                 }
             }
         } else {
-            if (j == 1) {
+            if (P.j == 1) {
                 ROS_INFO("No overtake possible, stuck behind this obstacle");
             }
         }
     }
 
+}
+
+void NapoleonModel::computeSteeringAndVelocity(ros::Publisher &wallmarker_pub, NapoleonAssignment &A, NapoleonPrediction &P, NapoleonVisualization &V)
+{
+    // Perform the appropriate action according to finite state machine
+    if (P.pred_state[P.j] == CRUSING || P.pred_state[P.j] == GOING_STRAIGHT_ON_INTERSECTION || P.pred_state[P.j] == TIGHT_OVERTAKE || P.pred_state[P.j] == SPACIOUS_OVERTAKE) {
+        // disp([num2str[j],' - Ropod is now cruising']);
+        if (P.pred_state[P.j] == CRUSING) {   // Cruising up
+            if (P.update_state_points) {
+                A.point_rear = getPointByID(A.task1[0],A.pointlist);
+                A.point_front = getPointByID(A.task1[1],A.pointlist);
+                //if(j==1 && u == ka_max-1) ROS_INFO("Cruising Point rear: %s, Point front: %s", point_rear.id.c_str(), point_front.id.c_str());
+                A.glob_wallpoint_front.x = A.point_front.x;
+                A.glob_wallpoint_front.y = A.point_front.y;
+                A.glob_wallpoint_rear.x = A.point_rear.x;
+                A.glob_wallpoint_rear.y = A.point_rear.y;
+            }
+            v_des = V_CRUISING;
+        } else if (P.pred_state[P.j] == GOING_STRAIGHT_ON_INTERSECTION) { // Straight on inter
+            if (P.update_state_points) {
+                A.point_rear = getPointByID(A.task2[0],A.pointlist);
+                A.point_front = getPointByID(A.task2[1],A.pointlist);
+                A.glob_wallpoint_front.x = A.point_front.x;
+                A.glob_wallpoint_front.y = A.point_front.y;
+                A.glob_wallpoint_rear.x = A.point_rear.x;
+                A.glob_wallpoint_rear.y = A.point_rear.y;
+            }
+            v_des = V_INTER_ACC;
+        } else if (P.pred_state[P.j] == TIGHT_OVERTAKE) { // Tight overtake
+            P.rw_p_rear = getPointByID(A.task1[0],A.pointlist);
+            A.cur_obj = getAreaByID(A.area1ID,A.arealist);
+            A.areaIDs = A.cur_obj.getPointIDs();
+            P.ind = 0;
+            P.qmax = A.areaIDs.size();
+            for (int q = 0; q < P.qmax; ++q) {
+                if (A.areaIDs[q].compare(P.rw_p_rear.id) == 0) {
+                    P.ind = q;
+                }
+            }
+            rotate(A.areaIDs.begin(), A.areaIDs.begin() + P.ind, A.areaIDs.end());
+            P.lw_p_rear = getPointByID(A.areaIDs[3],A.pointlist);
+            P.lw_p_front = getPointByID(A.areaIDs[2],A.pointlist);
+            P.wallang = atan2(P.lw_p_front.y-P.lw_p_rear.y,P.lw_p_front.x-P.lw_p_rear.x);
+            //glob_wallpoint_front = [lw_front.x, lw_front.y]+pred_tube_width[j]*[cos(wallang-M_PI/2), sin(wallang-M_PI/2)];
+            A.glob_wallpoint_front.x = P.lw_p_front.x+P.pred_tube_width[P.j]*cos(P.wallang-M_PI/2);
+            A.glob_wallpoint_front.y = P.lw_p_front.y+P.pred_tube_width[P.j]*sin(P.wallang-M_PI/2);
+            //glob_wallpoint_rear = [lw_rear.x, lw_rear.y]+pred_tube_width[j]*[cos(wallang-M_PI/2), sin(wallang-M_PI/2)];
+            A.glob_wallpoint_rear.x = P.lw_p_rear.x+P.pred_tube_width[P.j]*cos(P.wallang-M_PI/2);
+            A.glob_wallpoint_rear.y = P.lw_p_rear.y+P.pred_tube_width[P.j]*sin(P.wallang-M_PI/2);
+            v_des = V_OVERTAKE;
+        } else if (P.pred_state[P.j] == SPACIOUS_OVERTAKE) { // Spacious overtake
+            A.point_rear = getPointByID(A.task1[0],A.pointlist);
+            A.point_front = getPointByID(A.task1[1],A.pointlist);
+            P.wallang = atan2(A.point_front.y-A.point_rear.y,A.point_front.x-A.point_rear.x);
+            //glob_wallpoint_front = [point_front.x, point_front.y]+shift_wall*[cos(wallang+M_PI/2), sin(wallang+M_PI/2)];
+            //glob_wallpoint_rear = [point_rear.x, point_rear.y]+shift_wall*[cos(wallang+M_PI/2), sin(wallang+M_PI/2)];
+            A.glob_wallpoint_front.x = A.point_front.x+P.shift_wall*cos(P.wallang+M_PI/2);
+            A.glob_wallpoint_front.y = A.point_front.y+P.shift_wall*sin(P.wallang+M_PI/2);
+            A.glob_wallpoint_rear.x = A.point_rear.x+P.shift_wall*cos(P.wallang+M_PI/2);
+            A.glob_wallpoint_rear.y = A.point_rear.y+P.shift_wall*sin(P.wallang+M_PI/2);
+            v_des = V_OVERTAKE;
+        }
+
+        A.local_wallpoint_front = coordGlobalToRopod(A.glob_wallpoint_front, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+        A.local_wallpoint_rear = coordGlobalToRopod(A.glob_wallpoint_rear, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+        V.showWallPoints(A.local_wallpoint_front, A.local_wallpoint_rear, wallmarker_pub);
+        P.pred_phi_des[P.j] = getSteering(A.local_wallpoint_front, A.local_wallpoint_rear, P.pred_tube_width[P.j]);
+    } else if (P.pred_state[P.j] == ENTRY_BEFORE_TURN_ON_INTERSECTION || P.pred_state[P.j] == ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION) {
+        // disp([num2str[j],' - Ropod is now in entry']);
+        if (P.update_state_points) {
+            A.point_rear = getPointByID(A.task1[0],A.pointlist);
+            A.point_front = getPointByID(A.task1[1],A.pointlist);
+            A.glob_wallpoint_front.x = A.point_front.x;
+            A.glob_wallpoint_front.y = A.point_front.y;
+            A.glob_wallpoint_rear.x = A.point_rear.x;
+            A.glob_wallpoint_rear.y = A.point_rear.y;
+        }
+        A.local_wallpoint_front = coordGlobalToRopod(A.glob_wallpoint_front, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+        A.local_wallpoint_rear = coordGlobalToRopod(A.glob_wallpoint_rear, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+        V.showWallPoints(A.local_wallpoint_front, A.local_wallpoint_rear, wallmarker_pub);
+        P.pred_phi_des[P.j] = getSteering(A.local_wallpoint_front, A.local_wallpoint_rear, P.pred_tube_width[P.j]);
+        v_des = V_ENTRY;
+
+    } else if (P.pred_state[P.j] == ACCELERATE_ON_INTERSECTION) {
+        // disp([num2str[j],' - Ropod is at inter, driving forward']);
+        if (P.update_state_points) {
+            A.point_rear = getPointByID(A.task1[0],A.pointlist);
+            A.point_front = getPointByID(A.task1[1],A.pointlist);
+            A.glob_wallpoint_front.x = A.point_front.x;
+            A.glob_wallpoint_front.y = A.point_front.y;
+            A.glob_wallpoint_rear.x = A.point_rear.x;
+            A.glob_wallpoint_rear.y = A.point_rear.y;
+        }
+
+        A.local_wallpoint_front = coordGlobalToRopod(A.glob_wallpoint_front, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+        A.local_wallpoint_rear = coordGlobalToRopod(A.glob_wallpoint_rear, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+        V.showWallPoints(A.local_wallpoint_front, A.local_wallpoint_rear, wallmarker_pub);
+        P.pred_phi_des[P.j] = getSteering(A.local_wallpoint_front, A.local_wallpoint_rear, P.pred_tube_width[P.j]);
+        v_des = V_INTER_ACC;
+
+        // Monitor if we don't bump into front wall
+        if (P.update_state_points) {
+            A.wall_front_p0 = getPointByID(A.task2[0],A.pointlist);
+            A.wall_front_p1 = getPointByID(A.task2[1],A.pointlist);
+            A.global_wall_front_p0.x = A.wall_front_p0.x;
+            A.global_wall_front_p0.y = A.wall_front_p0.y;
+            A.global_wall_front_p1.x = A.wall_front_p1.x;
+            A.global_wall_front_p1.y = A.wall_front_p1.y;
+        }
+
+        A.local_wall_front_p0 = coordGlobalToRopod(A.global_wall_front_p0, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+        A.local_wall_front_p1 = coordGlobalToRopod(A.global_wall_front_p1, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+        if (do_lines_intersect(A.local_front_ropod_dilated_p0, A.local_front_ropod_dilated_p1, A.local_wall_front_p0, A.local_wall_front_p1)) {
+            P.pred_state[P.j] = TURNING;
+            P.update_state_points = true;
+            //disp("Switched early while aligning pivot because too close to front wall");
+        }
+    } else if (P.pred_state[P.j] == ALIGN_AXIS_AT_INTERSECTION) {
+        // disp([num2str[j],' - Ropod is at inter, driving forward']);
+        if (P.update_state_points) {
+            A.point_rear = getPointByID(A.task1[0],A.pointlist);
+            A.point_front = getPointByID(A.task1[1],A.pointlist);
+            A.glob_wallpoint_front.x = A.point_front.x;
+            A.glob_wallpoint_front.y = A.point_front.y;
+            A.glob_wallpoint_rear.x = A.point_rear.x;
+            A.glob_wallpoint_rear.y = A.point_rear.y;
+        }
+
+        A.local_wallpoint_front = coordGlobalToRopod(A.glob_wallpoint_front, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+        A.local_wallpoint_rear = coordGlobalToRopod(A.glob_wallpoint_rear, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+        V.showWallPoints(A.local_wallpoint_front, A.local_wallpoint_rear, wallmarker_pub);
+        P.pred_phi_des[P.j] = getSteering(A.local_wallpoint_front, A.local_wallpoint_rear, P.pred_tube_width[P.j]);
+        v_des = V_INTER_DEC;
+
+        // Monitor if we don't bump into front wall
+        if (P.update_state_points) {
+            A.wall_front_p0 = getPointByID(A.task2[0],A.pointlist);
+            A.wall_front_p1 = getPointByID(A.task2[1],A.pointlist);
+            A.global_wall_front_p0.x = A.wall_front_p0.x;
+            A.global_wall_front_p0.y = A.wall_front_p0.y;
+            A.global_wall_front_p1.x = A.wall_front_p1.x;
+            A.global_wall_front_p1.y = A.wall_front_p1.y;
+        }
+
+        A.local_wall_front_p0 = coordGlobalToRopod(A.global_wall_front_p0, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+        A.local_wall_front_p1 = coordGlobalToRopod(A.global_wall_front_p1, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+        if (do_lines_intersect(A.local_front_ropod_dilated_p0, A.local_front_ropod_dilated_p1, A.local_wall_front_p0, A.local_wall_front_p1)) {
+            P.pred_state[P.j] = TURNING;
+            P.update_state_points = true;
+            //disp("Switched early while aligning pivot because too close to front wall");
+        }
+    } else if (P.pred_state[P.j] == TURNING) {
+        // disp([num2str[j],' - Ropod is at inter, taking the turn']);
+        if (P.update_state_points) {
+            A.point_rear = getPointByID(A.task2[0],A.pointlist);
+            A.point_front = getPointByID(A.task2[1],A.pointlist);
+            A.point_pivot = getPointByID(A.task2[4],A.pointlist);
+            A.glob_wallpoint_front.x = A.point_front.x;
+            A.glob_wallpoint_front.y = A.point_front.y;
+            A.glob_wallpoint_rear.x = A.point_rear.x;
+            A.glob_wallpoint_rear.y = A.point_rear.y;
+        }
+
+        P.dir_cw = true;
+        if (A.task2[5].compare("left") == 0) {
+            //if (strcmp(task2{6},'left')) {
+            P.dir_cw = false; // direction 0 = CCW, 1 = CW
+        }
+
+        A.local_pivot = coordGlobalToRopod(A.point_pivot, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+        if (!A.sharp_corner[P.u+1]) {
+            A.local_wallpoint_front = coordGlobalToRopod(A.glob_wallpoint_front, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+            A.local_wallpoint_rear = coordGlobalToRopod(A.glob_wallpoint_rear, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+            //pred_phi_des[j] = getSteeringTurn(ropod_length, size_side, feeler_size_steering, d_ax, dir_cw, local_pivot, local_wallpoint_front, local_wallpoint_rear,  follow_wall_distance, env_tctw_size, env_trns_size_cornering, env_carrot_size);
+            P.pred_phi_des[P.j] = getSteeringTurn(A.local_pivot, P.dir_cw, A.local_wallpoint_front, A.local_wallpoint_rear);
+        } else {
+            //pred_phi_des[j] = getSteeringTurnSharp(pred_x_ropod(j-1), pred_y_ropod(j-1), pred_plan_theta[j-1], size_front_ropod, size_side, feeler_size_steering, d_ax, dir_cw, task2, pointlist, follow_wall_distance, env_tctw_size, env_trns_size_cornering, env_carrot_size);
+            P.pred_phi_des[P.j] = getSteeringTurnSharp(P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1], P.dir_cw, A.task2, A.pointlist);
+        }
+
+        v_des = V_INTER_TURNING;
+    }
+
+    // Wrap to [-pi,pi] domain
+    P.pred_phi_des[P.j] = wrapToPi(P.pred_phi_des[P.j]);
+
+    // Saturate steering rate
+    if (abs(P.pred_phi_des[P.j]-P.prev_pred_phi_des) > DELTA_DOT_LIMIT/(double)F_PLANNER) {
+        //disp("Delta steering too large, steering saturated");
+        P.pred_phi_des[P.j] = P.prev_pred_phi_des + sgn(P.pred_phi_des[P.j]-P.prev_pred_phi_des)*DELTA_DOT_LIMIT/(double)F_PLANNER;
+        // Decrease vel leads to better corners
+        // The velocity is already decreased in the state machine, but this is just a harsh backup
+        // pred_steer_rate_saturation[j] = 1;
+        if (v_des > V_STEERSATURATION) {
+            v_des = V_STEERSATURATION;
+        }
+        //disp(['In saturation - j: ', num2str(j) ,', Phides: ', num2str(pred_phi_des(j)), ' // Prev phides: ' , num2str(prev_pred_phi_des), ', v_des = ', num2str(v_des)]);
+    }
+    P.prev_pred_phi_des = P.pred_phi_des[P.j];
+
+    // Applying the v_scale (scales down vel if collision is detected in previous prediction and therefore it failed)
+    // And then we calculate the acceleration for the predictions.
+    P.v_des_scaled[P.j] = v_des*v_scale;
+    P.vel_dif = abs(P.pred_v_ropod_plan[P.j-1]-P.v_des_scaled[P.j]);   // Difference between actual and desired velocity
+    if (P.vel_dif < max_delta_v) {
+        P.v_new = P.v_des_scaled[P.j];
+        P.pred_accel[P.j] = (P.v_des_scaled[P.j]-P.pred_v_ropod_plan[P.j-1])/delta_t;
+    } else { // Adapt velocity with maximum acceleration
+        P.v_new = P.pred_v_ropod_plan[P.j-1]+sgn(P.v_des_scaled[P.j]-P.pred_v_ropod_plan[P.j-1])*max_delta_v;
+        P.pred_accel[P.j] = sgn(P.v_des_scaled[P.j]-P.pred_v_ropod_plan[P.j-1])*A_MAX;
+    }
+    //ROS_INFO("pred_accel: %f", pred_accel[j]);
 }
 
 void NapoleonModel::updatePosition(NapoleonPrediction &P){

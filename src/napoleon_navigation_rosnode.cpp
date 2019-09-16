@@ -36,9 +36,6 @@ bool start_navigation = false;
 bool ropod_reached_target = false;
 bool goal_received = false;
 
-double delta_t = 1/(double)F_PLANNER;           // Time ropod will execute this plan
-double max_delta_v = A_MAX*delta_t;             // Maximum change in v in delta_t
-
 //std::vector<geometry_msgs::PoseStamped> global_path;
 geometry_msgs::PoseStamped simple_goal;
 

@@ -13,6 +13,7 @@
 #include "napoleon_config.h"
 #include "napoleon_prediction.h"
 #include "napoleon_obstacle.h"
+#include "napoleon_visualization.h"
 
 class NapoleonModel {
 
@@ -49,6 +50,11 @@ public:
     bool ropod_colliding_obs = true;     // Initially set to true
     bool ropod_colliding_wall = true;    // Initially set to true
 
+    bool consider_overtaking_current_hallway, consider_overtaking_next_hallway;
+
+    double delta_t = 1/(double)F_PLANNER;           // Time ropod will execute this plan
+    double max_delta_v = A_MAX*delta_t;             // Maximum change in v in delta_t
+
     // State of ropod
     enum {
         CRUSING = 1,
@@ -75,7 +81,7 @@ public:
     void updatePosition(NapoleonPrediction &P);
     void updateControlVelocity(NapoleonPrediction &P);
     void overtakeStateMachine(NapoleonPrediction &P, NapoleonObstacle &O, NapoleonAssignment &A);
-
+    void computeSteeringAndVelocity(ros::Publisher &wallmarker_pub, NapoleonAssignment &A, NapoleonPrediction &P, NapoleonVisualization &V);
 
 };
 

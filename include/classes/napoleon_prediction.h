@@ -76,13 +76,9 @@ public:
     double t_pred_prev;
     double dist_to_middle_final;
     bool pred_ropod_colliding_obs[size_p] {false};
-    
-    bool ropod_colliding_obs = true;
-    bool ropod_colliding_wall = true;
 
     double lpf = fmax(1.0,2*M_PI*TS*CUTOFF_FREQ);   // Low pass filter [-]
 
-    bool consider_overtaking_current_hallway, consider_overtaking_next_hallway;
     int delta_assignment_on_overtake;
 
     PointID rw_p_rear, rw_p_front, lw_p_rear, lw_p_front;
