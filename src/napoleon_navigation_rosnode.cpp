@@ -55,40 +55,80 @@ bool goal_received = false;
 
 
 
-//void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray) {
-//    no_obs = obsarray->objects.size();
-//    //ROS_INFO("%d obstacles detected", no_obs);
-//    //string s;
-//    // For the sake of proof of concept, the assumption is made that there will
-//    // only be one obstacle to avoid or overtake.
-//    // This scenario is not realistic and only serves as showcase.
-//    // A counter will decide which obstacle to choose
-//    // for (int q = 0; q < no_obs; ++q) {
-//    //     s = obsarray->objects[q].id;
-//    //     std::cout << s << std::endl;
-//    //     current_obstacle = obsarray->objects[q];
-//    // }
-//    // For now just pick first obs if there is obs
-//    // so we assume we only see the obstacle we want to see
-//    if (no_obs > 0) {
-//        // If no other obstacle is seen, this obstacle is kept
-//        current_obstacle = obsarray->objects[0];
-//        // ROS_INFO("Obs is %f wide and %f deep", current_obstacle.width, current_obstacle.depth);
-//        // ROS_INFO("Obs x: %f, obs y: %f", current_obstacle.pose.position.x, current_obstacle.pose.position.y);
-//        // ROS_INFO("Vx: %f, Vy %f", current_obstacle.vel.x, current_obstacle.vel.y);
-//        quaternion_x = obsarray->objects[0].pose.orientation.x;
-//        quaternion_y = obsarray->objects[0].pose.orientation.y;
-//        quaternion_z = obsarray->objects[0].pose.orientation.z;
-//        quaternion_w = obsarray->objects[0].pose.orientation.w;
-//
-//        // yaw (z-axis rotation)
-//        siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
-//        cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
-//        obs_theta = atan2(siny_cosp, cosy_cosp);
-//        obs_center_global.x = current_obstacle.pose.position.x;
-//        obs_center_global.y = current_obstacle.pose.position.y;
-//    }
-//}
+void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray) 
+{
+    #define RECTANGULAR_MARGIN 0.25
+    #define RECTANGULAR_DESIRED_DIM 1.0
+        
+    ROS_INFO("%lu obstacles detected", obsarray->objects.size());
+    
+    //string s;
+    // For the sake of proof of concept, the assumption is made that there will
+    // only be one obstacle to avoid or overtake.
+    // This scenario is not realistic and only serves as showcase.
+    // A counter will decide which obstacle to choose
+    // for (int q = 0; q < no_obs; ++q) {
+    //     s = obsarray->objects[q].id;
+    //     std::cout << s << std::endl;
+    //     current_obstacle = obsarray->objects[q];
+    // }
+    
+    // For now, only take all obstacles which are assumed to be a rectangle with 
+    // one of the dimensions having a size of approximately 1m.
+    // Then, take the closest one.
+    
+    float closestDist = std::numeric_limits< float >::infinity();
+    unsigned int IclosestObject;
+    bool rectangleDetected = false;
+    
+    for(unsigned int iObs = 0; iObs < obsarray->objects.size(); iObs++)
+    {  
+            ed_gui_server::objPosVel candidate_obstacle = obsarray->objects[iObs];
+            
+            bool check1 =  candidate_obstacle.rectangle.probability > 0.5 ;
+            bool check2 =  std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
+            bool check3 = std::fabs(candidate_obstacle.rectangle.depth - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
+            
+            std::cout << "Checks = " << check1 << check2 << check3 << std::endl;
+            std::cout << "candidate_obstacle.rectangle.probability = " << candidate_obstacle.rectangle.probability << std::endl;
+            std::cout << "candidate_obstacle.rectangle.width = " << candidate_obstacle.rectangle.width << std::endl;
+            std::cout << "candidate_obstacle.rectangle.depth = " << candidate_obstacle.rectangle.depth << std::endl;
+            
+            if( candidate_obstacle.rectangle.probability > 0.5 && 
+                ( std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN || 
+                  std::fabs(candidate_obstacle.rectangle.depth - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ) )
+            {
+                    float dist = std::pow(candidate_obstacle.rectangle.pose.position.x - this_amcl_x, 2.0) + std::pow(candidate_obstacle.rectangle.pose.position.y - this_amcl_y, 2.0);
+                
+                    if(dist < closestDist)
+                    {
+                    
+                            closestDist = dist;
+                            IclosestObject = iObs;
+                            rectangleDetected = true;
+                    }
+            }
+    }
+
+    if(rectangleDetected)
+    {
+            current_obstacle = obsarray->objects[IclosestObject];
+            ROS_INFO("Clostest object: Obs is %f wide and %f deep", current_obstacle.rectangle.width, current_obstacle.rectangle.depth);
+            ROS_INFO("Obs x: %f, obs y: %f", current_obstacle.rectangle.pose.position.x, current_obstacle.rectangle.pose.position.y);
+            ROS_INFO("Vx: %f, Vy %f", current_obstacle.rectangle.vel.x, current_obstacle.rectangle.vel.y);
+            quaternion_x = obsarray->objects[IclosestObject].rectangle.pose.orientation.x;
+            quaternion_y = obsarray->objects[IclosestObject].rectangle.pose.orientation.y;
+            quaternion_z = obsarray->objects[IclosestObject].rectangle.pose.orientation.z;
+            quaternion_w = obsarray->objects[IclosestObject].rectangle.pose.orientation.w;
+
+            // yaw (z-axis rotation)
+            siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
+            cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
+            obs_theta = atan2(siny_cosp, cosy_cosp);
+            obs_center_global.x = current_obstacle.rectangle.pose.position.x;
+            obs_center_global.y = current_obstacle.rectangle.pose.position.y;
+    }
+}
 
 void getOdomVelCallback(const nav_msgs::Odometry::ConstPtr& odom_vel)
 {
@@ -583,7 +623,7 @@ void considerOvertaking()
 void overtakeStateMachine()
 {
     obs_in_ropod_frame_pos = coordGlobalToRopod(obs_center_global, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-    v_obs_sq = current_obstacle.vel.x*current_obstacle.vel.x+current_obstacle.vel.y*current_obstacle.vel.y;
+    v_obs_sq = current_obstacle.rectangle.vel.x*current_obstacle.rectangle.vel.x+current_obstacle.rectangle.vel.y*current_obstacle.rectangle.vel.y;
     if ((v_obs_sq < V_OBS_OVERTAKE_MAX*V_OBS_OVERTAKE_MAX) && obs_in_ropod_frame_pos.x > 0) {
         //disp("Slow obstacle, check if there is space to overtake");
         if (consider_overtaking_current_hallway) {
@@ -620,12 +660,12 @@ void overtakeStateMachine()
 
         space_left = distToSegment(obs_center_global,lw_p_rear,lw_p_front);
         space_right = distToSegment(obs_center_global,rw_p_rear,rw_p_front);
-        if (current_obstacle.width > current_obstacle.depth) {
-            space_left = space_left-current_obstacle.width/2;
-            space_right = space_right-current_obstacle.width/2;
+        if (current_obstacle.rectangle.width > current_obstacle.rectangle.depth) {
+            space_left = space_left-current_obstacle.rectangle.width/2;
+            space_right = space_right-current_obstacle.rectangle.width/2;
         } else {
-            space_left = space_left-current_obstacle.depth/2;
-            space_right = space_right-current_obstacle.depth/2;
+            space_left = space_left-current_obstacle.rectangle.depth/2;
+            space_right = space_right-current_obstacle.rectangle.depth/2;
         }
 
         if (space_right > TUBE_WIDTH_C) {
@@ -664,10 +704,10 @@ void overtakeStateMachine()
                         u = u + delta_assignment_on_overtake; // Cesar TODO-> check if this works (instead of +2 with no consecutive hallways)!
                         update_assignment = true;
                     }
-                    if (current_obstacle.width > current_obstacle.depth) {
-                        shift_wall = space_right+current_obstacle.width+OBS_AVOID_MARGIN;
+                    if (current_obstacle.rectangle.width > current_obstacle.rectangle.depth) {
+                        shift_wall = space_right+current_obstacle.rectangle.width+OBS_AVOID_MARGIN;
                     } else {
-                        shift_wall = space_right+current_obstacle.depth+OBS_AVOID_MARGIN;
+                        shift_wall = space_right+current_obstacle.rectangle.depth+OBS_AVOID_MARGIN;
                     }
                     pred_tube_width[j] = TUBE_WIDTH_C;
                 }
@@ -959,7 +999,7 @@ void updateStateAndTask()
         if (no_obs > 0) {
             current_obs_in_ropod_frame_pos = coordGlobalToRopod(obs_center_global, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
             //disp(['Obs is ',num2str(obs_in_ropod_frame_pos.x), ' m in front of ropod']);
-            if (current_obs_in_ropod_frame_pos.x+current_obstacle.depth/2+D_AX+SIZE_REAR < 0) {
+            if (current_obs_in_ropod_frame_pos.x+current_obstacle.rectangle.depth/2+D_AX+SIZE_REAR < 0) {
                 pred_state[j] = CRUSING;
                 update_state_points = true;
                 pred_tube_width[j] = TUBE_WIDTH_C;
@@ -1268,8 +1308,8 @@ void simulateRobotDuringCurrentPredictionStep()
 void checkForCollisions()
 {
     if (no_obs > 0) {
-        pred_x_obs[j] = pred_x_obs[j-1]+current_obstacle.vel.x*TS*F_FSTR;
-        pred_y_obs[j] = pred_y_obs[j-1]+current_obstacle.vel.y*TS*F_FSTR;
+        pred_x_obs[j] = pred_x_obs[j-1]+current_obstacle.rectangle.vel.x*TS*F_FSTR;
+        pred_y_obs[j] = pred_y_obs[j-1]+current_obstacle.rectangle.vel.y*TS*F_FSTR;
     }
 
     // Dilated vehicle
@@ -1286,14 +1326,14 @@ void checkForCollisions()
     pred_ropod_colliding_obs[j] = false;
     // Obstacle detection (crappy implementation in C++)
     if (t_pred[m] < T_PRED_OBS_COLLISION && no_obs > 0) {
-        obslt.x = pred_x_obs[j]+current_obstacle.width/2*cos(obs_theta)-current_obstacle.depth/2*sin(obs_theta);
-        obslt.y = pred_y_obs[j]+current_obstacle.width/2*sin(obs_theta)+current_obstacle.depth/2*cos(obs_theta);
-        obsrt.x = pred_x_obs[j]+current_obstacle.width/2*cos(obs_theta)+current_obstacle.depth/2*sin(obs_theta);
-        obsrt.y = pred_y_obs[j]+current_obstacle.width/2*sin(obs_theta)-current_obstacle.depth/2*cos(obs_theta);
-        obslb.x = pred_x_obs[j]-current_obstacle.width/2*cos(obs_theta)-current_obstacle.depth/2*sin(obs_theta);
-        obslb.y = pred_y_obs[j]-current_obstacle.width/2*sin(obs_theta)+current_obstacle.depth/2*cos(obs_theta);
-        obsrb.x = pred_x_obs[j]-current_obstacle.width/2*cos(obs_theta)+current_obstacle.depth/2*sin(obs_theta);
-        obsrb.y = pred_y_obs[j]-current_obstacle.width/2*sin(obs_theta)-current_obstacle.depth/2*cos(obs_theta);
+        obslt.x = pred_x_obs[j]+current_obstacle.rectangle.width/2*cos(obs_theta)-current_obstacle.rectangle.depth/2*sin(obs_theta);
+        obslt.y = pred_y_obs[j]+current_obstacle.rectangle.width/2*sin(obs_theta)+current_obstacle.rectangle.depth/2*cos(obs_theta);
+        obsrt.x = pred_x_obs[j]+current_obstacle.rectangle.width/2*cos(obs_theta)+current_obstacle.rectangle.depth/2*sin(obs_theta);
+        obsrt.y = pred_y_obs[j]+current_obstacle.rectangle.width/2*sin(obs_theta)-current_obstacle.rectangle.depth/2*cos(obs_theta);
+        obslb.x = pred_x_obs[j]-current_obstacle.rectangle.width/2*cos(obs_theta)-current_obstacle.rectangle.depth/2*sin(obs_theta);
+        obslb.y = pred_y_obs[j]-current_obstacle.rectangle.width/2*sin(obs_theta)+current_obstacle.rectangle.depth/2*cos(obs_theta);
+        obsrb.x = pred_x_obs[j]-current_obstacle.rectangle.width/2*cos(obs_theta)+current_obstacle.rectangle.depth/2*sin(obs_theta);
+        obsrb.y = pred_y_obs[j]-current_obstacle.rectangle.width/2*sin(obs_theta)-current_obstacle.rectangle.depth/2*cos(obs_theta);
         pred_ropod_colliding_obs[j] = do_shapes_overlap(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt, obsrt, obslt, obslb, obsrb);
         ropod_colliding_obs = pred_ropod_colliding_obs[j];
     }
@@ -1447,7 +1487,7 @@ int main(int argc, char** argv)
     ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, getOdomVelCallback);
     ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod/debug_route_plan", 1, getDebugRoutePlanCallback);
 
-//    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
+    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
 
     // Visualize map nodes and robot
@@ -1671,8 +1711,8 @@ int main(int argc, char** argv)
             pred_v_ropod_plan[0] = pred_v_ropod[0];
             pred_state[0] = prev_sim_state;
             pred_task_counter[0] = prev_sim_task_counter;
-            pred_x_obs[0] = current_obstacle.pose.position.x;
-            pred_y_obs[0] = current_obstacle.pose.position.y;
+            pred_x_obs[0] = current_obstacle.rectangle.pose.position.x;
+            pred_y_obs[0] = current_obstacle.rectangle.pose.position.y;
 
             // Initialize areas
             u = pred_task_counter[0];
@@ -1831,8 +1871,8 @@ int main(int argc, char** argv)
 
         myfile << real_time_est << "\t" << program_duration << "\t" << pred_state[0] << "\t" << pred_task_counter[0] << "\t" << pred_tube_width[0] << "\t" <<
             pred_phi_des[0] << "\t" << pred_v_ropod[0] << "\t" << control_v << "\t"  <<  pred_xy_ropod[0].x << "\t" <<  pred_xy_ropod[0].y << "\t" <<
-            pred_plan_theta[0] << "\t" << pred_x_obs[0] << "\t" << pred_y_obs[0] << "\t" << obs_theta << "\t" << current_obstacle.width << "\t" <<
-            current_obstacle.depth << "\t" << current_obstacle.vel.x << "\t" << current_obstacle.vel.y << "\t" << pred_accel[1] << "\t" <<"\n";
+            pred_plan_theta[0] << "\t" << pred_x_obs[0] << "\t" << pred_y_obs[0] << "\t" << obs_theta << "\t" << current_obstacle.rectangle.width << "\t" <<
+            current_obstacle.rectangle.depth << "\t" << current_obstacle.rectangle.vel.x << "\t" << current_obstacle.rectangle.vel.y << "\t" << pred_accel[1] << "\t" <<"\n";
         /*
         //ROS_INFO("Phi: %f / V_ax: %f / Theta_dot: %f", pred_phi_des[1], v_ax, theta_dot);
         ROS_INFO("state: %d, tube width: %f", pred_state[1], pred_tube_width[1]);
