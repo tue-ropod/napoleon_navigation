@@ -15,7 +15,7 @@ using namespace std;
 static constexpr double FEELER_SIZE = 1.0;          // d_f: 0.5 Size of feeler [m] - used to predict where ropod goes suppose it would go straight
 static constexpr double FEELER_SIZE_STEERING = 2.0; // df_c: 0.3 Size of feeler when steering [m]
 static constexpr double ENV_TCTW_SIZE = 0.05;       // d_cor 0.05 Too close too wall area size [m]
-static constexpr double ENV_TRNS_SIZE = 0.30;       // d_trns 0.2 Transition area size [m]
+static constexpr double ENV_TRNS_SIZE = 0.10;       // d_trns 0.2 Transition area size [m]
 static constexpr double CARROT_LENGTH = 1.50;       // How far ahead point lies where ropod steers towards when too close to a wall [m]
 
 // Vehicle size & size of vectors
@@ -86,15 +86,15 @@ static constexpr double T_PRED_OBS_COLLISION = 04;  // Predict for n seconds if 
 static constexpr double T_MAX_PRED = 20;            // Predict for n seconds max [s]
 static constexpr double CUTOFF_FREQ = 1.0;          // Cutoff frequency for low pass filter to simulate steering delay [Hz]
 static const vector<double> V_SCALE_OPTIONS = {1.0, 0.67, 0.33, 0.0};  // Options to scale velocity with
-static constexpr double ENV_COR_WIDTH = 3.00;
+static constexpr double ENV_COR_WIDTH = 2.3;
 // Fictional hallway width. Ropod will work with lanes of this/2 [m], starting from the wall.
 // No matter what the real hallway size is. This way it will stay close to the right wall, but not too agressively.
 static constexpr double TUBE_WIDTH_C = ENV_COR_WIDTH/2; // Default tube width [m]
 static constexpr double REACHEDTARGETTRESHOLD = 1.0;  // When x [m] removed from center of last hallway, program finished
 
 // Performance based on position in environment
-static constexpr double ENTRY_LENGTH = 2.2;             // Length of entries before intersections [m]
-static constexpr double OBS_AVOID_MARGIN = 0.2;         // Margin between ropod and obstacles at full speed [m]
+static constexpr double ENTRY_LENGTH = 2.0;             // Length of entries before intersections [m]
+static constexpr double OBS_AVOID_MARGIN = 0.1;         // Margin between ropod and obstacles at full speed [m]
 static constexpr double DILATE_ROPOD_ALIGNING = 0.90;   // Dilation from center (so actually this value -size_side if measured from side of vehicle)
 //static constexpr double ROPOD_TO_OBS_MARGIN = (OBS_AVOID_MARGIN+SIZE_FRONT_ROPOD)/SIZE_FRONT_ROPOD;
 static constexpr double SHARP_ANGLE_TRESHOLD = 0.1;     // Angle how much the next hallway must be sharper than perpendicular to be considered sharp [rad]

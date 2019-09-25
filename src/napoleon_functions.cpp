@@ -287,6 +287,21 @@ double distToSegmentSquared(Point p, Point v, Point w) {
     }
 }
 
+double distToLine(Point p, PointID v, PointID w) {
+    // P point, v, w points of line segmens
+    Point v_noid(v.x,v.y);
+    Point w_noid(w.x,w.y);
+    return distToLine(p, v_noid, w_noid);
+}
+
+double distToLine(Point p, Point v, Point w) {
+    // https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
+    // P point, v, w points of line segmens
+    double numerator =  (w.y-v.y)*p.x - (w.x-v.x)*p.y + w.x*v.y - w.y*v.x;
+    double denominator = sqrt( (w.y-v.y)*(w.y-v.y) + (w.x-v.x)*(w.x-v.x) );
+    return numerator/denominator;
+}
+
 bool do_lines_intersect(Point p0, Point p1, Point p2, Point p3) {
     // Returns 1 if the lines intersect, otherwise 0.
     // Function inspiration: https://stackoverflow.com/questions/563198/ ...
