@@ -57,66 +57,66 @@ bool goal_received = false;
 
 void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray)
 {
-    #define RECTANGULAR_MARGIN 0.25
-    #define RECTANGULAR_DESIRED_DIM 1.0
+    //#define RECTANGULAR_MARGIN 0.25
+    //#define RECTANGULAR_DESIRED_DIM 1.0
 
-    ROS_INFO("%lu obstacles detected", obsarray->objects.size());
+    //ROS_INFO("%lu obstacles detected", obsarray->objects.size());
 
-    // For now, only take all obstacles which are assumed to be a rectangle with
-    // one of the dimensions having a size of approximately 1m.
-    // Then, take the closest one.
+    //// For now, only take all obstacles which are assumed to be a rectangle with
+    //// one of the dimensions having a size of approximately 1m.
+    //// Then, take the closest one.
 
-    float closestDist = std::numeric_limits< float >::infinity();
-    unsigned int IclosestObject;
-    bool rectangleDetected = false;
+    //float closestDist = std::numeric_limits< float >::infinity();
+    //unsigned int IclosestObject;
+    //bool rectangleDetected = false;
 
-    for(unsigned int iObs = 0; iObs < obsarray->objects.size(); iObs++)
-    {
-        ed_gui_server::objPosVel candidate_obstacle = obsarray->objects[iObs];
+    //for(unsigned int iObs = 0; iObs < obsarray->objects.size(); iObs++)
+    //{
+        //ed_gui_server::objPosVel candidate_obstacle = obsarray->objects[iObs];
 
-        bool check1 =  candidate_obstacle.rectangle.probability > 0.5 ;
-        bool check2 =  std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
-        bool check3 = std::fabs(candidate_obstacle.rectangle.depth - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
+        //bool check1 =  candidate_obstacle.rectangle.probability > 0.5 ;
+        //bool check2 =  std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
+        //bool check3 = std::fabs(candidate_obstacle.rectangle.depth - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
 
-        std::cout << "Checks = " << check1 << check2 << check3 << std::endl;
-        std::cout << "candidate_obstacle.rectangle.probability = " << candidate_obstacle.rectangle.probability << std::endl;
-        std::cout << "candidate_obstacle.rectangle.width = " << candidate_obstacle.rectangle.width << std::endl;
-        std::cout << "candidate_obstacle.rectangle.depth = " << candidate_obstacle.rectangle.depth << std::endl;
+        //std::cout << "Checks = " << check1 << check2 << check3 << std::endl;
+        //std::cout << "candidate_obstacle.rectangle.probability = " << candidate_obstacle.rectangle.probability << std::endl;
+        //std::cout << "candidate_obstacle.rectangle.width = " << candidate_obstacle.rectangle.width << std::endl;
+        //std::cout << "candidate_obstacle.rectangle.depth = " << candidate_obstacle.rectangle.depth << std::endl;
 
-        if( candidate_obstacle.rectangle.probability > 0.5 &&
-            ( std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ||
-              std::fabs(candidate_obstacle.rectangle.depth - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ) )
-        {
-                float dist = std::pow(candidate_obstacle.rectangle.pose.position.x - this_amcl_x, 2.0) + std::pow(candidate_obstacle.rectangle.pose.position.y - this_amcl_y, 2.0);
+        //if( candidate_obstacle.rectangle.probability > 0.5 &&
+            //( std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ||
+              //std::fabs(candidate_obstacle.rectangle.depth - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ) )
+        //{
+                //float dist = std::pow(candidate_obstacle.rectangle.pose.position.x - this_amcl_x, 2.0) + std::pow(candidate_obstacle.rectangle.pose.position.y - this_amcl_y, 2.0);
 
-                if(dist < closestDist)
-                {
+                //if(dist < closestDist)
+                //{
 
-                        closestDist = dist;
-                        IclosestObject = iObs;
-                        rectangleDetected = true;
-                }
-        }
-    }
+                        //closestDist = dist;
+                        //IclosestObject = iObs;
+                        //rectangleDetected = true;
+                //}
+        //}
+    //}
 
-    if(rectangleDetected)
-    {
-        current_obstacle = obsarray->objects[IclosestObject];
-        ROS_INFO("Clostest object: Obs is %f wide and %f deep", current_obstacle.rectangle.width, current_obstacle.rectangle.depth);
-        ROS_INFO("Obs x: %f, obs y: %f", current_obstacle.rectangle.pose.position.x, current_obstacle.rectangle.pose.position.y);
-        ROS_INFO("Vx: %f, Vy %f", current_obstacle.rectangle.vel.x, current_obstacle.rectangle.vel.y);
-        quaternion_x = obsarray->objects[IclosestObject].rectangle.pose.orientation.x;
-        quaternion_y = obsarray->objects[IclosestObject].rectangle.pose.orientation.y;
-        quaternion_z = obsarray->objects[IclosestObject].rectangle.pose.orientation.z;
-        quaternion_w = obsarray->objects[IclosestObject].rectangle.pose.orientation.w;
+    //if(rectangleDetected)
+    //{
+        //current_obstacle = obsarray->objects[IclosestObject];
+        //ROS_INFO("Clostest object: Obs is %f wide and %f deep", current_obstacle.rectangle.width, current_obstacle.rectangle.depth);
+        //ROS_INFO("Obs x: %f, obs y: %f", current_obstacle.rectangle.pose.position.x, current_obstacle.rectangle.pose.position.y);
+        //ROS_INFO("Vx: %f, Vy %f", current_obstacle.rectangle.vel.x, current_obstacle.rectangle.vel.y);
+        //quaternion_x = obsarray->objects[IclosestObject].rectangle.pose.orientation.x;
+        //quaternion_y = obsarray->objects[IclosestObject].rectangle.pose.orientation.y;
+        //quaternion_z = obsarray->objects[IclosestObject].rectangle.pose.orientation.z;
+        //quaternion_w = obsarray->objects[IclosestObject].rectangle.pose.orientation.w;
 
-        // yaw (z-axis rotation)
-        siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
-        cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
-        obs_theta = atan2(siny_cosp, cosy_cosp);
-        obs_center_global.x = current_obstacle.rectangle.pose.position.x;
-        obs_center_global.y = current_obstacle.rectangle.pose.position.y;
-    }
+        //// yaw (z-axis rotation)
+        //siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
+        //cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
+        //obs_theta = atan2(siny_cosp, cosy_cosp);
+        //obs_center_global.x = current_obstacle.rectangle.pose.position.x;
+        //obs_center_global.y = current_obstacle.rectangle.pose.position.y;
+    //}
 }
 
 void getOdomVelCallback(const nav_msgs::Odometry::ConstPtr& odom_vel)
@@ -1283,8 +1283,6 @@ void createObstacleBoundingBox()
         if( local_robot_wall_laser_point.x < (MIN_DIST_TO_OVERTAKE+SIZE_FRONT_ROPOD) && local_robot_wall_laser_point.x > -(ROPOD_TO_AX+SIZE_REAR)
             && distance_point_to_line > 0 && distance_point_to_line < 1.2*TUBE_WIDTH_C )
         {
-            if(j==1)printf("distance_point_to_line: %f\n",distance_point_to_line);
-            if(j==1)printf("local_robot_wall_laser_point.x: %f\n",local_robot_wall_laser_point.x);
             update_obs =  true;
             // update upperleft corner
             if( distance_point_to_line > distance_point_to_line_max )
