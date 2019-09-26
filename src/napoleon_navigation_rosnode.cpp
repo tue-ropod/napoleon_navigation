@@ -38,6 +38,8 @@ std::vector<PointID> pointlist;
 std::vector<AreaQuadID> arealist;
 std::vector<int> assignment;
 
+std::string robotname;
+
 double ropod_x = 0, ropod_y = 0, ropod_theta = 0;
 double this_amcl_x = 0, this_amcl_y = 0, quaternion_x = 0, quaternion_y = 0, quaternion_z = 0, quaternion_w = 0, this_amcl_theta = 0, siny_cosp = 0, cosy_cosp = 0;
 double odom_xdot_ropod_global = 0, odom_ydot_ropod_global = 0, odom_thetadot_global = 0, odom_phi_local = 0, odom_phi_global = 0, odom_vropod_global = 0;
@@ -1470,19 +1472,31 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "route_navigation");
     ros::NodeHandle nroshndl("~");
     ros::Rate rate(F_PLANNER);
+    
+    robotname = ros::this_node::getNamespace();
+    int index = robotname.find("//");
+    if (index != -1 ) // ugly check for // at beginning
+    {
+        if(index == 0)
+        {
+                robotname.erase(index, index + 1);   
+        }
+    } 
+  
+    std::cout << "Napoleon: robotname = " << robotname << std::endl;
 
-    ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
-    ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, getAmclPoseCallback);
-    ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, getOdomVelCallback);
-    ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod/debug_route_plan", 1, getDebugRoutePlanCallback);
+    ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>(robotname + "/route_navigation/simple_goal", 10, simpleGoalCallback);
+    ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>(robotname + "/amcl_pose", 10, getAmclPoseCallback);
+    ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>(robotname + "/odom", 100, getOdomVelCallback);
+    ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >(robotname + "/debug_route_plan", 1, getDebugRoutePlanCallback);
 
-    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
-    ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>(robotname + "/ed/gui/objectPosVel", 10, getObstaclesCallback);
+    ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>(robotname + "/cmd_vel", 1);
 
     // Visualize map nodes and robot
-    ropodmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/ropodpoints", 1);
-    mapmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/vmnodes", 100, true);
-    wallmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/right_side_wall", 10, true);
+    ropodmarker_pub = nroshndl.advertise<visualization_msgs::Marker>(robotname + "/napoleon_driving/ropodpoints", 1);
+    mapmarker_pub = nroshndl.advertise<visualization_msgs::Marker>(robotname + "/napoleon_driving/vmnodes", 100, true);
+    wallmarker_pub = nroshndl.advertise<visualization_msgs::Marker>(robotname + "/napoleon_driving/right_side_wall", 10, true);
     tf_listener_ = new tf::TransformListener;
 
 /*
@@ -1501,7 +1515,7 @@ int main(int argc, char** argv)
 */
 
     // Subscribe to topic with non-associated laser points (for now all laser points)    
-    std::string laser_topic("/ropod/laser/scan");
+    std::string laser_topic(robotname + "/ropod/laser/scan");
     ROS_INFO("Wait for debug plan on topic");
     while(ros::ok())
     {
