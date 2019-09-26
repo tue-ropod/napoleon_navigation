@@ -6,7 +6,7 @@
 #include <vector>
 using namespace std;
 
-// #define MOBIDIK
+#define MOBIDIK
 
 // Define environment
 // static constexpr double TUBE_WIDTH = 2.45;
@@ -28,13 +28,13 @@ static constexpr double SIZE_FRONT_ROPOD = ROPOD_LENGTH/2.0;  // How long ropod 
     static constexpr double SIZE_REAR = 0.10;      // How far vehicle extends behind rear axle (with load)
     // Optimization / performance parameters
     static constexpr double ENV_TRNS_SIZE_CORNERING = 0.45; // d_trnsc Transition area size while cornering [m]
-    static constexpr double V_CRUISING = 1.0;//1.4;           // Max velocity [m/s] while cruising
+    static constexpr double V_CRUISING = 1.2;//1.4;           // Max velocity [m/s] while cruising
     static constexpr double V_INTER_TURNING = 0.5;//0.5;      // Max velocity [m/s] when taking a turn
-    static constexpr double V_INTER_ACC = 0.5;//0.7;          // Max velocity [m/s] when driving straight at intersection
-    static constexpr double V_INTER_DEC = 0.4;//0.3;          // Max velocity [m/s] when driving straight at intersection
+    static constexpr double V_INTER_ACC = 0.8;//0.7;          // Max velocity [m/s] when driving straight at intersection
+    static constexpr double V_INTER_DEC = 0.8;//0.3;          // Max velocity [m/s] when driving straight at intersection
     static constexpr double V_ENTRY = 0.5;//0.5;              // Max velocity [m/s] when at entry of intersection
     static constexpr double V_STEERSATURATION = 0.4;    // Velocity during steering saturation [m/s]
-    static constexpr double V_OVERTAKE = 0.5;//0.5;           // Velocity during overtaking [m/s]
+    static constexpr double V_OVERTAKE = 1.0;//0.5;           // Velocity during overtaking [m/s]
     // Limits
     static constexpr double DELTA_DOT_LIMIT = 0.5;   // Max steering rate per second [rad/s]
     static constexpr double A_MAX = 0.5;                    // Maximum acceleration magnitude [m/s^2]
