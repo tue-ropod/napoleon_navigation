@@ -1252,7 +1252,7 @@ void simulateRobotDuringCurrentPredictionStep()
 void createObstacleBoundingBox()
 {
     double distance_point_to_line_max = 0;
-    double distance_point_to_line_min = 1.2*TUBE_WIDTH_C;
+    double distance_point_to_line_min = 1.0*TUBE_WIDTH_C;
     double distance_point_to_robot_max = -(ROPOD_TO_AX+SIZE_REAR);
     double distance_point_to_robot_min = MIN_DIST_TO_OVERTAKE+SIZE_FRONT_ROPOD;
     double distance_point_to_line;
@@ -1281,7 +1281,7 @@ void createObstacleBoundingBox()
         distance_point_to_line = -distToLine(laser_point, rw_p_rear, rw_p_front);
         // consider only points that are in front of ropod up to certain distance
         if( local_robot_wall_laser_point.x < (MIN_DIST_TO_OVERTAKE+SIZE_FRONT_ROPOD) && local_robot_wall_laser_point.x > -(ROPOD_TO_AX+SIZE_REAR)
-            && distance_point_to_line > 0 && distance_point_to_line < 1.2*TUBE_WIDTH_C )
+            && distance_point_to_line > 0 && distance_point_to_line < 1.0*TUBE_WIDTH_C )
         {
             update_obs =  true;
             // update upperleft corner
