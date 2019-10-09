@@ -1540,12 +1540,25 @@ void getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr&
     start_navigation = true;
 }
 
-void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
-                 ros::Publisher& vel_pub, ros::Rate& rate)
+void resetNavigation()
 {
     assignment.clear();
     arealist.clear();
+    pointlist.clear();
+    arealist.clear();
+    OBJ_X_TASK.clear();
+    task1.clear();
+    task2.clear();
+    task3.clear();
+    current_hallway_task.clear();
+    next_hallway_task.clear();
     ropod_reached_target = false;
+}
+
+void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
+                 ros::Publisher& vel_pub, ros::Rate& rate)
+{
+    resetNavigation();
 
     ROS_INFO("Now preparing the plan");
     initializeVisualizationMarkers();
