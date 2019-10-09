@@ -1514,6 +1514,7 @@ public:
         ac_.sendGoal(route_planner_goal, boost::bind(&NapoleonPlanner::plannerResultCB, this, _1, _2));
 
         //wait for the action to return
+        status_ = false;
         bool finished_before_timeout = ac_.waitForResult(ros::Duration(60.0));
 
         if (finished_before_timeout)
@@ -1539,59 +1540,12 @@ void getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr&
     start_navigation = true;
 }
 
-int main(int argc, char** argv)
+void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
+                 ros::Publisher& vel_pub, ros::Rate& rate)
 {
-
-    ros::init(argc, argv, "route_navigation");
-    ros::NodeHandle nroshndl("~");
-    ros::Rate rate(F_PLANNER);
-
-    ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
-    ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, getAmclPoseCallback);
-    ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, getOdomVelCallback);
-    ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod/debug_route_plan", 1, getDebugRoutePlanCallback);
-
-    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
-    ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
-
-    // Visualize map nodes and robot
-    ropodmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/ropodpoints", 1);
-    mapmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/wmnodes", 100, true);
-    obsboxmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/obstackeBoundingBox", 10, true);
-    wallmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/right_side_wall", 10, true);
-    tf_listener_ = new tf::TransformListener;
-    // Subscribe to topic with non-associated laser points (for now all laser points)
-    unsigned int bufferSize = 2;
-    ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("scan", bufferSize, scanCallback);
-
-
-/*
-    NapoleonPlanner napoleon_planner_("/ropod/goto");
-    while(ros::ok())
-    {
-        if(napoleon_planner_.getStatus())
-        {
-            break;
-        }
-        ros::spinOnce();
-    }
-    std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
-*/
-
-
-    ROS_INFO("Wait for debug plan on topic");
-    while(ros::ok())
-    {
-        if(start_navigation)
-        {
-            break;
-        }
-        ros::spinOnce();
-    }
-    std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
-
-    // TODO: Make action serve and topic work non-blocking. For now I placed it here for not forgetting to change the laser topic as well
-
+    assignment.clear();
+    arealist.clear();
+    ropod_reached_target = false;
 
     ROS_INFO("Now preparing the plan");
     initializeVisualizationMarkers();
@@ -1673,7 +1627,7 @@ int main(int argc, char** argv)
     }
 
     ROS_INFO("Now starting navigation");
-    // start_navigation = true;
+    start_navigation = true;
 
 
     // update area value
@@ -1698,7 +1652,7 @@ int main(int argc, char** argv)
     std::clock_t start_loop;
 
 
-    while(nroshndl.ok() && !ropod_reached_target)
+    while(ros::ok() && !ropod_reached_target)
     {
         // Process scan data
         if(scan_available)
@@ -2036,6 +1990,63 @@ int main(int argc, char** argv)
     cmd_vel.angular.z = 0.0;
     vel_pub.publish(cmd_vel);
     myfile.close();
+}
+
+int main(int argc, char** argv)
+{
+
+    ros::init(argc, argv, "route_navigation");
+    ros::NodeHandle nroshndl("~");
+    ros::Rate rate(F_PLANNER);
+
+    ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
+    ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, getAmclPoseCallback);
+    ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, getOdomVelCallback);
+    ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod/debug_route_plan", 1, getDebugRoutePlanCallback);
+
+    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
+    ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+
+    // Visualize map nodes and robot
+    ropodmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/ropodpoints", 1);
+    mapmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/wmnodes", 100, true);
+    obsboxmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/obstackeBoundingBox", 10, true);
+    wallmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/right_side_wall", 10, true);
+    tf_listener_ = new tf::TransformListener;
+    // Subscribe to topic with non-associated laser points (for now all laser points)
+    unsigned int bufferSize = 2;
+    ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("scan", bufferSize, scanCallback);
+
+
+    while(nroshndl.ok())
+    {
+        ROS_INFO("Wait for goto action");
+        NapoleonPlanner napoleon_planner_("/ropod/goto");
+        while(ros::ok() && !napoleon_planner_.getStatus())
+        {
+            ros::spinOnce();
+        }
+        std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
+
+        ROS_INFO("Got new route; following now");
+        followRoute(planner_areas, vel_pub, rate);
+    }
+
+//    ROS_INFO("Wait for debug plan on topic");
+//    while(ros::ok())
+//    {
+//        if(start_navigation)
+//        {
+//            break;
+//        }
+//        ros::spinOnce();
+//    }
+//    std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
+
+    // TODO: Make action serve and topic work non-blocking. For now I placed it here for not forgetting to change the laser topic as well
+
+
+
 
     return 0;
 }
