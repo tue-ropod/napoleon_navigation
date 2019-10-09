@@ -2031,10 +2031,10 @@ int main(int argc, char** argv)
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("scan", bufferSize, scanCallback);
 
 
+    NapoleonPlanner napoleon_planner_("/ropod/goto");
     while(nroshndl.ok())
     {
         ROS_INFO("Wait for goto action");
-        NapoleonPlanner napoleon_planner_("/ropod/goto");
         while(ros::ok() && !napoleon_planner_.getStatus())
         {
             ros::spinOnce();
