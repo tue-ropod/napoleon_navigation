@@ -54,25 +54,30 @@ void simpleGoalCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_msg)
 void getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr& result)
 {
     debug_route_planner_result_ = *result;
-
     ROS_INFO("new debug plan received");
     start_navigation = true;
 }
 
-// route planner integration
-
-
-int main(int argc, char** argv){
-
+int main(int argc, char** argv)
+{
+    cout << "Main loop started" << endl;
     ros::init(argc, argv, "route_navigation");
+
+    NapoleonModel Model;
+    NapoleonPrediction Prediction;
+    NapoleonAssignment Assignment;
+    NapoleonObstacle Obstacle;
+    NapoleonVisualization Visualization;
+    NapoleonAction Action;
+
     ros::NodeHandle nroshndl("~");
     ros::Rate rate(F_PLANNER);
 
     ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
-    ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, getAmclPoseCallback);
-    ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, getOdomVelCallback);
+    ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, &NapoleonModel::getAmclPoseCallback, &Model);
+    ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, &NapoleonModel::getOdomVelCallback, &Model);
     ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod/debug_route_plan", 1, getDebugRoutePlanCallback);
-    ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("/ropod/laser/scan", 1, scanCallback);
+    ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("/ropod/laser/scan", 1, &NapoleonModel::scanCallback, &Model);
 
 //    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
@@ -82,8 +87,8 @@ int main(int argc, char** argv){
     mapmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/vmnodes", 100, true);
     wallmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/right_side_wall", 10, true);
 
-
     ROS_INFO("Wait for debug plan on topic");
+
     while(ros::ok())
     {
         if(start_navigation)
@@ -93,18 +98,13 @@ int main(int argc, char** argv){
         ros::spinOnce();
     }
 
-    //ADD set planner areas  = debug_route_planner_result_.areas
-    
-    ROS_INFO("Now preparing the plan");
-    initializeVisualizationMarkers();
+    ROS_INFO("Initialize Assignment");
+    Assignment.initializeAssignment(debug_route_planner_result_.areas);
 
-    ROS_INFO("Now starting navigation");
-    // start_navigation = true;
+    ROS_INFO("Initialize Visualization");
+    Visualization.initializeVisualizationMarkers(Assignment);
 
-    initializeAssignment();
-
-    ROS_INFO("Wait for 2D Nav Goal to start (goal can be anywhere, doesn't influence program)");
-
+    ROS_INFO("Open log file");
     std::ofstream myfile;
     //myfile.open ("/simdata/ropod_" + get_date() +".txt");
     myfile.open ("/home/bob/Documents/simdata/ropod_" + get_date() +".txt");
@@ -115,34 +115,32 @@ int main(int argc, char** argv){
 
     std::clock_t start_loop;
 
-    while(nroshndl.ok() && !ropod_reached_target){
-        //?ADD Process scan data
-        //ADD get scan data
+    ROS_INFO("Now starting navigation");
+
+    while(nroshndl.ok() && !ropod_reached_target)
+    {
+        ROS_INFO("Process scan data");
+        Model.processLatestScanData(); //Process scan data
 
         if (start_navigation){
 
             start_loop = std::clock();
-                
-            k = 0;                          // Start with full speed (index [0])
-            n = i*F_FSTR+1;
-            i = i+1;
-    
-            //ADD model update position
+
+            ROS_INFO("Start prediction");
+            Prediction.start(Model);
+
+            ROS_INFO("Update position");
+            Model.updatePosition(Prediction); //model update position
     
             //ROS_INFO("Ropod x: %f / Ropod y: %f / Theta: %f", ropod_x, ropod_y, ropod_theta);
             //ROS_INFO("xdot: %f / ydot: %f / thetadot %f", odom_xdot_ropod_global, odom_ydot_ropod_global, odom_thetadot_global);
-            //ROS_INFO("ropodx: %f / ropody: %f / ropodtheta %f", ropod_x, ropod_y, ropod_theta);
+            //ROS_INFO("ropodx: %f / ropody: %f / ropodtheta %f", ropod_x, ropod_y, ropod_theta)
     
-    
-            while ((ropod_colliding_obs || ropod_colliding_wall) && k < V_SCALE_OPTIONS.size())
+            while ((Model.ropod_colliding_obs || Model.ropod_colliding_wall) && Prediction.k < V_SCALE_OPTIONS.size())
             {
-        
-                //ADD initialize prediction
-    
-                //ADD initialize areas
-                
-                //ADD predict
-    
+                Prediction.initialize(Model, Obstacle); //initialize prediction
+                Assignment.initializeAreas(Prediction); //initialize areas
+                Prediction.update(ropodmarker_pub, wallmarker_pub, Assignment, Model, Obstacle, Visualization, Prediction); //predict
             }// end while finding v_scale
     
             // Update after a prediction is made where no collision is caused
@@ -150,21 +148,21 @@ int main(int argc, char** argv){
             // new prediction the next step, so only the first part of the
             // prediction is used.
 
-            //ADD prediction step
+            Prediction.step(); //prediction step
 
             program_duration = ( std::clock() - start_loop ) / (double) CLOCKS_PER_SEC;
             real_time_est = real_time_est+1/F_PLANNER;
     
-            //ADD update control velocity
+            Model.updateControlVelocity(Prediction); //update control velocity
     
-            myfile << real_time_est << "\t" << program_duration << "\t" << pred_state[0] << "\t" << pred_task_counter[0] << "\t" << pred_tube_width[0] << "\t" <<
-                pred_phi_des[0] << "\t" << pred_v_ropod[0] << "\t" << control_v << "\t"  <<  pred_xy_ropod[0].x << "\t" <<  pred_xy_ropod[0].y << "\t" <<
-                pred_plan_theta[0] << "\t" << pred_x_obs[0] << "\t" << pred_y_obs[0] << "\t" << obs_theta << "\t" << current_obstacle.width << "\t" <<
-                current_obstacle.depth << "\t" << current_obstacle.vel.x << "\t" << current_obstacle.vel.y << "\t" << pred_accel[1] << "\t" <<"\n";
+//            myfile << real_time_est << "\t" << program_duration << "\t" << pred_state[0] << "\t" << pred_task_counter[0] << "\t" << pred_tube_width[0] << "\t" <<
+//                pred_phi_des[0] << "\t" << pred_v_ropod[0] << "\t" << control_v << "\t"  <<  pred_xy_ropod[0].x << "\t" <<  pred_xy_ropod[0].y << "\t" <<
+//                pred_plan_theta[0] << "\t" << pred_x_obs[0] << "\t" << pred_y_obs[0] << "\t" << obs_theta << "\t" << current_obstacle.width << "\t" <<
+//                current_obstacle.depth << "\t" << current_obstacle.vel.x << "\t" << current_obstacle.vel.y << "\t" << pred_accel[1] << "\t" <<"\n";
     
-            //ADD prediction check finished
+            ropod_reached_target = Prediction.checkIfFinished(Assignment);//prediction check finished
 
-            //ADD visualization publish
+            Visualization.publish(ropodmarker_pub, Model, Prediction, Assignment);//visualization publish
             
         }   // end if received goal
 
@@ -173,11 +171,10 @@ int main(int argc, char** argv){
         if(rate.cycleTime() > ros::Duration(1/F_PLANNER) ){
             ROS_WARN("Control loop missed its desired rate of %.4fHz... the loop actually took %.4f seconds", F_PLANNER, rate.cycleTime().toSec());
         }
-
     }
     // Will only perform this when ropod has reached target
 
-    //ADD action stop
+    Action.stop(vel_pub);//action stop
 
     myfile.close();
 

@@ -1,8 +1,8 @@
 #include "napoleon_assignment.h"
 
-void NapoleonAssignment::initializeAssignment()
+void NapoleonAssignment::initializeAssignment(std::vector<ropod_ros_msgs::Area> &plan)
 {
-
+    planner_areas = plan;
     int intermediate_area_id_counter = 10000;
     for (int i = 0; i < planner_areas.size(); i++)
     {
@@ -249,30 +249,29 @@ void NapoleonAssignment::initializeAreas(NapoleonPrediction &P){
     }
 }
 
-void NapoleonAssignment::updateStateAndTask()
+void NapoleonAssignment::updateStateAndTask(NapoleonModel &M, NapoleonPrediction &P, NapoleonObstacle &O)
 {
-
     // Taking a turn on an intersection
     if (!task2[5].empty()) {
         //printf("Ropod entry hall task2[5] non empty: %d\n",(int)pred_ropod_on_entry_hall[j]);
-        if (pred_ropod_on_entry_hall[j] && pred_state[prevstate] == CRUSING) {
-            pred_state[j] = CRUSING;
+        if (P.pred_ropod_on_entry_hall[P.j] && P.pred_state[P.prevstate] == M.CRUSING) {
+            P.pred_state[P.j] = M.CRUSING;
             //disp([num2str(i), ': Here we can switch to the next hallway']);
-            u = u+1;
-            area1ID = assignment[u];
-            task1 = OBJ_X_TASK[u];
-            if (u < ka_max-1) {
-                area2ID = assignment[u+1];
-                task2 = OBJ_X_TASK[u+1];
-                if(u == (ka_max-2) )
+            P.u = P.u+1;
+            area1ID = assignment[P.u];
+            task1 = OBJ_X_TASK[P.u];
+            if (P.u < ka_max-1) {
+                area2ID = assignment[P.u+1];
+                task2 = OBJ_X_TASK[P.u+1];
+                if(P.u == (ka_max-2) )
                 {
-                    area3ID = assignment[u+1];
-                    task3 = OBJ_X_TASK[u+1];
+                    area3ID = assignment[P.u+1];
+                    task3 = OBJ_X_TASK[P.u+1];
                 }
                 else
                 {
-                    area3ID = assignment[u+2];
-                    task3 = OBJ_X_TASK[u+2];
+                    area3ID = assignment[P.u+2];
+                    task3 = OBJ_X_TASK[P.u+2];
                 }
             }
             else
@@ -289,48 +288,48 @@ void NapoleonAssignment::updateStateAndTask()
             next_second_area = getAreaByID(area3ID,arealist);
 
 
-        } else if (pred_ropod_on_entry_inter[j] && pred_state[prevstate] == CRUSING) {
+        } else if (P.pred_ropod_on_entry_inter[P.j] && P.pred_state[P.prevstate] == M.CRUSING) {
             // If cruising and the y position of the ropod exceeds the y
             // position of the entry
-            if(j==1)printf("Entry detected to turn intersection u = %d\n",u);
-            pred_state[j] = ENTRY_BEFORE_TURN_ON_INTERSECTION;
+            if(P.j==1)printf("Entry detected to turn intersection u = %d\n",P.u);
+            P.pred_state[P.j] = M.ENTRY_BEFORE_TURN_ON_INTERSECTION;
 
-        } else if (cur_pivot_local.x < SIZE_FRONT_ROPOD  && pred_state[prevstate] == ENTRY_BEFORE_TURN_ON_INTERSECTION) {
+        } else if (cur_pivot_local.x < SIZE_FRONT_ROPOD  && P.pred_state[P.prevstate] == M.ENTRY_BEFORE_TURN_ON_INTERSECTION) {
             // If in entry and the y position of the ropod exceeds the y
             // position of the intersection
-            pred_state[j] = ACCELERATE_ON_INTERSECTION;
+            P.pred_state[P.j] = M.ACCELERATE_ON_INTERSECTION;
 
-        } else if (cur_pivot_local.x <= SIZE_FRONT_RAX + START_STEERING_EARLY && pred_state[prevstate] == ACCELERATE_ON_INTERSECTION) {
+        } else if (cur_pivot_local.x <= SIZE_FRONT_RAX + START_STEERING_EARLY && P.pred_state[P.prevstate] == M.ACCELERATE_ON_INTERSECTION) {
             // If middle of vehicle is on y height of pivot
-            pred_state[j] = ALIGN_AXIS_AT_INTERSECTION;
+            P.pred_state[P.j] = M.ALIGN_AXIS_AT_INTERSECTION;
 
-        } else if (cur_pivot_local.x <= -ROPOD_TO_AX+START_STEERING_EARLY && pred_state[prevstate] == ALIGN_AXIS_AT_INTERSECTION) {
+        } else if (cur_pivot_local.x <= -ROPOD_TO_AX+START_STEERING_EARLY && P.pred_state[P.prevstate] == M.ALIGN_AXIS_AT_INTERSECTION) {
             // If rearaxle is aligned with the pivot minus sse
-            if(j==1)printf("Turning on  u = %d\n",u+1);
-            pred_state[j] = TURNING;
+            if(P.j==1)printf("Turning on  u = %d\n",P.u+1);
+            P.pred_state[P.j] = M.TURNING;
 
-        } else if (-ROTATED_ENOUGH_TRES < cur_next_hallway_angle && cur_next_hallway_angle < ROTATED_ENOUGH_TRES && pred_state[prevstate] == TURNING) {
+        } else if (-ROTATED_ENOUGH_TRES < cur_next_hallway_angle && cur_next_hallway_angle < ROTATED_ENOUGH_TRES && P.pred_state[P.prevstate] == M.TURNING) {
             // If ropod has turned enough
 
-            pred_state[j] = CRUSING;
+            P.pred_state[P.j] = M.CRUSING;
             //disp([num2str(i), ': Here we can switch to the next task']);
-            u = u+2;
-            if(j==1)printf("Done with turning intersection, now on u = %d\n",u);
-            area1ID = assignment[u];
-            task1 = OBJ_X_TASK[u];
-            if (u < ka_max-1)
+            P.u = P.u+2;
+            if(P.j==1)printf("Done with turning intersection, now on u = %d\n",P.u);
+            area1ID = assignment[P.u];
+            task1 = OBJ_X_TASK[P.u];
+            if (P.u < ka_max-1)
             {
-                area2ID = assignment[u+1];
-                task2 = OBJ_X_TASK[u+1];
-                if(u == (ka_max-2) )
+                area2ID = assignment[P.u+1];
+                task2 = OBJ_X_TASK[P.u+1];
+                if(P.u == (ka_max-2) )
                 {
-                    area3ID = assignment[u+1];
-                    task3 = OBJ_X_TASK[u+1];
+                    area3ID = assignment[P.u+1];
+                    task3 = OBJ_X_TASK[P.u+1];
                 }
                 else
                 {
-                    area3ID = assignment[u+2];
-                    task3 = OBJ_X_TASK[u+2];
+                    area3ID = assignment[P.u+2];
+                    task3 = OBJ_X_TASK[P.u+2];
                 }
             }
             else
@@ -348,31 +347,31 @@ void NapoleonAssignment::updateStateAndTask()
 
         } else {
 
-            pred_state[j] = pred_state[prevstate];
-            update_state_points = false;
+            P.pred_state[P.j] = P.pred_state[P.prevstate];
+            P.update_state_points = false;
         }
         // Going straight on an intersection / ot between hallways
     } else if (!task2[1].empty()) {
-        if (pred_ropod_on_entry_hall[j] && pred_state[prevstate] == CRUSING) {
-            pred_state[j] = CRUSING;
+        if (P.pred_ropod_on_entry_hall[P.j] && P.pred_state[P.prevstate] == M.CRUSING) {
+            P.pred_state[P.j] = M.CRUSING;
             //disp([num2str(i), ': Here we can switch to the next hallway']);
-            u = u+1;
-            if(j==1)printf("Entry detected between halls u = %d\n",u);
-            if (u < ka_max-1)
+            P.u = P.u+1;
+            if(P.j==1)printf("Entry detected between halls u = %d\n",P.u);
+            if (P.u < ka_max-1)
             {
-                area1ID = assignment[u];
-                task1 = OBJ_X_TASK[u];
-                area2ID = assignment[u+1];
-                task2 = OBJ_X_TASK[u+1];
-                if(u == (ka_max-2) )
+                area1ID = assignment[P.u];
+                task1 = OBJ_X_TASK[P.u];
+                area2ID = assignment[P.u+1];
+                task2 = OBJ_X_TASK[P.u+1];
+                if(P.u == (ka_max-2) )
                 {
-                    area3ID = assignment[u+1];
-                    task3 = OBJ_X_TASK[u+1];
+                    area3ID = assignment[P.u+1];
+                    task3 = OBJ_X_TASK[P.u+1];
                 }
                 else
                 {
-                    area3ID = assignment[u+2];
-                    task3 = OBJ_X_TASK[u+2];
+                    area3ID = assignment[P.u+2];
+                    task3 = OBJ_X_TASK[P.u+2];
                 }
             }
             else
@@ -389,35 +388,35 @@ void NapoleonAssignment::updateStateAndTask()
             next_second_area = getAreaByID(area3ID,arealist);
 
 
-        }else if (pred_ropod_on_entry_inter[j] && pred_state[prevstate] == CRUSING) {
+        }else if (P.pred_ropod_on_entry_inter[P.j] && P.pred_state[P.prevstate] == M.CRUSING) {
             // If cruising and the y position of the ropod exceeds the y
             // position of the entry
-            if(j==1)printf("Entry detected to straight intersection u = %d\n",u);
-            pred_state[j] = ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION;
-        } else if (current_inter_rear_wall_local.x < SIZE_FRONT_ROPOD+START_STEERING_EARLY && pred_state[prevstate] == ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION) {
+            if(P.j==1)printf("Entry detected to straight intersection u = %d\n",P.u);
+            P.pred_state[P.j] = M.ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION;
+        } else if (current_inter_rear_wall_local.x < SIZE_FRONT_ROPOD+START_STEERING_EARLY && P.pred_state[P.prevstate] == M.ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION) {
             // If in entry and the y position of the ropod exceeds the y
             // position of the intersection
-            if(j==1)printf("Staright on u = %d\n",u+1);
-            pred_state[j] = GOING_STRAIGHT_ON_INTERSECTION;
-        } else if (current_inter_front_wall_local.x < -D_AX/2 && pred_state[prevstate] == GOING_STRAIGHT_ON_INTERSECTION) {
+            if(P.j==1)printf("Staright on u = %d\n",P.u+1);
+            P.pred_state[P.j] = M.GOING_STRAIGHT_ON_INTERSECTION;
+        } else if (current_inter_front_wall_local.x < -D_AX/2 && P.pred_state[P.prevstate] == M.GOING_STRAIGHT_ON_INTERSECTION) {
 
-            pred_state[j] = CRUSING;
-            u = u+2;
-            if(j==1)printf("Done with straight intersection, now on u = %d\n",u);
-            if (u < ka_max-1) {
-                area1ID = assignment[u];
-                task1 = OBJ_X_TASK[u];
-                area2ID = assignment[u+1];
-                task2 = OBJ_X_TASK[u+1];
-                if(u == (ka_max-2) )
+            P.pred_state[P.j] = M.CRUSING;
+            P.u = P.u+2;
+            if(P.j==1)printf("Done with straight intersection, now on u = %d\n",P.u);
+            if (P.u < ka_max-1) {
+                area1ID = assignment[P.u];
+                task1 = OBJ_X_TASK[P.u];
+                area2ID = assignment[P.u+1];
+                task2 = OBJ_X_TASK[P.u+1];
+                if(P.u == (ka_max-2) )
                 {
-                    area3ID = assignment[u+1];
-                    task3 = OBJ_X_TASK[u+1];
+                    area3ID = assignment[P.u+1];
+                    task3 = OBJ_X_TASK[P.u+1];
                 }
                 else
                 {
-                    area3ID = assignment[u+2];
-                    task3 = OBJ_X_TASK[u+2];
+                    area3ID = assignment[P.u+2];
+                    task3 = OBJ_X_TASK[P.u+2];
                 }
             }
             else
@@ -435,70 +434,70 @@ void NapoleonAssignment::updateStateAndTask()
 
 
         } else {
-            pred_state[j] = pred_state[prevstate];
-            update_state_points = false;
+            P.pred_state[P.j] = P.pred_state[P.prevstate];
+            P.update_state_points = false;
         }
     }
 
-    if(u >= ka_max)
+    if(P.u >= ka_max)
     {
-        u = ka_max-1;
+        P.u = ka_max-1;
     }
 
-    if (pred_state[prevstate] == TIGHT_OVERTAKE || pred_state[prevstate] == SPACIOUS_OVERTAKE) {
-        if (no_obs > 0) {
-            current_obs_in_ropod_frame_pos = coordGlobalToRopod(obs_center_global, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+    if (P.pred_state[P.prevstate] == M.TIGHT_OVERTAKE || P.pred_state[P.prevstate] == M.SPACIOUS_OVERTAKE) {
+        if (O.no_obs > 0) {
+            O.current_obs_in_ropod_frame_pos = coordGlobalToRopod(O.obs_center_global, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
             //disp(['Obs is ',num2str(obs_in_ropod_frame_pos.x), ' m in front of ropod']);
-            if (current_obs_in_ropod_frame_pos.x+current_obstacle.depth/2+D_AX+SIZE_REAR < 0) {
-                pred_state[j] = CRUSING;
-                update_state_points = true;
-                pred_tube_width[j] = TUBE_WIDTH_C;
+            if (O.current_obs_in_ropod_frame_pos.x+O.current_obstacle.depth/2+D_AX+SIZE_REAR < 0) {
+                P.pred_state[P.j] = M.CRUSING;
+                P.update_state_points = true;
+                P.pred_tube_width[P.j] = TUBE_WIDTH_C;
             } else {
-                pred_state[j] = pred_state[prevstate];
-                update_state_points = false;
+                P.pred_state[P.j] = P.pred_state[P.prevstate];
+                P.update_state_points = false;
             }
         } else {
             // Ropod doesn't see obs anymore, return cruising.
             // When obt disappears depends on the setting how long it takes before obs disappears after not seeing it (entity-timeout)
             // It can be found in /catkin_workspace/src/applications/ropod_navigation_test/config/model-example-ropod-navigation-ED.yaml
-            pred_state[j] = CRUSING;
-            update_state_points = true;
-            pred_tube_width[j] = TUBE_WIDTH_C;
+            P.pred_state[P.j] = M.CRUSING;
+            P.update_state_points = true;
+            P.pred_tube_width[P.j] = TUBE_WIDTH_C;
         }
     }
 
     // TODO: This code was moved. It was right before steerings were computed based on prediction. Check if still works on al cases
     // Exception for first plan
-    if (j == 1) {
-        update_state_points = true;
+    if (P.j == 1) {
+        P.update_state_points = true;
     }
     // Exception for when current and previous state are turning
     // And the state before that is aligning, as the state jump
     // happens immediately if that is required and then the state
     // points need to be updated.
-    if (j > 1) {
-        if (pred_state[j] == TURNING && pred_state[j-1] == TURNING && (pred_state[j-2] == ACCELERATE_ON_INTERSECTION || pred_state[j-2] == ALIGN_AXIS_AT_INTERSECTION)) {
-            update_state_points = true;
+    if (P.j > 1) {
+        if (P.pred_state[P.j] == M.TURNING && P.pred_state[P.j-1] == M.TURNING && (P.pred_state[P.j-2] == M.ACCELERATE_ON_INTERSECTION || P.pred_state[P.j-2] == M.ALIGN_AXIS_AT_INTERSECTION)) {
+            P.update_state_points = true;
         }
     }
 
-    pred_task_counter[j] = u;
+    P.pred_task_counter[P.j] = P.u;
 
     // Monitor if we don't bump into front wall when aligning
     // rearaxle to pivot. If so, switch to turn state (5)
-    if (pred_state[j] == ACCELERATE_ON_INTERSECTION || pred_state[j] == ALIGN_AXIS_AT_INTERSECTION) {
-        if (update_state_points) {
+    if (P.pred_state[P.j] == M.ACCELERATE_ON_INTERSECTION || P.pred_state[P.j] == M.ALIGN_AXIS_AT_INTERSECTION) {
+        if (P.update_state_points) {
             wall_front_p0 = getPointByID(task2[0],pointlist);
             wall_front_p1 = getPointByID(task2[1],pointlist);
             //global_wall_front_p0 = [wall_front_p0.x, wall_front_p0.y];
             //global_wall_front_p1 = [wall_front_p1.x, wall_front_p1.y];
         }
 
-        local_wall_front_p0 = coordGlobalToRopod(wall_front_p0, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-        local_wall_front_p1 = coordGlobalToRopod(wall_front_p1, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        local_wall_front_p0 = coordGlobalToRopod(wall_front_p0, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
+        local_wall_front_p1 = coordGlobalToRopod(wall_front_p1, P.pred_xy_ropod[P.j-1], P.pred_plan_theta[P.j-1]);
         if (do_lines_intersect(local_front_ropod_dilated_p0, local_front_ropod_dilated_p1, local_wall_front_p0, local_wall_front_p1)) {
-            pred_state[j] = TURNING;
-            update_state_points = true;
+            P.pred_state[P.j] = M.TURNING;
+            P.update_state_points = true;
             //disp("Switched early while aligning pivot because too close to front wall");
         }
     }

@@ -6,6 +6,7 @@ using namespace std;
 #include <string>
 #include <array>
 #include "napoleon_config.h"
+#include "napoleon_geometry.h"
 #include <vector>
 
 static constexpr double     _PI= 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348;
@@ -37,8 +38,8 @@ PointID getPointByID(string wantedID, vector<PointID> pointlist);
 vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID OBJ3, vector<string> OBJ1TASK);
 vector<string> getWalls(int id_OBJ1, int id_OBJ2, int id_OBJ3, vector<AreaQuadID> arealist);
 
-double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, double tubewidth);
-double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_front, Point local_wallpoint_rear);
+//double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, double tubewidth);
+//double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_front, Point local_wallpoint_rear);
 double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist);
 
 double wrapToPi(double angle);

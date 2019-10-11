@@ -78,177 +78,6 @@ void NapoleonPrediction::checkForCollisions(NapoleonModel &M, NapoleonObstacle &
     // }
 }
 
-void NapoleonPrediction::simulateRobotDuringCurrentPredictionStep()
-{
-    /**
-     * Simulate robot during current prediction step.
-     * Simulations are stacked over the different prediction steps.
-     * */
-    m_prev = m;
-    t_pred_prev = t_pred[m];
-    t_pred_j[j] = t_pred_prev+F_FSTR*TS;
-
-    // Simulate ropod motion with current plan (Simulation is done faster than controller sample time)
-    for (int q = 1; q <= F_FSTR; ++q) { // q = [1, 2, ..., F_FSTR]
-        m = m_prev+q;           // Current iteration
-        t_pred[m] = t_pred_prev+q*TS;
-
-        pred_phi[m] = (1-lpf)*pred_phi[m-1]+lpf*pred_phi_des[j];
-        pred_theta[m] = wrapToPi(pred_theta[m-1]+pred_thetadot[m-1]*TS);
-        pred_v_ropod[m] = pred_v_ropod[m-1]+pred_accel[j]*TS;
-
-        pred_xdot[m] = pred_v_ropod[m]*cos(pred_phi[m])*cos(pred_theta[m]);
-        pred_ydot[m] = pred_v_ropod[m]*cos(pred_phi[m])*sin(pred_theta[m]);
-        pred_thetadot[m] = pred_v_ropod[m]*1/D_AX*sin(pred_phi[m]);
-
-        pred_x_rearax[m] = pred_x_rearax[m-1]+pred_xdot[m]*TS;
-        pred_y_rearax[m] = pred_y_rearax[m-1]+pred_ydot[m]*TS;
-    }
-}
-
-
-void NapoleonPrediction::initialize(NapoleonModel &M, NapoleonObstacle &O)
-{
-    M.v_scale = V_SCALE_OPTIONS[k];
-    k++;
-    m = 0;
-    j = 0;
-    t_pred[m] = 0;
-    t_pred_j[j] = 0;
-
-    // Initialize prediction with latest sim values
-    pred_phi[0] = M.odom_phi_local; // On ropod
-    pred_theta[0] = M.ropod_theta;
-    pred_v_ropod[0] = M.control_v;
-    if (abs(M.odom_vropod_global-M.control_v) > 0.5) {
-        ROS_INFO("Difference between control and actual velocity > 0.5, correcting now.");
-        pred_v_ropod[0] = M.odom_vropod_global;
-    }
-    pred_xdot[0] = pred_v_ropod[0]*cos(pred_phi[0])*cos(M.ropod_theta);   // xdot of rearaxle in global frame
-    pred_ydot[0] = pred_v_ropod[0]*cos(pred_phi[0])*sin(M.ropod_theta);   // ydot of rearaxle in global frame
-    pred_thetadot[0] = pred_v_ropod[0]*1/D_AX*sin(pred_phi[0]);
-    pred_x_rearax[0] = M.ropod_x-D_AX*cos(M.ropod_theta);
-    pred_y_rearax[0] = M.ropod_y-D_AX*sin(M.ropod_theta);
-    pred_xy_ropod[0].x = M.ropod_x;
-    pred_xy_ropod[0].y = M.ropod_y;
-    prev_pred_phi_des = prev_sim_phi_des;
-    pred_phi_des[0] = prev_pred_phi_des;
-    pred_tube_width[0] = prev_sim_tube_width;
-    pred_plan_theta[0] = M.ropod_theta;
-    pred_v_ropod_plan[0] = pred_v_ropod[0];
-    pred_state[0] = prev_sim_state;
-    pred_task_counter[0] = prev_sim_task_counter;
-    pred_x_obs[0] = O.current_obstacle.pose.position.x;
-    pred_y_obs[0] = O.current_obstacle.pose.position.y;
-}
-
-void NapoleonPrediction::update(NapoleonAssignment &A, NapoleonModel &M, NapoleonObstacle &O, NapoleonVisualization &V){
-
-    // Prediction
-    while (t_pred[m] < T_MIN_PRED) {
-        j = j+1;
-
-        // j and m counter are initialized at 0 instead of 1 in Matlab so we dont have to change their indices
-        consider_overtaking_current_hallway = false;
-        consider_overtaking_next_hallway = false;
-        pred_tube_width[j] = pred_tube_width[j-1];  // Assume same as previous, might change later
-
-        A.updateAreasAndFeatures();
-
-        /**
-         * Check whether robot is entrying a new area
-         * */
-        // Original implementation was checking for overlap between ropod shape and entry shape,
-        // maybe change later if this implementation causes strange behavior
-        //if(j==1)printf("Areas type curr next: %s, %s\n",curr_area.type.c_str(),next_area.type.c_str());
-        pred_ropod_on_entry_inter[j] = false;
-        pred_ropod_on_entry_hall[j] = false;
-        if (A.curr_area.type == "hallway" && A.next_area.type == "inter")
-        {
-            A.point_front = getPointByID(A.task1[1],A.pointlist);
-            A.local_wallpoint_front = coordGlobalToRopod(A.point_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-            pred_ropod_on_entry_inter[j] = A.local_wallpoint_front.x < ENTRY_LENGTH;
-
-        }
-        else if (A.area1ID!=A.area2ID && A.curr_area.type == "hallway" && A.next_area.type == "hallway")
-        {
-            double walls_angle = getAngleBetweenHallways(A.task1, A.task2, A.pointlist);
-            double distance_to_switch_halls;
-            if(walls_angle > 0) // Concave, switch early
-                distance_to_switch_halls = SIZE_FRONT_ROPOD+1.0;
-            else // Convex, switch close to turning axis
-                distance_to_switch_halls = -0.5*D_AX;
-
-            A.point_front = getPointByID(A.task1[1],A.pointlist);
-            A.local_wallpoint_front = coordGlobalToRopod(A.point_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-            pred_ropod_on_entry_hall[j] = A.local_wallpoint_front.x < distance_to_switch_halls;
-        }
-
-        update_state_points = true; // Initially true, might change to false when not necessary
-        prevstate = j-1;
-
-        /**
-         * Based on predicted position, state, areas, features, update state and task
-         * */
-        A.updateStateAndTask();
-        /**
-         * Check wether an overtake should be considered at all
-         * */
-        considerOvertaking(A, O);
-
-        /**
-         * Call overtake state machine when needed
-         * */
-        if ((pred_state[prevstate] == M.CRUSING && consider_overtaking_current_hallway) || (consider_overtaking_next_hallway && (pred_state[prevstate] == M.TURNING || pred_state[prevstate] == M.GOING_STRAIGHT_ON_INTERSECTION)))
-        {
-            M.overtakeStateMachine();
-        }
-        else if (!consider_overtaking_current_hallway && !consider_overtaking_next_hallway)
-        {
-            pred_tube_width[j] = TUBE_WIDTH_C;
-        }
-
-        /**
-         * Compute steering and default forward acceleration based on computed state and local features
-         * */
-        M.computeSteeringAndVelocity();
-
-        /**
-         * Simulate robot during current prediction step.
-         * Simulations are stacked over the different prediction steps.
-         * */
-        simulateRobotDuringCurrentPredictionStep();
-
-        /**
-         * Check for collision
-         * Either for obstacles or virtual walls(to be added)
-         * */
-        checkForCollisions(M, O);
-        if(M.ropod_colliding_obs || M.ropod_colliding_wall) // Do not execute current plan when collision is precited
-            break;
-
-
-        V.visualizeRopodMarkers();
-
-        // Update positions used to make the prediction plan with
-        // Cesar-> TODO: In theory D_AX should be replaced by ROPOD_TO_AX, but it brings issues.
-        //               Or rename predictions not to ropod but to steering point?
-        pred_x_ropod[j] = pred_x_rearax[m]+D_AX*cos(pred_theta[m]);
-        pred_y_ropod[j] = pred_y_rearax[m]+D_AX*sin(pred_theta[m]);
-        pred_xy_ropod[j].x = pred_x_ropod[j];
-        pred_xy_ropod[j].y = pred_y_ropod[j];
-        pred_v_ropod_plan[j] = pred_v_ropod[m];
-
-        if (j == 1) {
-            //ROS_INFO("v[0] = %f, a[1] = %f, ts = %f, v[1] = %f", pred_v_ropod[0], pred_accel[j], TS, pred_v_ropod_plan[j]);
-            // ROS_INFO("v[0] = %f, a[1] = %f, deltav = %f, v[1] = %f", pred_v_ropod[0], pred_accel[j], pred_accel[j]*F_PLANNER, pred_v_ropod[0]+pred_accel[1]*F_PLANNER);
-        }
-        pred_plan_theta[j] = pred_theta[m];
-        //ROS_INFO("j: %d / State: %d / Time: %f / Phi: %f / V_des: %f", j, pred_state[j], t_pred_j[j], pred_phi_des[j], pred_v_ropod[j]);
-
-    } // endwhile prediction
-}
-
 void NapoleonPrediction::considerOvertaking(NapoleonAssignment &A, NapoleonObstacle &O)
 {
 
@@ -288,6 +117,193 @@ void NapoleonPrediction::considerOvertaking(NapoleonAssignment &A, NapoleonObsta
             }
         }
     }
+}
+
+void NapoleonPrediction::simulateRobotDuringCurrentPredictionStep()
+{
+    /**
+     * Simulate robot during current prediction step.
+     * Simulations are stacked over the different prediction steps.
+     * */
+    m_prev = m;
+    t_pred_prev = t_pred[m];
+    t_pred_j[j] = t_pred_prev+F_FSTR*TS;
+
+    // Simulate ropod motion with current plan (Simulation is done faster than controller sample time)
+    for (int q = 1; q <= F_FSTR; ++q) { // q = [1, 2, ..., F_FSTR]
+        m = m_prev+q;           // Current iteration
+        t_pred[m] = t_pred_prev+q*TS;
+
+        pred_phi[m] = (1-lpf)*pred_phi[m-1]+lpf*pred_phi_des[j];
+        pred_theta[m] = wrapToPi(pred_theta[m-1]+pred_thetadot[m-1]*TS);
+        pred_v_ropod[m] = pred_v_ropod[m-1]+pred_accel[j]*TS;
+
+        pred_xdot[m] = pred_v_ropod[m]*cos(pred_phi[m])*cos(pred_theta[m]);
+        pred_ydot[m] = pred_v_ropod[m]*cos(pred_phi[m])*sin(pred_theta[m]);
+        pred_thetadot[m] = pred_v_ropod[m]*1/D_AX*sin(pred_phi[m]);
+
+        pred_x_rearax[m] = pred_x_rearax[m-1]+pred_xdot[m]*TS;
+        pred_y_rearax[m] = pred_y_rearax[m-1]+pred_ydot[m]*TS;
+    }
+}
+
+void NapoleonPrediction::start(NapoleonModel &M){
+    pred_v_ropod[0] = M.v_ropod_0;
+    pred_v_ropod_plan[0] = pred_v_ropod[0];
+    pred_x_ropod[0] = M.x_ropod_0;
+    pred_y_ropod[0] = M.y_ropod_0;
+    pred_plan_theta[0] = M.theta_0;
+    sim_theta.empty();
+    sim_phi.empty();
+    sim_theta.push_back(pred_plan_theta[0]);
+    sim_phi.push_back(M.phi_0);
+    pred_xy_ropod_0 = Point(pred_x_ropod[0], pred_y_ropod[0]);
+    pred_xy_ropod[0] = pred_xy_ropod_0;
+
+    k = 0;                          // Start with full speed (index [0])
+    n = (static_cast<int>(i * F_FSTR + 1));
+    i = i+1;
+}
+
+void NapoleonPrediction::initialize(NapoleonModel &M, NapoleonObstacle &O)
+{
+    M.v_scale = V_SCALE_OPTIONS[k];
+    k++;
+    m = 0;
+    j = 0;
+    t_pred[m] = 0;
+    t_pred_j[j] = 0;
+
+    // Initialize prediction with latest sim values
+    pred_phi[0] = M.odom_phi_local; // On ropod
+    pred_theta[0] = M.ropod_theta;
+    pred_v_ropod[0] = M.control_v;
+    if (abs(M.odom_vropod_global-M.control_v) > 0.5) {
+        ROS_INFO("Difference between control and actual velocity > 0.5, correcting now.");
+        pred_v_ropod[0] = M.odom_vropod_global;
+    }
+    pred_xdot[0] = pred_v_ropod[0]*cos(pred_phi[0])*cos(M.ropod_theta);   // xdot of rearaxle in global frame
+    pred_ydot[0] = pred_v_ropod[0]*cos(pred_phi[0])*sin(M.ropod_theta);   // ydot of rearaxle in global frame
+    pred_thetadot[0] = pred_v_ropod[0]*1/D_AX*sin(pred_phi[0]);
+    pred_x_rearax[0] = M.ropod_x-D_AX*cos(M.ropod_theta);
+    pred_y_rearax[0] = M.ropod_y-D_AX*sin(M.ropod_theta);
+    pred_xy_ropod[0].x = M.ropod_x;
+    pred_xy_ropod[0].y = M.ropod_y;
+    prev_pred_phi_des = prev_sim_phi_des;
+    pred_phi_des[0] = prev_pred_phi_des;
+    pred_tube_width[0] = prev_sim_tube_width;
+    pred_plan_theta[0] = M.ropod_theta;
+    pred_v_ropod_plan[0] = pred_v_ropod[0];
+    pred_state[0] = prev_sim_state;
+    pred_task_counter[0] = prev_sim_task_counter;
+    pred_x_obs[0] = O.current_obstacle.pose.position.x;
+    pred_y_obs[0] = O.current_obstacle.pose.position.y;
+}
+
+void NapoleonPrediction::update(ros::Publisher &ropodmarker_pub, ros::Publisher &wallmarker_pub, NapoleonAssignment &A, NapoleonModel &M, NapoleonObstacle &O, NapoleonVisualization &V, NapoleonPrediction &P){
+
+    // Prediction
+    while (t_pred[m] < T_MIN_PRED) {
+        j = j+1;
+
+        // j and m counter are initialized at 0 instead of 1 in Matlab so we dont have to change their indices
+        consider_overtaking_current_hallway = false;
+        consider_overtaking_next_hallway = false;
+        pred_tube_width[j] = pred_tube_width[j-1];  // Assume same as previous, might change later
+
+        A.updateAreasAndFeatures(P);
+
+        /**
+         * Check whether robot is entrying a new area
+         * */
+        // Original implementation was checking for overlap between ropod shape and entry shape,
+        // maybe change later if this implementation causes strange behavior
+        //if(j==1)printf("Areas type curr next: %s, %s\n",curr_area.type.c_str(),next_area.type.c_str());
+        pred_ropod_on_entry_inter[j] = false;
+        pred_ropod_on_entry_hall[j] = false;
+        if (A.curr_area.type == "hallway" && A.next_area.type == "inter")
+        {
+            A.point_front = getPointByID(A.task1[1],A.pointlist);
+            A.local_wallpoint_front = coordGlobalToRopod(A.point_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+            pred_ropod_on_entry_inter[j] = A.local_wallpoint_front.x < ENTRY_LENGTH;
+
+        }
+        else if (A.area1ID!=A.area2ID && A.curr_area.type == "hallway" && A.next_area.type == "hallway")
+        {
+            double walls_angle = getAngleBetweenHallways(A.task1, A.task2, A.pointlist);
+            double distance_to_switch_halls;
+            if(walls_angle > 0) // Concave, switch early
+                distance_to_switch_halls = SIZE_FRONT_ROPOD+1.0;
+            else // Convex, switch close to turning axis
+                distance_to_switch_halls = -0.5*D_AX;
+
+            A.point_front = getPointByID(A.task1[1],A.pointlist);
+            A.local_wallpoint_front = coordGlobalToRopod(A.point_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+            pred_ropod_on_entry_hall[j] = A.local_wallpoint_front.x < distance_to_switch_halls;
+        }
+
+        update_state_points = true; // Initially true, might change to false when not necessary
+        prevstate = j-1;
+
+        /**
+         * Based on predicted position, state, areas, features, update state and task
+         * */
+        A.updateStateAndTask(M, P, O);
+        /**
+         * Check wether an overtake should be considered at all
+         * */
+        considerOvertaking(A, O);
+
+        /**
+         * Call overtake state machine when needed
+         * */
+        if ((pred_state[prevstate] == M.CRUSING && consider_overtaking_current_hallway) || (consider_overtaking_next_hallway && (pred_state[prevstate] == M.TURNING || pred_state[prevstate] == M.GOING_STRAIGHT_ON_INTERSECTION)))
+        {
+            M.overtakeStateMachine(P, O, A);
+        }
+        else if (!consider_overtaking_current_hallway && !consider_overtaking_next_hallway)
+        {
+            pred_tube_width[j] = TUBE_WIDTH_C;
+        }
+
+        /**
+         * Compute steering and default forward acceleration based on computed state and local features
+         * */
+        M.computeSteeringAndVelocity(wallmarker_pub, A, P, V);
+
+        /**
+         * Simulate robot during current prediction step.
+         * Simulations are stacked over the different prediction steps.
+         * */
+        simulateRobotDuringCurrentPredictionStep();
+
+        /**
+         * Check for collision
+         * Either for obstacles or virtual walls(to be added)
+         * */
+        checkForCollisions(M, O);
+        if(M.ropod_colliding_obs || M.ropod_colliding_wall) // Do not execute current plan when collision is precited
+            break;
+
+        V.visualizeRopodMarkers(ropodmarker_pub, P);
+
+        // Update positions used to make the prediction plan with
+        // Cesar-> TODO: In theory D_AX should be replaced by ROPOD_TO_AX, but it brings issues.
+        //               Or rename predictions not to ropod but to steering point?
+        pred_x_ropod[j] = pred_x_rearax[m]+D_AX*cos(pred_theta[m]);
+        pred_y_ropod[j] = pred_y_rearax[m]+D_AX*sin(pred_theta[m]);
+        pred_xy_ropod[j].x = pred_x_ropod[j];
+        pred_xy_ropod[j].y = pred_y_ropod[j];
+        pred_v_ropod_plan[j] = pred_v_ropod[m];
+
+        if (j == 1) {
+            //ROS_INFO("v[0] = %f, a[1] = %f, ts = %f, v[1] = %f", pred_v_ropod[0], pred_accel[j], TS, pred_v_ropod_plan[j]);
+            // ROS_INFO("v[0] = %f, a[1] = %f, deltav = %f, v[1] = %f", pred_v_ropod[0], pred_accel[j], pred_accel[j]*F_PLANNER, pred_v_ropod[0]+pred_accel[1]*F_PLANNER);
+        }
+        pred_plan_theta[j] = pred_theta[m];
+        //ROS_INFO("j: %d / State: %d / Time: %f / Phi: %f / V_des: %f", j, pred_state[j], t_pred_j[j], pred_phi_des[j], pred_v_ropod[j]);
+
+    } // endwhile prediction
 }
 
 bool NapoleonPrediction::checkIfFinished(NapoleonAssignment &A){

@@ -1,14 +1,21 @@
 #ifndef NAP_PRE_H
 #define NAP_PRE_H
 
+#include <array>
+#include <ros/ros.h>
 #include "napoleon_geometry.h"
 #include "napoleon_config.h"
 #include "napoleon_functions.h"
+
 #include "napoleon_obstacle.h"
 #include "napoleon_model.h"
 #include "napoleon_assignment.h"
-#include <array>
-#include <ros/ros.h>
+#include "napoleon_visualization.h"
+
+class NapoleonAssignment;
+class NapoleonModel;
+class NapoleonObstacle;
+class NapoleonVisualization;
 
 using namespace std;
 
@@ -36,21 +43,27 @@ public:
     int pred_task_counter[size_p] {0};
     int danger_count = 0; // Counter that ensures program stops if collision with wall predicted for sometime
 
-    double t_pred[size_m] {0};              // Prediction time [s]
-    double t_pred_j[size_p] {0};              // Prediction time planning [s]
-    double pred_v_ropod[size_m] {v_ropod_0};
-    double pred_v_ropod_plan[size_p] {pred_v_ropod[0]};
     bool pred_ropod_on_entry_inter[size_p] {false};
     bool pred_ropod_on_entry_hall[size_p] {false};
-    double pred_x_ropod[size_p] {x_ropod_0};
-    double pred_y_ropod[size_p] {y_ropod_0};
+
+    double t_pred[size_m] {0};              // Prediction time [s]
+    double t_pred_j[size_p] {0};              // Prediction time planning [s]
+
+    double pred_v_ropod[size_m];
+    double pred_v_ropod_plan[size_p];
+    double pred_x_ropod[size_p];
+    double pred_y_ropod[size_p];
+    double pred_plan_theta[size_p];
+    std::vector<double> sim_theta;
+    std::vector<double> sim_phi;
+    Point pred_xy_ropod_0;
+    std::array<Point, size_p> pred_xy_ropod;
+
     double pred_x_obs[size_p] {0};
     double pred_y_obs[size_p] {0};
     double prev_sim_phi_des;
-    double pred_plan_theta[size_p] {theta_0};
     double pred_accel[size_p] {0};
-    std::vector<double> sim_theta {pred_plan_theta[0]};
-    std::vector<double> sim_phi {phi_0};
+
     std::vector<double> sim_v_scale {1};
     double prev_sim_tube_width {TUBE_WIDTH_C};
     std::vector<std::string> walls;
@@ -61,8 +74,7 @@ public:
     double pred_thetadot[size_m];
     double pred_x_rearax[size_m];
     double pred_y_rearax[size_m];
-    Point pred_xy_ropod_0 = Point(pred_x_ropod[0], pred_y_ropod[0]);
-    std::array<Point, size_p> pred_xy_ropod {{pred_xy_ropod_0}};
+
     double prev_pred_phi_des;
     double pred_phi_des[size_p] {0};
     double pred_tube_width[size_p] {TUBE_WIDTH_C};
@@ -94,10 +106,11 @@ public:
     }
 
     void checkForCollisions(NapoleonModel &M, NapoleonObstacle &O);
-    void simulateRobotDuringCurrentPredictionStep();
-    void initialize(NapoleonModel &M, NapoleonObstacle &O);
-    void update(NapoleonAssignment &A, NapoleonModel &M, NapoleonObstacle &O, NapoleonVisualization &V);
     void considerOvertaking(NapoleonAssignment &A, NapoleonObstacle &O);
+    void simulateRobotDuringCurrentPredictionStep();
+    void start(NapoleonModel &M);
+    void initialize(NapoleonModel &M, NapoleonObstacle &O);
+    void update(ros::Publisher &ropodmarker_pub, ros::Publisher &wallmarker_pub, NapoleonAssignment &A, NapoleonModel &M, NapoleonObstacle &O, NapoleonVisualization &V, NapoleonPrediction &P);
     bool checkIfFinished(NapoleonAssignment &A);
     void step();
 

@@ -4,11 +4,14 @@
 #include <algorithm>    // std::rotate
 #include <geometry_msgs/Twist.h>
 #include <ros/ros.h>
-#include "napoleon_model.h"
 #include "napoleon_config.h"
 #include "napoleon_functions.h"
+
+#include "napoleon_model.h"
 #include "napoleon_prediction.h"
-#include "napoleon_assignment.h"
+
+class NapoleonModel;
+class NapoleonPrediction;
 
 class NapoleonAction{
 

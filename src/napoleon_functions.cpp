@@ -1,14 +1,13 @@
 #include <iostream>
 #include <math.h>
+#include <ros/ros.h>
+#include <algorithm>    // std::rotate
 #include "napoleon_config.h"
 #include "napoleon_geometry.h"
 #include "napoleon_functions.h"
-
-
-#include <ros/ros.h>
-#include <algorithm>    // std::rotate
-using namespace std;
 #include <time.h>
+
+using namespace std;
 #define MAX_DATE 12
 
 void printstringvec(vector<string> vec)

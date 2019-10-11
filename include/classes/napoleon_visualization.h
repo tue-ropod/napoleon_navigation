@@ -7,7 +7,14 @@
 #include <ropod_ros_msgs/GoToAction.h>
 #include <ropod_ros_msgs/RoutePlannerAction.h>
 #include <visualization_msgs/Marker.h>
+
+#include "napoleon_prediction.h"
 #include "napoleon_assignment.h"
+#include "napoleon_model.h"
+
+class NapoleonAssignment;
+class NapoleonPrediction;
+class NapoleonModel;
 
 using namespace std;
 

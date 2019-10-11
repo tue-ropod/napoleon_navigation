@@ -30,9 +30,8 @@ void NapoleonModel::scanCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
     scan_buffer_.push(msg);
 }
 
-void NapoleonModel::getLatestScanData()
+void NapoleonModel::processLatestScanData()
 {
-
     if(scan_available)
     {
         while(!scan_buffer_.empty())

@@ -11,9 +11,16 @@
 #include <tf/transform_datatypes.h>
 #include <tf/transform_listener.h>
 #include "napoleon_config.h"
+
 #include "napoleon_prediction.h"
 #include "napoleon_obstacle.h"
 #include "napoleon_visualization.h"
+#include "napoleon_assignment.h"
+
+class NapoleonAssignment;
+class NapoleonPrediction;
+class NapoleonObstacle;
+class NapoleonVisualization;
 
 class NapoleonModel {
 
@@ -75,7 +82,7 @@ public:
     void getOdomVelCallback(const nav_msgs::Odometry::ConstPtr &odom_vel);
     void getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &pose_msg);
     void scanCallback(const sensor_msgs::LaserScan::ConstPtr &msg);
-    void getLatestScanData();
+    void processLatestScanData();
     void updatePosition(NapoleonPrediction &P);
     void updateControlVelocity(NapoleonPrediction &P);
     void overtakeStateMachine(NapoleonPrediction &P, NapoleonObstacle &O, NapoleonAssignment &A);

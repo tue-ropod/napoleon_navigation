@@ -34,7 +34,7 @@ generate_messages(
 )
 
 catkin_package(
-  INCLUDE_DIRS include
+  INCLUDE_DIRS include include/classes
   # LIBRARIES napoleon_navigation
   CATKIN_DEPENDS message_runtime std_msgs geometry_msgs nav_msgs roscpp tf costmap_2d maneuver_planner actionlib_msgs ropod_ros_msgs
   # DEPENDS system_lib

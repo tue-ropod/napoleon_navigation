@@ -3,16 +3,25 @@
 
 #include <ros/ros.h>
 #include <vector>
+#include <ropod_ros_msgs/GoToAction.h>
+#include <ropod_ros_msgs/RoutePlannerAction.h>
 #include "napoleon_geometry.h"
 #include "napoleon_config.h"
 #include "napoleon_functions.h"
+
+#include "napoleon_obstacle.h"
+#include "napoleon_model.h"
 #include "napoleon_prediction.h"
-#include <ropod_ros_msgs/GoToAction.h>
-#include <ropod_ros_msgs/RoutePlannerAction.h>
+
+class NapoleonModel;
+class NapoleonPrediction;
+class NapoleonObstacle;
 
 class NapoleonAssignment{
 
 public:
+
+    std::vector<ropod_ros_msgs::Area> planner_areas;
 
     std::vector<PointID> pointlist;
     std::vector<AreaQuadID> arealist;
@@ -60,17 +69,15 @@ public:
                                       // have number of areas value during compilation time
                                       // This will fail if number of areas go above 100
 
-    std::vector<ropod_ros_msgs::Area> planner_areas;
-
 public:
 
     NapoleonAssignment(){
     }
 
-    void initializeAssignment();
+    void initializeAssignment(std::vector<ropod_ros_msgs::Area> &plan);
     void updateAreasAndFeatures(NapoleonPrediction &P);
     void initializeAreas(NapoleonPrediction &P);
-    void updateStateAndTask();
+    void updateStateAndTask(NapoleonModel &M, NapoleonPrediction &P, NapoleonObstacle &O);
 
 };
 
