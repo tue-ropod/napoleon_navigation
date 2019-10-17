@@ -7,7 +7,6 @@
 #include <visualization_msgs/Marker.h>
 #include <ed_gui_server/objPosVel.h>
 #include <ed_gui_server/objsPosVel.h>
-#include <nav_msgs/Path.h>
 #include <std_msgs/Bool.h>
 #include <ropod_ros_msgs/GoToAction.h>
 #include <ropod_ros_msgs/RoutePlannerAction.h>

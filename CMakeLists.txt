@@ -90,8 +90,12 @@ SET(napoleon_includes
         include/Definitions/Line.h
         include/Definitions/Circle.h
         include/LoopRate/LoopRate.h
-)
+        include/Visualization/VisualizationRviz.cpp
+        include/Visualization/VisualizationRviz.h
+        include/Visualization/VisualizationOpenCV.cpp
+        include/Visualization/VisualizationOpenCV.h)
 
-add_executable(napoleon_navigation main.cpp ${napoleon_includes} )
+add_executable(napoleon_navigation NapoleonNavigation.cpp ${napoleon_includes} )
+add_executable(napoleon_navigation_standalone NapoleonNavigationStandalone.cpp ${napoleon_includes} )
 target_link_libraries(napoleon_navigation ${catkin_LIBRARIES} ${OpenCV_LIBS})
 add_dependencies(napoleon_navigation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

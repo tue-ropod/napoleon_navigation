@@ -1,7 +1,4 @@
-#include <ros/ros.h>
-
 #include <iostream>
-#include <thread>
 #include <Visualization/Visualization.h>
 #include <Definitions/Polygon.h>
 #include <Model/HolonomicModel.h>
@@ -10,8 +7,9 @@
 #include <LoopRate/LoopRate.h>
 #include <Tube/Tube.h>
 #include <Tube/Tubes.h>
+#include <Visualization/VisualizationOpenCV.h>
 
-Visualization canvas(1000,1000,50);
+VisualizationOpenCV canvas(1000,1000,60);
 
 typedef Vector2D Vec;
 
@@ -19,10 +17,7 @@ typedef Vector2D Vec;
 #define staticobstacle(poly, middle, pose) Obstacle(Polygon(poly, middle, Closed), pose, Static)
 #define dynamicobstacle(poly, pose) Obstacle(Polygon(poly), pose, Dynamic)
 
-int main(int argc, char** argv) {
-    cout << "Main loop started" << endl;
-    ros::init(argc, argv, "route_navigation");
-
+int main() {
     //canvas.setorigin(Pose2D(-6,-6,0));
 
     Polygon footprint({Vec(0,0), Vec(2,0), Vec(2, 0.2), Vec(2.3,0.2), Vec(2.3,0.8), Vec(2,0.8), Vec(2,1), Vec(0,1)}, Closed, true, Pose2D(1,0.5,0));
@@ -51,9 +46,6 @@ int main(int argc, char** argv) {
 
     LoopRate r(50);
 
-    int hCurrentTube = 0;
-    double speedScale = 1;
-
     while(true){
         canvas.setorigin(Pose2D(hmodel.pose.x, hmodel.pose.y, 0)-canvas.getWindowMidOffset());
 
@@ -64,40 +56,22 @@ int main(int argc, char** argv) {
 
         //obstacles[0].movement = Pose2D(0.2*cos((M_PI*2.0*r.elapsedTime)/(1000*5)), 0.3*cos((M_PI*2.0*r.elapsedTime)/(1000*7)), 0.01);
 
-        int nScalings = 20;
-        FollowStatus status = Status_Ok;
-        for(int s = 0; s < nScalings; s++) {
-            HolonomicModel hmodelCopy = hmodel;
-            int hCurrentTubeCopy = hCurrentTube;
-            if(status == Status_Ok){
-                speedScale += 1/double(nScalings);
-                speedScale = speedScale > 1 ? 1 : speedScale;
-            }
-            for (int p = 0; p < 50; p++) {
-                status = hmodelCopy.follow(tubes, hCurrentTubeCopy, speedScale, canvas, false);
-                hmodelCopy.update(r.periodSeconds*1);
-                //hmodelCopy.show(canvas, Color(255,255,255), Thin);
-                if(status != Status_Ok){break;}
-            }
-            hmodelCopy.show(canvas, Color(255,255,255), Thin);
-            if(status != Status_Ok && status != Status_Done){
-                speedScale -= 1/double(nScalings);
-                speedScale = speedScale < 0 ? 0 : speedScale;
-                if(speedScale == 0){break;}
-            }else{break;}
-        }
+        HolonomicModel hmodelCopy = hmodel;
+        FollowStatus status = hmodelCopy.predict(20, 2, 1, r.periodSeconds, hmodel, tubes, canvas); //nScaling | predictionTime | minDistance
+        hmodel.copySettings(hmodelCopy);
 
         if(status == Status_Ok || status == Status_Done) {
-            FollowStatus realStatus = hmodel.follow(tubes, hCurrentTube, speedScale, canvas, true);
-            tubes.avoidObstacles(hCurrentTube, hCurrentTube, obstacles, hmodel, DrivingSide_Right, canvas);
+            FollowStatus realStatus = hmodel.follow(tubes, canvas, true);
+            tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, obstacles, hmodel, DrivingSide_Right, canvas);
             if(realStatus == Status_Done){
                 cout << "Status Done" << endl;
                 cout << "Exit Simulation" << endl;
                 break;
             }
         }else{
-            hmodel.input(Pose2D(0,0,0));
+            hmodel.input(Pose2D(0,0,0), Frame_Robot);
             switch (status){
+                case Status_ToClose: {cout << "Status To Close" << endl; break;}
                 case Status_Stuck: {cout << "Status Stuck" << endl; break;}
                 case Status_Error: {cout << "Status Error" << endl; break;}
                 case Status_Collision: {cout << "Status Collision" << endl; break;}
@@ -116,7 +90,7 @@ int main(int argc, char** argv) {
         canvas.visualize();
 
         //obstacles[0].update();
-        hmodel.update(r.periodSeconds);
+        hmodel.updatePrediction(r.periodSeconds);
 
         r.update();
     }

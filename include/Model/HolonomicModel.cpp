@@ -7,8 +7,6 @@
 
 HolonomicModel::HolonomicModel(Pose2D pose_, Polygon footprint_, double maxSpeed_, double maxAcceleration_, double wheelDistanceToMiddle_) :
     Model(pose_, std::move(footprint_), maxSpeed_, maxAcceleration_, wheelDistanceToMiddle_){
-    velocity = Pose2D(0,0,0);
-    inputVelocity = Pose2D(0,0,0);
     dilateFootprint(footprintClearance);
 }
 
@@ -38,8 +36,7 @@ Pose2D HolonomicModel::translateInput(Vector2D position, Pose2D v_p) {
     }
 }
 
-void HolonomicModel::update(double dt) {
-
+void HolonomicModel::updatePrediction(double dt) {
     Pose2D acc = (inputVelocity - velocity)/dt;
     if(acc.length() > maxAcceleration){
         Vector2D scaledAcc = acc.unit()*maxAcceleration;
@@ -69,18 +66,8 @@ void HolonomicModel::update(double dt) {
     dilatedFootprint.transformto(pose);
 }
 
-void HolonomicModel::show(Visualization& canvas, Color c, int drawstyle) {
-    canvas.polygon(footprint.vertices, c, drawstyle);
-    canvas.polygon(dilatedFootprint.vertices, Color(255,0,0), Thin);
-
-    Vector2D dir = velocity.toVector();
-    dir = dir.transform(0, 0, pose.a).unit() * 0.5;
-    dir.transformThis(pose.x, pose.y, 0);
-    canvas.arrow(pose, dir, c, Thin);
-}
-
-FollowStatus HolonomicModel::follow(Tubes& tubes, int &tubeIndex, double speedScale, Visualization& canvas, bool debug){
-    input(Pose2D(0,0,0)); //Stops automatically if it cannot follow the tubes
+FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool debug){
+    input(Pose2D(0,0,0), Frame_Robot); //Stops automatically if it cannot follow the tubes
     FollowStatus status = Status_Error; //Pre set status to error
 
     if(!tubes.tubes.empty() && !dilatedFootprint.vertices.empty()){
@@ -97,12 +84,12 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, int &tubeIndex, double speedSc
 
         int nVelocityVector = 0;
         for(auto & vertex : frontBoundingBox){
-            int ti = tubes.tubeContainingPoint(vertex, tubeIndex);
+            int ti = tubes.tubeContainingPoint(vertex, currentTubeIndex);
             if(ti != -1){
                 Tube &currentTube = tubes.tubes[ti];
-                if(ti > tubeIndex) tubeIndex = ti;
+                if(ti > currentTubeIndex) currentTubeIndex = ti;
                 Vector2D pointVelocity;
-                int ci = tubes.tubeCornerContainingPoint(vertex, tubeIndex);
+                int ci = tubes.tubeCornerContainingPoint(vertex, currentTubeIndex);
                 if(ci != -1){
                     Vector2D r = tubes.getCornerPoint(ci) - vertex;
                     switch(tubes.getCornerSide(ci)){
@@ -135,7 +122,7 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, int &tubeIndex, double speedSc
 
             int minTubeIndex = -1, maxTubeIndex = -1;
             for(auto & vertex : boundingBox){
-                int ti = tubes.tubeContainingPoint(vertex, tubeIndex);
+                int ti = tubes.tubeContainingPoint(vertex, currentTubeIndex);
                 if(ti != -1){
                     if(ti >= maxTubeIndex || maxTubeIndex == -1) maxTubeIndex = ti;
                     if(ti <= minTubeIndex || minTubeIndex == -1) minTubeIndex = ti;
@@ -260,7 +247,7 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, int &tubeIndex, double speedSc
 
             if(collisionDistance > footprintClearance){
                 status = Status_Collision;
-            }else if(tubeIndex == tubes.tubes.size()-1){
+            }else if(currentTubeIndex == tubes.tubes.size()-1){
                 status = Status_Done;
             }else if(totalInput.length()<0.01 && abs(totalInput.a) < 0.01){ //TODO Determine when stuck
                 status = Status_Stuck;
@@ -270,4 +257,14 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, int &tubeIndex, double speedSc
         }
     }
     return status;
+}
+
+void HolonomicModel::show(Visualization& canvas, Color c, int drawstyle) {
+    canvas.polygon(footprint.vertices, c, drawstyle);
+    canvas.polygon(dilatedFootprint.vertices, Color(255,0,0), Thin);
+
+    Vector2D dir = velocity.toVector();
+    dir = dir.transform(0, 0, pose.a).unit() * 0.5;
+    dir.transformThis(pose.x, pose.y, 0);
+    canvas.arrow(pose, dir, c, Thin);
 }
