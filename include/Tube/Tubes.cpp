@@ -8,6 +8,55 @@ Tubes::Tubes(const Tube& tube){
     tubes.emplace_back(tube);
 }
 
+void Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model, Visualization &canvas) {
+    std::vector<ropod_ros_msgs::Area> &areas = route.areas;
+    tubes.clear();
+
+    bool firstTubePlaced = false;
+    for (auto &area : areas) {
+        for (auto &subarea : area.sub_areas){
+            Vector2D p1 = Vector2D(subarea.geometry.vertices[0].x, subarea.geometry.vertices[0].y);
+            Vector2D p2 = Vector2D(subarea.geometry.vertices[1].x, subarea.geometry.vertices[1].y);
+            Vector2D p3 = Vector2D(subarea.geometry.vertices[2].x, subarea.geometry.vertices[2].y);
+            Vector2D p4 = Vector2D(subarea.geometry.vertices[3].x, subarea.geometry.vertices[3].y);
+
+            double minWidth = model.minWidth()+0.4;
+            double maxWidth = model.maxWidth();
+            double width1 = p1.distance(p4) > minWidth ? p1.distance(p4) : minWidth;
+            width1 = width1 > maxWidth ? maxWidth : width1;
+            double width2 = p2.distance(p3) > minWidth ? p2.distance(p3) : minWidth;
+            width2 = width2 > maxWidth ? maxWidth : width2;
+
+            if(area.type == "junction"){
+                Vector2D offsetPoint = ((p2-p1).unit())*width1/2 + p1;
+                Vector2D point = ((p2-offsetPoint).unit().transform(0,0,M_PI_2))*width1/2 + offsetPoint;
+                if(!firstTubePlaced){
+                    tubes.emplace_back(Tube(model.pose.toVector(), maxWidth, point, width1, 1));
+                    canvas.point(point, Color(0,255,255),Thick);
+                    firstTubePlaced = true;
+                }
+                else{
+                    addPoint(point, width1, 1);
+                    canvas.point(point, Color(0,255,0),Thick);
+                }
+            }else{
+                Vector2D point1 = ((p2-p1).unit().transform(0,0,M_PI_2))*width1/2 + p1;
+                Vector2D point2 = ((p1-p2).unit().transform(0,0,-M_PI_2))*width2/2 + p2;
+                if(!firstTubePlaced){
+                    tubes.emplace_back(Tube(model.pose.toVector(), maxWidth, point2, width2, 1));
+                    canvas.point(point1, Color(255,0,0),Thick);
+                    canvas.point(point2, Color(0,0,255),Thick);
+                    firstTubePlaced = true;
+                }
+                else{
+                    addPoint(point2, width2, 1);
+                    canvas.point(point2, Color(255,255,0),Thick);
+                }
+            }
+        }
+    }
+}
+
 void Tubes::addPoint(Vector2D p, double width, double speed, int index){
     if(!tubes.empty()) {
         double angle = M_PI;
@@ -55,11 +104,11 @@ void Tubes::removePoint(unsigned int index) {
     }
 }
 
-void Tubes::avoidObstacles(unsigned int startIndex, unsigned int index, vector<Obstacle>& obstacles, Model& model, DrivingSide side, Visualization &canvas){
-    if(index < tubes.size() && !obstacles.empty()) {
+void Tubes::avoidObstacles(unsigned int startIndex, unsigned int index, Obstacles& obstacles, Model& model, DrivingSide side, Visualization &canvas){
+    if(index < tubes.size() && !obstacles.obstacles.empty()) {
         Tube &tube = tubes[index];
         bool obstruction = false;
-        for (auto &obstacle : obstacles){
+        for (auto &obstacle : obstacles.obstacles){
             //TODO Add scan window (width of hallway X forward)
             if(tube.connectedShape.polygonContainsPoint(obstacle.footprint.middle) || tube.connectedShape.polygonPolygonCollision(obstacle.footprint) ){
                 obstruction = true;
@@ -81,7 +130,7 @@ void Tubes::avoidObstacles(unsigned int startIndex, unsigned int index, vector<O
             double closestDistance = -1;
             Obstacle *closestObstacle = nullptr;
 
-            for (auto &obstacle : obstacles){
+            for (auto &obstacle : obstacles.obstacles){
                 if(tube.connectedShape.polygonContainsPoint(obstacle.footprint.middle) || tube.connectedShape.polygonPolygonCollision(obstacle.footprint) ){
 
                     vector<Vector2D> obstacleProjection = obstacle.footprint.projectPolygonOnLine(obstacleProjectionLine);
@@ -140,14 +189,28 @@ void Tubes::connectTubes(unsigned int index){
         Tube &tube2 = tubes[index+1];
         tube1.resetSides(End);
         tube2.resetSides(Begin);
-        Vector2D newPointLeft = tube1.leftSide.lineLineIntersection(tube2.leftSide);
-        Vector2D newPointRight = tube1.rightSide.lineLineIntersection(tube2.rightSide);
-        if(isnan(newPointLeft.x)){
+        Vector2D newPointLeft,newPointRight;
+
+        double anglediff = 0.1;
+
+        double angleleft1 = (tube1.leftSide.p2 - tube1.leftSide.p1).angle();
+        double angleleft2 = (tube2.leftSide.p2 - tube2.leftSide.p1).angle();
+        if(abs(angleleft1-angleleft2) > anglediff){
+            newPointLeft = tube1.leftSide.lineLineIntersection(tube2.leftSide);
+            if(isnan(newPointLeft.x)){newPointLeft = (tube1.leftSide.p2 + tube2.leftSide.p1)/2;}
+        }else{
             newPointLeft = (tube1.leftSide.p2 + tube2.leftSide.p1)/2;
         }
-        if(isnan(newPointRight.x)){
+
+        double angleright1 = (tube1.rightSide.p2 - tube1.rightSide.p1).angle();
+        double angleright2 = (tube2.rightSide.p2 - tube2.rightSide.p1).angle();
+        if(abs(angleright1-angleright2) > anglediff){
+            newPointRight = tube1.rightSide.lineLineIntersection(tube2.rightSide);
+            if(isnan(newPointRight.x)){newPointRight = (tube1.rightSide.p2 + tube2.rightSide.p1)/2;}
+        }else{
             newPointRight = (tube1.rightSide.p2 + tube2.rightSide.p1)/2;
         }
+
         tube1.setSides(End, newPointLeft, newPointRight);
         tube2.setSides(Begin, newPointLeft, newPointRight);
     }
@@ -208,7 +271,7 @@ int Tubes::tubeCornerContainingPoint(Vector2D& point, int initialSearchPoint){
 
 Corner Tubes::getCornerSide(unsigned int index) {
     Corner side = Corner_None;
-    if(index < tubes.size()-2) {
+    if(index < tubes.size()-1) {
         Vector2D v1 = tubes[index].p2 - tubes[index].p1;
         Vector2D v2 = tubes[index+1].p2 - tubes[index+1].p1;
         v2.transformThis(0,0,-v1.angle());
@@ -239,21 +302,21 @@ Vector2D Tubes::getCornerPoint(unsigned int index) {
 
 Polygon Tubes::getCornerArea(unsigned int index){
     Polygon cornerArea;
-    if(index < tubes.size()-2) {
+    if(index < tubes.size()-1) {
         Vector2D c = getCornerPoint(index);
         Vector2D p1, p2, p3, p4;
         switch(getCornerSide(index)){
             case Corner_Left:
                 p1 = c;
-                p2 = tubes[index].rightSide.lineProjectionPoint(c);
+                p2 = tubes[index].rightSide.lineProjectionPointConstrained(c);
                 p3 = tubes[index].rightSide.p2;
-                p4 = tubes[index+1].rightSide.lineProjectionPoint(c);
+                p4 = tubes[index+1].rightSide.lineProjectionPointConstrained(c);
                 break;
             case Corner_Right:
                 p1 = c;
-                p2 = tubes[index+1].leftSide.lineProjectionPoint(c);
+                p2 = tubes[index+1].leftSide.lineProjectionPointConstrained(c);
                 p3 = tubes[index].leftSide.p2;
-                p4 = tubes[index].leftSide.lineProjectionPoint(c);
+                p4 = tubes[index].leftSide.lineProjectionPointConstrained(c);
                 break;
             case Corner_None:
                 break;
@@ -277,7 +340,7 @@ void Tubes::showTubes(Visualization &canvas) {
 
 void Tubes::showSides(Visualization &canvas) {
     for(auto & tube : tubes){
-        tube.showSides(canvas, Color(255*(1-tube.velocity.length()),255*(tube.velocity.length()),0), Thin);
+        tube.showSides(canvas, Color(255*(1-tube.velocity.length()),255*(tube.velocity.length()),100), Thin);
     }
     for(unsigned int i = 0; i < tubes.size(); i++){
         canvas.point(getCornerPoint(i), Color(255,0,0), Thick);

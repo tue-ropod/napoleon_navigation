@@ -9,9 +9,12 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/core/core.hpp"
 #include <string>
+#include <utility>
 #include <Definitions/Pose2D.h>
 
 using namespace std;
+
+enum DrawStyle {Filled = -1, Thin = 1, Thick = 3};
 
 class Color{
 public:
@@ -19,6 +22,7 @@ public:
     unsigned int green;
     unsigned int blue;
     unsigned int alpha;
+    Color() = default;
     Color(unsigned int red_, unsigned int green_, unsigned int blue_, unsigned int alpha_ = 255){
         red = red_;
         green = green_;
@@ -27,12 +31,16 @@ public:
     }
 };
 
-enum DrawStyle {Filled = -1, Thin = 1, Thick = 3};
-
 class Visualization{
-
+protected:
+    int idCounter = 0;
+    int idCounterPrev = 0;
 public:
     Visualization();
+
+    int getId();
+    void resetId();
+
     virtual void point(const Vector2D& p, const Color& c, unsigned int thickness = Thin);
     virtual void line(const Vector2D& p1, const Vector2D& p2, const Color& c, unsigned int thickness = Thin);
     virtual void arrow(const Vector2D& p1, const Vector2D& p2, const Color& c, unsigned int thickness = Thin);

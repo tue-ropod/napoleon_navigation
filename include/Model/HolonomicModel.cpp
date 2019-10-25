@@ -11,11 +11,14 @@ HolonomicModel::HolonomicModel(Pose2D pose_, Polygon footprint_, double maxSpeed
 }
 
 void HolonomicModel::input(Pose2D vel, Frame frame) {
-    if(frame == Frame_World){
-        vel.transformThis(0, 0, -pose.a + M_PI_2);
+    switch(frame){
+        case Frame_Robot:
+            vel.transformThis(0, 0, pose.a);
+            break;
+        case Frame_World:
+            break;
     }
     inputVelocity = vel;
-    inputVelocity.transformThis(0, 0, -M_PI_2); //rotate object frame in world frame
 }
 
 Pose2D HolonomicModel::translateInput(Vector2D position, Pose2D v_p) {
@@ -60,8 +63,7 @@ void HolonomicModel::updatePrediction(double dt) {
     }
 
     pose.rotateOrientation(velocity.a*dt);
-    Vector2D transformedVelocity = velocity.transform(0, 0, pose.a);
-    pose.transformThis(transformedVelocity.x*dt, transformedVelocity.y*dt, 0);
+    pose.transformThis(velocity.x*dt, velocity.y*dt, 0);
     footprint.transformto(pose);
     dilatedFootprint.transformto(pose);
 }
@@ -103,13 +105,13 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
                             break;
                     }
                     double tubeWidth = tubes.tubes[ci].width2;
-                    pointVelocity = (r/tubeWidth) * maxSpeed * speedScale;
+                    pointVelocity = (r/tubeWidth) * maxSpeed * speedScale * currentTube.velocity.length();
                 }else{
                     pointVelocity = currentTube.velocity * maxSpeed * speedScale;
                 }
                 nVelocityVector++;
                 velocityInput = velocityInput + translateInput(vertex, Pose2D(pointVelocity, 0));
-                if(debug){canvas.arrow(vertex, vertex+pointVelocity/5, Color(0,0,255), Thin);}
+                if(debug){canvas.arrow(vertex, vertex+pointVelocity, Color(0,0,255), Thin);}
                 inTube = true;
             }
         }
@@ -117,8 +119,6 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
         velocityInput = velocityInput/double(nVelocityVector);
 
         if( inTube ) {
-
-            double collisionDistance = 0;
 
             int minTubeIndex = -1, maxTubeIndex = -1;
             for(auto & vertex : boundingBox){
@@ -130,124 +130,112 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
             }
 
             vector<Line> currentSides;
-            for(int i = minTubeIndex; i <= maxTubeIndex; i++){ //Add tube sides to current sides that will be evaluated (mind the ordering left right)
+            vector<int> sideIndex;
+            for(int i = minTubeIndex; i <= maxTubeIndex; i++){ //Add tube sides to current sides that will be evaluated (mind the ordering left > right)
                 currentSides.emplace_back(tubes.tubes[i].leftSide);
                 currentSides.emplace_back(tubes.tubes[i].rightSide);
+                sideIndex.emplace_back(i);
+                sideIndex.emplace_back(i);
             }
 
-            bool leftSideBB = true;
-            int nRepulsionVector = 0;
+            double border = 0.1;
+            double collisionDistance = 0;
+            int nRepulsion = 0;
             int nCollision = 0;
-            Pose2D repulsionInput;
-            for(auto &sideBB : sidesBoundingBox){
-
-                double minDist = -1;
-                bool collision = false;
-                Line collisionLine, collisionSide;
-                for(int s = 0; s < currentSides.size(); s++){
+            Pose2D repulsionInput, collisionInput;
+            for(auto &sideBB : sidesBoundingBox) {
+                bool leftSide = true;
+                for (int s = 0; s < currentSides.size(); s++) {
                     Line &side = currentSides[s];
+                    int currentTubeIndex = sideIndex[s];
                     Line testLine = sideBB.shortestLineTo(side);
-                    if(minDist == -1 || testLine.length() <= collisionLine.length()){
-                        collisionSide = side;
-                        Vector2D sideDir = (side.p2 - testLine.p2).unit();
-                        if(s%2 == 0){sideDir.transformThis(0,0,M_PI_2);} //rightside
-                        if(s%2 == 1){sideDir.transformThis(0,0,-M_PI_2);} //leftside
-                        if(testLine.length() == 0){
-                            collision = true;
-                            collisionLine = Line(testLine.p1, testLine.p1 + sideDir);
-                            break;
+                    Vector2D point = testLine.p1;
+                    Vector2D pointVelocity;
+                    Vector2D currentTubeVelocity = tubes.tubes[currentTubeIndex].velocity;
+                    int Tp = tubes.tubeContainingPoint(point, currentTubeIndex);
+                    //int Cp = tubes.tubeCornerContainingPoint(point, currentTubeIndex);
+
+                    if (testLine.length() == 0) { // Intersection > Collision
+                        Line collisionLine;
+                        bool valid = false;
+                        int p1_inside = tubes.tubeContainingPoint(sideBB.p1, currentTubeIndex);
+                        int p2_inside = tubes.tubeContainingPoint(sideBB.p2, currentTubeIndex);
+                        if(p1_inside == -1){
+                            if(leftSide){collisionLine = Line(sideBB.p1, tubes.tubes[currentTubeIndex].leftSide.lineProjectionPoint(sideBB.p1));}
+                            else{collisionLine = Line(sideBB.p1, tubes.tubes[currentTubeIndex].rightSide.lineProjectionPoint(sideBB.p1));}
+                            collisionDistance += collisionLine.length();
+                            valid = true;
+                        }else if(p2_inside == -1){
+                            if(leftSide){collisionLine = Line(sideBB.p2, tubes.tubes[currentTubeIndex].leftSide.lineProjectionPoint(sideBB.p2));}
+                            else{collisionLine = Line(sideBB.p2, tubes.tubes[currentTubeIndex].rightSide.lineProjectionPoint(sideBB.p2));}
+                            collisionDistance += collisionLine.length();
+                            valid = true;
                         }else{
-                            sideDir = sideDir * testLine.length();
-                            collisionLine = Line(testLine.p1, testLine.p1 + sideDir);
-                            minDist = collisionLine.length();
+                            Vector2D cornerPoint = tubes.getCornerPoint(p1_inside); //p1 is the back in both cases
+                            if(cornerPoint.valid()){
+                                collisionLine = Line(sideBB.lineProjectionPoint(cornerPoint), cornerPoint);
+                                collisionDistance += collisionLine.length()/2; //add half because this is valid 2 times
+                                valid = true;
+                            }
                         }
-                    }
-                }
-
-                Vector2D repulsion = (collisionLine.p1 - collisionLine.p2);
-                bool inside = false;
-                for(int i = minTubeIndex; i <= maxTubeIndex; i++){ //Determine if the point closest to the side of the tube is inside the tube
-                    inside = tubes.tubes[i].connectedShape.polygonContainsPoint(collisionLine.p1);
-                    if(inside) break;
-                }
-
-                Vector2D pointVelocity, point;
-                if(collision || !inside){ //Create a vector which pushes the Vertex which is outside the tube back
-                    Vector2D vertex1 = sideBB.p1;
-                    Vector2D vertex2 = sideBB.p2;
-                    bool inTube1 = tubes.tubeContainingPoint(vertex1, minTubeIndex) != -1;
-                    bool inTube2 = tubes.tubeContainingPoint(vertex2, minTubeIndex) != -1;
-                    double dist = 0;
-                    Vector2D point2;
-                    if(inTube1 && !inTube2){
-                        point = vertex2;
-                        point2 = collisionSide.lineProjectionPoint(point);
-                    }else if(!inTube1 && inTube2){
-                        point = vertex1;
-                        point2 = collisionSide.lineProjectionPoint(point);
-                    }else if(inTube1 && inTube2){
-                        point = sideBB.lineProjectionPointConstrained(collisionSide.p2);
-                        repulsion = Vector2D(1,0);
-                        if(leftSideBB) repulsion.transformThis(0, 0, pose.a + M_PI_2);
-                        if(!leftSideBB) repulsion.transformThis(0, 0, pose.a - M_PI_2);
-                        point2 = collisionSide.p2;
-                    }else{
-                        point = (vertex1 + vertex2)/2;
-                        point2 = collisionSide.lineProjectionPoint(point);
-                    }
-                    dist = point.distance(point2);
-                    pointVelocity = repulsion.unit() * maxSpeed * speedScale;
-                    collisionDistance = collisionDistance + dist;
-                    nCollision++;
-
-                    if(debug){canvas.point(collisionLine.p1, Color(255, 0, 100), Thick);}
-                    if(debug){canvas.line(collisionSide.p1, collisionSide.p2, Color(0,0,255), Thick);}
-                    if(debug){canvas.line(point, point2, Color(255,255,255), Thin);}
-                    if(debug){canvas.arrow(point, point+pointVelocity/5, Color(255,0,50), Thin);}
-                }
-
-                else if(inside) {
-                    double dist = (0.2 - repulsion.length());
-                    if (dist < 0) { dist = 0; }
-
-                    int ci = tubes.tubeCornerContainingPoint(collisionLine.p1, minTubeIndex);
-                    if(ci != -1){
-                        Vector2D r = tubes.getCornerPoint(ci) - collisionLine.p1;
-                        switch(tubes.getCornerSide(ci)){
-                            case Corner_Left:
-                                r.transformThis(0,0,-M_PI_2);
-                                break;
-                            case Corner_Right:
-                                r.transformThis(0,0,M_PI_2);
-                                break;
-                            case Corner_None:
-                                break;
+                        if(valid){
+                            point = collisionLine.p1;
+                            pointVelocity = (collisionLine.p2 - collisionLine.p1).unit() * maxSpeed * speedScale; // Not multiplied with tube velocity
+                            collisionInput = collisionInput + translateInput(point, Pose2D(pointVelocity, 0));
+                            nCollision++;
+                            if (debug) { canvas.point(point, Color(255, 0, 0), Thin); }
+                            if (debug) { canvas.arrow(point, point+pointVelocity, Color(255, 0, 0), Thin); }
                         }
-                        double tubeWidth = tubes.tubes[ci].width2;
-                        pointVelocity = (r/tubeWidth) * maxSpeed * speedScale * (dist);
-                        point = collisionLine.p1;
-                    }else {
-                        int ti = tubes.tubeContainingPoint(collisionLine.p1, minTubeIndex);
-                        point = collisionLine.p1;
-                        pointVelocity = repulsion.unit() * maxSpeed * speedScale * (dist);
-                        pointVelocity = pointVelocity + tubes.tubes[ti].velocity.unit() * maxSpeed * speedScale * (dist);
+//                        pointVelocity = (side.p2 - testLine.p1).unit();
+//                        if (leftSide) { pointVelocity.transformThis(0, 0, -M_PI_2); } //leftside
+//                        if (!leftSide) { pointVelocity.transformThis(0, 0, M_PI_2); } //rightside
+//                        pointVelocity = pointVelocity.unit() * maxSpeed * speedScale * currentTubeVelocity.length();
+
+                    }else if(Tp == -1){ //Fully outside > Collision
+                        collisionDistance += testLine.length();
+                        pointVelocity = (testLine.p2 - testLine.p1).unit() * maxSpeed * speedScale; // Not multiplied with tube velocity
+                        collisionInput = collisionInput + translateInput(point, Pose2D(pointVelocity, 0));
+                        nCollision++;
+                        if (debug) { canvas.arrow(point, point+pointVelocity, Color(255, 0, 255), Thin); }
+
+                    }else if (testLine.length() <= border) { //Inside > repulsion
+//                        if(Cp != -1){
+//                            Vector2D r = (tubes.getCornerPoint(Cp) - point);
+//                            switch(tubes.getCornerSide(Cp)){
+//                                case Corner_Left:
+//                                    r.transformThis(0,0,-M_PI_2);
+//                                    break;
+//                                case Corner_Right:
+//                                    r.transformThis(0,0,M_PI_2);
+//                                    break;
+//                                case Corner_None:
+//                                    break;
+//                            }
+//                            double tubeWidth = tubes.tubes[Cp].width2;
+//                            currentTubeVelocity = (r/tubeWidth) * maxSpeed * speedScale * currentTubeVelocity.length();
+//                        }
+                        double p = (border - testLine.length())/border; //1 when collision 0 when at the border
+                        double p2 = p*p;
+                        Vector2D repellantVelocity = (testLine.p1 - testLine.p2).unit() * maxSpeed * speedScale; // Not multiplied with tube velocity
+                        pointVelocity = ((repellantVelocity*p2 + currentTubeVelocity*(1-p2)))*p;
+                        repulsionInput = repulsionInput + translateInput(point, Pose2D(pointVelocity, 0));
+                        nRepulsion++;
+                        if (debug) { canvas.arrow(point, point+pointVelocity, Color(0, 255, 0), Thin); }
                     }
-
-                    if(debug){canvas.arrow(point, point+pointVelocity, Color(0,255,50), Thin);}
+                    leftSide = !leftSide;
                 }
-
-                repulsionInput = repulsionInput + translateInput(point, Pose2D(pointVelocity, 0));
-                nRepulsionVector++;
-                leftSideBB = false;
             }
 
-            repulsionInput = repulsionInput/double(nRepulsionVector);
-            Pose2D totalInput = velocityInput + repulsionInput;
+            if(nRepulsion > 0){repulsionInput = repulsionInput/double(nRepulsion);}
+            if(nCollision > 0){collisionInput = collisionInput/double(nCollision);}
+            Pose2D correctionInput = (repulsionInput + collisionInput)/2;
+            Pose2D totalInput = velocityInput + (correctionInput + predictionBiasVelocity)/2;
+            predictionBiasVelocity = correctionInput;
             input(totalInput, Frame_World);
 
-            if(collisionDistance > footprintClearance){
+            if(collisionDistance > footprintClearance){ // TODO calculate collision distance
                 status = Status_Collision;
-            }else if(currentTubeIndex == tubes.tubes.size()-1){
+            }else if(tubes.tubes[tubes.tubes.size()-1].connectedShape.polygonContainsPoint(pose)){
                 status = Status_Done;
             }else if(totalInput.length()<0.01 && abs(totalInput.a) < 0.01){ //TODO Determine when stuck
                 status = Status_Stuck;
@@ -262,9 +250,11 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
 void HolonomicModel::show(Visualization& canvas, Color c, int drawstyle) {
     canvas.polygon(footprint.vertices, c, drawstyle);
     canvas.polygon(dilatedFootprint.vertices, Color(255,0,0), Thin);
+    canvas.arrow(pose, velocity.toVector()*1+pose, Color(0,0,255), Thin);
+    //canvas.arrow(pose, inputVelocity.toVector()*1+pose, Color(255,0,255), Thin);
+    //canvas.arrow(pose, predictionBiasVelocity.toVector()*1+pose, Color(0,255,0), Thin);
 
-    Vector2D dir = velocity.toVector();
-    dir = dir.transform(0, 0, pose.a).unit() * 0.5;
-    dir.transformThis(pose.x, pose.y, 0);
-    canvas.arrow(pose, dir, c, Thin);
+    Vector2D offset = Vector2D(1,0).transform(0,0,pose.a).transform(pose.x,pose.y,0);
+    Vector2D dir = Vector2D(0,1).transform(0,0,pose.a)*velocity.a;
+    canvas.arrow(offset, offset+dir, Color(0,0,255), Thin);
 }

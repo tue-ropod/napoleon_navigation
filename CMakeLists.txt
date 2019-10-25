@@ -93,9 +93,16 @@ SET(napoleon_includes
         include/Visualization/VisualizationRviz.cpp
         include/Visualization/VisualizationRviz.h
         include/Visualization/VisualizationOpenCV.cpp
-        include/Visualization/VisualizationOpenCV.h)
+        include/Visualization/VisualizationOpenCV.h
+        include/Communication/Communication.cpp
+        include/Communication/Communication.h
+        include/Obstacles/Obstacles.cpp
+        include/Obstacles/Obstacles.h)
 
 add_executable(napoleon_navigation NapoleonNavigation.cpp ${napoleon_includes} )
-add_executable(napoleon_navigation_standalone NapoleonNavigationStandalone.cpp ${napoleon_includes} )
 target_link_libraries(napoleon_navigation ${catkin_LIBRARIES} ${OpenCV_LIBS})
 add_dependencies(napoleon_navigation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(napoleon_navigation_standalone NapoleonNavigationStandalone.cpp ${napoleon_includes} )
+target_link_libraries(napoleon_navigation_standalone ${catkin_LIBRARIES} ${OpenCV_LIBS})
+add_dependencies(napoleon_navigation_standalone ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

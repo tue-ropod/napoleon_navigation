@@ -4,39 +4,44 @@
 
 #include "VisualizationOpenCV.h"
 
-Visualization::Visualization(int width_, int height_, int pixelsPerMeter_){
+VisualizationOpenCV::VisualizationOpenCV(int width_, int height_, int pixelsPerMeter_){
     pixelsPerMeter = pixelsPerMeter_;
     width = width_;
     height = height_;
     emptycanvas();
 }
 
-void Visualization::setorigin(const Pose2D& origin_){
+void VisualizationOpenCV::setorigin(const Pose2D& origin_){
     origin = origin_;
 }
 
-Pose2D Visualization::getWindowMidOffset() {
+Pose2D VisualizationOpenCV::getWindowMidOffset() {
     return {(width/(2.0*pixelsPerMeter)), (height/(2.0*pixelsPerMeter)), 0};
 }
 
-void Visualization::visualize(){
+void VisualizationOpenCV::visualize(){
     cv::imshow("Visualization", canvas);
-    cv::waitKey(3);
+    cv::waitKey(1);
 }
 
-void Visualization::emptycanvas(){
+void VisualizationOpenCV::emptycanvas(){
     cv::Mat newcanvas(height, width, CV_8UC4, cv::Scalar(80,80,80));
     canvas = newcanvas;
+    //staticCanvas = newcanvas;
 }
 
-cv::Point Visualization::worldToCanvas(const Vector2D& p){
+//void VisualizationOpenCV::removeDynamicElements(){
+//    canvas = staticCanvas;
+//}
+
+cv::Point VisualizationOpenCV::worldToCanvas(const Vector2D& p){
     Vector2D pt = p;
     pt.transformThis(0, 0, -origin.a);
     pt.transformThis(-origin.x, -origin.y, 0);
     return cv::Point(pt.x * pixelsPerMeter, -pt.y * pixelsPerMeter) + cv::Point(0,canvas.rows);
 }
 
-void Visualization::point(const Vector2D &p, const Color &c, unsigned int thickness){
+void VisualizationOpenCV::point(const Vector2D &p, const Color &c, unsigned int thickness){
     if(c.alpha != 255){
         cv::Mat overlay;
         canvas.copyTo(overlay);
@@ -47,7 +52,7 @@ void Visualization::point(const Vector2D &p, const Color &c, unsigned int thickn
     }
 }
 
-void Visualization::line(const Vector2D &p1, const Vector2D &p2, const Color &c, unsigned int thickness) {
+void VisualizationOpenCV::line(const Vector2D &p1, const Vector2D &p2, const Color &c, unsigned int thickness) {
     if(c.alpha != 255){
         cv::Mat overlay;
         canvas.copyTo(overlay);
@@ -58,7 +63,7 @@ void Visualization::line(const Vector2D &p1, const Vector2D &p2, const Color &c,
     }
 }
 
-void Visualization::arrow(const Vector2D &p1, const Vector2D &p2, const Color &c, unsigned int thickness) {
+void VisualizationOpenCV::arrow(const Vector2D &p1, const Vector2D &p2, const Color &c, unsigned int thickness) {
     double length = p1.distance(p2);
     Vector2D tip = p1;
     tip = tip - p2;
@@ -82,7 +87,7 @@ void Visualization::arrow(const Vector2D &p1, const Vector2D &p2, const Color &c
     }
 }
 
-void Visualization::circle(const Vector2D &p, const double radius, const Color &c, int drawstyle) {
+void VisualizationOpenCV::circle(const Vector2D &p, const double radius, const Color &c, int drawstyle) {
     if(c.alpha != 255){
         cv::Mat overlay;
         canvas.copyTo(overlay);
@@ -93,7 +98,7 @@ void Visualization::circle(const Vector2D &p, const double radius, const Color &
     }
 }
 
-void Visualization::rectangle(const Vector2D &p1, const Vector2D &p2, const Color &c, int drawstyle) {
+void VisualizationOpenCV::rectangle(const Vector2D &p1, const Vector2D &p2, const Color &c, int drawstyle) {
     if(c.alpha != 255){
         cv::Mat overlay;
         canvas.copyTo(overlay);
@@ -104,7 +109,7 @@ void Visualization::rectangle(const Vector2D &p1, const Vector2D &p2, const Colo
     }
 }
 
-void Visualization::polygon(const vector<Vector2D> &points, const Color &c, int drawstyle) {
+void VisualizationOpenCV::polygon(const vector<Vector2D> &points, const Color &c, int drawstyle) {
     const int npts = points.size();
     if(drawstyle == Filled){
         cv::Point pts [npts];

@@ -3,7 +3,7 @@
 #include <Definitions/Polygon.h>
 #include <Model/HolonomicModel.h>
 #include <Model/BicycleModel.h>
-#include <Obstacles/Obstacle.h>
+#include <Obstacles/Obstacles.h>
 #include <LoopRate/LoopRate.h>
 #include <Tube/Tube.h>
 #include <Tube/Tubes.h>
@@ -18,19 +18,23 @@ typedef Vector2D Vec;
 #define dynamicobstacle(poly, pose) Obstacle(Polygon(poly), pose, Dynamic)
 
 int main() {
-    //canvas.setorigin(Pose2D(-6,-6,0));
+    double F_loop = 30;
+    double F_planner = 10;
 
-    Polygon footprint({Vec(0,0), Vec(2,0), Vec(2, 0.2), Vec(2.3,0.2), Vec(2.3,0.8), Vec(2,0.8), Vec(2,1), Vec(0,1)}, Closed, true, Pose2D(1,0.5,0));
-    //Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.6), Vec(0,0.6)}, Closed, true, Pose2D(0.325,0.3,0));
-    HolonomicModel hmodel(Pose2D(-2,-1,M_PI_2), footprint, 6, 8, 1);
+    //canvas.setorigin(Pose2D(-10,-8,0));
 
-    vector<Obstacle> obstacles;
-    obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1.5,1,0)));
-    //obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1,10,0)));
-    //obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(9,9,0)));
-    //obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(9,4,0)));
+    //Polygon footprint({Vec(0,0), Vec(2,0), Vec(2, 0.2), Vec(2.3,0.2), Vec(2.3,0.8), Vec(2,0.8), Vec(2,1), Vec(0,1)}, Closed, true, Pose2D(1,0.5,0));
+    Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.6), Vec(0,0.6)}, Closed, true, Pose2D(0.325,0.3,0));
+    HolonomicModel hmodel(Pose2D(-3.4,-4,M_PI_2), footprint, 1, 1, 1);
 
-    Tubes tubes(Tube(Vec(-3,-4), 2.5, Vec(-2,0), 2.5, 1));
+    Obstacles obstacles;
+    obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1.5,1,0)));
+    //obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1,10,0)));
+    //obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(9,9,0)));
+    //obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(9,4,0)));
+
+    Tubes tubes(Tube(Vec(-3,-6), 2, Vec(-3,-2), 2, 1));
+    tubes.addPoint(Vec(-3,2), 2, 1);
     tubes.addPoint(Vec(-3,8), 2, 1);
     tubes.addPoint(Vec(8,9), 2, 1);
     tubes.addPoint(Vec(8,3), 1.7, 0.6);
@@ -38,15 +42,18 @@ int main() {
     tubes.addPoint(Vec(2,-4), 1.7, 0.4);
     tubes.addPoint(Vec(11,-4), 2, 0.6);
     tubes.addPoint(Vec(11,12), 1.6, 1);
-    tubes.addPoint(Vec(-2,12), 1.3, 0.5);
+    tubes.addPoint(Vec(0,12), 1.3, 0.5);
     tubes.addPoint(Vec(-3,12), 1.3, 0);
+    tubes.addPoint(Vec(-6,12), 4, 0);
 
-    vector<Obstacle> walls;
-    walls.emplace_back(wall(Vec(-1,-1), Vec(-1,9)));
+    Obstacles walls;
+    walls.obstacles.emplace_back(wall(Vec(-1,-1), Vec(-1,9)));
 
-    LoopRate r(50);
+    LoopRate r(F_loop);
 
-    while(true){
+    FollowStatus realStatus = Status_Ok;
+
+    while(realStatus != Status_Done){
         canvas.setorigin(Pose2D(hmodel.pose.x, hmodel.pose.y, 0)-canvas.getWindowMidOffset());
 
         canvas.emptycanvas();
@@ -54,38 +61,42 @@ int main() {
         canvas.arrow(Vec(0,0),Vec(1,0),Color(0,0,0),Thin);
         canvas.arrow(Vec(0,0),Vec(0,1),Color(0,0,0),Thin);
 
+
+        Vector2D p1 = hmodel.dilatedFootprint.boundingBoxRotated(hmodel.pose.a)[1];
+        Pose2D v1 = Pose2D(-0.5, 0, 0);
+        Pose2D i1 = hmodel.translateInput(p1, v1);
+        canvas.arrow(p1, p1+v1, Color(0,0,255),Thin);
+        hmodel.input(i1, Frame_World);
+
         //obstacles[0].movement = Pose2D(0.2*cos((M_PI*2.0*r.elapsedTime)/(1000*5)), 0.3*cos((M_PI*2.0*r.elapsedTime)/(1000*7)), 0.01);
 
-        HolonomicModel hmodelCopy = hmodel;
-        FollowStatus status = hmodelCopy.predict(20, 2, 1, r.periodSeconds, hmodel, tubes, canvas); //nScaling | predictionTime | minDistance
-        hmodel.copySettings(hmodelCopy);
-
-        if(status == Status_Ok || status == Status_Done) {
-            FollowStatus realStatus = hmodel.follow(tubes, canvas, true);
-            tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, obstacles, hmodel, DrivingSide_Right, canvas);
-            if(realStatus == Status_Done){
-                cout << "Status Done" << endl;
-                cout << "Exit Simulation" << endl;
-                break;
-            }
-        }else{
-            hmodel.input(Pose2D(0,0,0), Frame_Robot);
-            switch (status){
-                case Status_ToClose: {cout << "Status To Close" << endl; break;}
-                case Status_Stuck: {cout << "Status Stuck" << endl; break;}
-                case Status_Error: {cout << "Status Error" << endl; break;}
-                case Status_Collision: {cout << "Status Collision" << endl; break;}
-            }
-            cout << "Exit Simulation" << endl;
-            break;
-        }
+//        HolonomicModel hmodelCopy = hmodel;
+//        FollowStatus predictionStatus = hmodelCopy.predict(10, 4, 0.3, 1/F_planner, hmodel, tubes, canvas); //nScaling | predictionTime | minDistance
+//        hmodel.copySettings(hmodelCopy);
+//
+//        if(predictionStatus == Status_Ok || predictionStatus == Status_Done) {
+//            realStatus = hmodel.follow(tubes, canvas, true);
+//            tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, obstacles, hmodel, DrivingSide_Right, canvas);
+//            switch (realStatus){
+//                case Status_ToClose: {cout << "Status To Close" << endl; break;}
+//                case Status_Stuck: {cout << "Status Stuck" << endl; break;}
+//                case Status_Error: {cout << "Status Error" << endl; break;}
+//                case Status_Collision: {cout << "Status Collision" << endl; break;}
+//                case Status_Done: {cout << "Status Done" << endl; break;}
+//            }
+//        }else{
+//            hmodel.input(Pose2D(0,0,0), Frame_Robot);
+//            switch (predictionStatus){
+//                case Status_ToClose: {cout << "Prediction status To Close" << endl; break;}
+//                case Status_Stuck: {cout << "Prediction status Stuck" << endl; break;}
+//                case Status_Error: {cout << "Prediction status Error" << endl; break;}
+//                case Status_Collision: {cout << "Prediction status Collision" << endl; break;}
+//            }
+//        }
 
         tubes.showSides(canvas);
         hmodel.show(canvas, Color(0,0,0), Thin);
-
-        for(auto & obstacle : obstacles){
-            obstacle.show(canvas, Color(200,200,200), Filled);
-        }
+        obstacles.show(canvas, Color(100,100,100), Filled);
 
         canvas.visualize();
 

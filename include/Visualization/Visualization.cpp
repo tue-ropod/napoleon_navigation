@@ -6,6 +6,17 @@
 
 Visualization::Visualization(){}
 
+int Visualization::getId(){
+    int id = idCounter;
+    idCounter++;
+    return id;
+}
+
+void Visualization::resetId(){
+    idCounterPrev = idCounter;
+    idCounter = 0;
+}
+
 void Visualization::point(const Vector2D &p, const Color &c, unsigned int thickness){}
 
 void Visualization::line(const Vector2D &p1, const Vector2D &p2, const Color &c, unsigned int thickness) {}

@@ -22,71 +22,71 @@ struct Vector2D{
     }
     Vector2D operator+= (const Vector2D& other)const{
         Vector2D v(0,0);
-        v.x = this->x + other.x;
-        v.y = this->y + other.y;
+        v.x = x + other.x;
+        v.y = y + other.y;
         return v;
     }
     Vector2D operator-= (const Vector2D& other)const{
         Vector2D v(0,0);
-        v.x = this->x - other.x;
-        v.y = this->y - other.y;
+        v.x = x - other.x;
+        v.y = y - other.y;
         return v;
     }
     Vector2D operator+ (const Vector2D& other)const{
         Vector2D v(0,0);
-        v.x = this->x + other.x;
-        v.y = this->y + other.y;
+        v.x = x + other.x;
+        v.y = y + other.y;
         return v;
     }
     Vector2D operator- (const Vector2D& other)const{
         Vector2D v(0,0);
-        v.x = this->x - other.x;
-        v.y = this->y - other.y;
+        v.x = x - other.x;
+        v.y = y - other.y;
         return v;
     }
 
     Vector2D operator/ (double s)const{
         Vector2D v(0,0);
-        v.x = this->x/s;
-        v.y = this->y/s;
+        v.x = x/s;
+        v.y = y/s;
         return v;
     }
 
     Vector2D operator* (double s)const{
         Vector2D v(0,0);
-        v.x = this->x*s;
-        v.y = this->y*s;
+        v.x = x*s;
+        v.y = y*s;
         return v;
     }
     bool operator== (const Vector2D& other)const{
-        return (this->x == other.x && this->y == other.y);
+        return (x == other.x && y == other.y);
     }
     double distance(const Vector2D &other)const{
-        return sqrt(pow((this->x-other.x),2) + pow((this->y-other.y),2));
+        return sqrt(pow((x-other.x),2) + pow((y-other.y),2));
     }
     double length()const{
-        Vector2D v(this->x,this->y);
+        Vector2D v(x,y);
         return sqrt(v.dot(v));
     }
     double angle()const{
-        return atan2(this->y, this->x);
+        return atan2(y, x);
     }
     double dot(const Vector2D &other)const{
-        return ((this->x * other.x) + (this->y * other.y));
+        return ((x * other.x) + (y * other.y));
     }
     void unitThis(){
-        Vector2D v(this->x,this->y);
+        Vector2D v(x,y);
         if(v.length() != 0){
             v = v/v.length();
         }else{
             v.x = 0;
             v.y = 0;
         }
-        this->x = v.x;
-        this->y = v.y;
+        x = v.x;
+        y = v.y;
     }
     Vector2D unit()const{
-        Vector2D v(this->x,this->y);
+        Vector2D v(x,y);
         if(v.length() != 0){
             v = v/v.length();
         }else{
@@ -96,28 +96,31 @@ struct Vector2D{
         return v;
     }
     void transformThis(double x_, double y_, double a_){
-        double xtemp = this->x;
-        double ytemp = this->y;
+        double xtemp = x;
+        double ytemp = y;
         this->x = xtemp*cos(a_) - ytemp*sin(a_) + x_;
         this->y = xtemp*sin(a_) + ytemp*cos(a_) + y_;
     }
     Vector2D transform(double x_, double y_, double a_)const{
         Vector2D v;
-        v.x = this->x*cos(a_) - this->y*sin(a_) + x_;
-        v.y = this->x*sin(a_) + this->y*cos(a_) + y_;
+        v.x = x*cos(a_) - y*sin(a_) + x_;
+        v.y = x*sin(a_) + y*cos(a_) + y_;
         return v;
     }
     void scaleThis(double x_, double y_){
-        double xtemp = this->x;
-        double ytemp = this->y;
+        double xtemp = x;
+        double ytemp = y;
         this->x = xtemp * x_;
         this->y = ytemp * y_;
     }
     Vector2D scale(double x_, double y_)const{
         Vector2D v;
-        v.x = this->x * x_;
-        v.y = this->y * y_;
+        v.x = x * x_;
+        v.y = y * y_;
         return v;
+    }
+    bool valid()const{
+        return !(isnan(x) || isnan(y) || isinf(x) || isinf(y));
     }
 };
 

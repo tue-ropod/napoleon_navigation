@@ -27,7 +27,7 @@ void Tube::buildTube(Vector2D p1_, double width1_, Vector2D p2_, double width2_,
     p1 = p1_;
     width1 = width1_;
     p2 = p2_;
-    width2=  width2_;
+    width2 = width2_;
 
     speed = speed > 1 ? 1 : speed;
     speed = speed < 0 ? 0 : speed;
@@ -37,17 +37,42 @@ void Tube::buildTube(Vector2D p1_, double width1_, Vector2D p2_, double width2_,
     dir = dir.length() == 0 ? Vector2D(1,0) : dir;
     velocity = dir*speed;
 
-    dir.transformThis(0, 0, M_PI_2 + M_PI_4);
-    v1 = p1 + dir * (width1 / 2) * sqrt(2);
-    dir.transformThis(0, 0, M_PI_2);
-    v2 = p1 + dir * (width1 / 2) * sqrt(2);
+    double r1 = width1/2, r2 = width2/2;
+    double alpha = atan(abs(r1-r2)/p1.distance(p2));
+    if(r1 < r2){alpha *= -1;}
+    double d = tan(alpha)*r1;
+    double l = sqrt((r1*r1) + ((r1+d)*(r1+d)));
+    double beta = atan(r1 / (r1+d));
+
+    dir.transformThis(0, 0, M_PI_2 + beta);
+    v1 = p1 + dir*l;
+    dir.transformThis(0, 0, M_PI - 2*beta);
+    v2 = p1 + dir*l;
+
+    alpha = atan(abs(r1-r2)/p1.distance(p2));
+    if(r2 < r1){alpha *= -1;}
+    d = tan(alpha)*r2;
+    l = sqrt((r2*r2) + ((r2+d)*(r2+d)));
+    beta = atan(r2 / (r2+d));
 
     dir = (p1 - p2).unit();
     dir = dir.length() == 0 ? Vector2D(-1,0) : dir;
-    dir.transformThis(0, 0, M_PI_2 + M_PI_4);
-    v3 = p2 + dir * (width2 / 2) * sqrt(2);
-    dir.transformThis(0, 0, M_PI_2);
-    v4 = p2 + dir * (width2 / 2) * sqrt(2);
+    dir.transformThis(0, 0, M_PI_2 + beta);
+    v3 = p2 + dir*l;
+    dir.transformThis(0, 0, M_PI - 2*beta);
+    v4 = p2 + dir*l;
+
+//    dir.transformThis(0, 0, M_PI_2 + M_PI_4);
+//    v1 = p1 + dir * (width1 / 2) * sqrt(2);
+//    dir.transformThis(0, 0, M_PI_2);
+//    v2 = p1 + dir * (width1 / 2) * sqrt(2);
+//
+//    dir = (p1 - p2).unit();
+//    dir = dir.length() == 0 ? Vector2D(-1,0) : dir;
+//    dir.transformThis(0, 0, M_PI_2 + M_PI_4);
+//    v3 = p2 + dir * (width2 / 2) * sqrt(2);
+//    dir.transformThis(0, 0, M_PI_2);
+//    v4 = p2 + dir * (width2 / 2) * sqrt(2);
 
     shape = Polygon({v1,v2,v3,v4});
     connectedShape = Polygon({v1,v2,v3,v4});
@@ -91,6 +116,8 @@ void Tube::setSides(Place place, Vector2D leftPoint, Vector2D rightPoint){
 
 void Tube::showOriginalTube(Visualization& canvas, Color c, int drawstyle){
     canvas.polygon(shape.vertices, c, drawstyle);
+    canvas.circle(p1, width1/2, c, Thin);
+    canvas.circle(p2, width2/2, c, Thin);
 }
 
 void Tube::showTube(Visualization& canvas, Color c, int drawstyle) {

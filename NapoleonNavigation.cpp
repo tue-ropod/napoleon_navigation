@@ -1,6 +1,3 @@
-#include <nav_msgs/Odometry.h>
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <ropod_ros_msgs/RoutePlannerAction.h>
 #include <ros/ros.h>
 
 #include <iostream>
@@ -8,14 +5,14 @@
 #include <Definitions/Polygon.h>
 #include <Model/HolonomicModel.h>
 #include <Model/BicycleModel.h>
-#include <Obstacles/Obstacle.h>
+#include <Obstacles/Obstacles.h>
 #include <Tube/Tube.h>
 #include <Tube/Tubes.h>
 #include <cmath>
 #include <vector>
 #include <Visualization/VisualizationOpenCV.h>
-
-VisualizationOpenCV canvas(1000,1000,50);
+#include <Visualization/VisualizationRviz.h>
+#include <Communication/Communication.h>
 
 typedef Vector2D Vec;
 
@@ -23,93 +20,103 @@ typedef Vector2D Vec;
 #define staticobstacle(poly, middle, pose) Obstacle(Polygon(poly, middle, Closed), pose, Static)
 #define dynamicobstacle(poly, pose) Obstacle(Polygon(poly), pose, Dynamic)
 
-ropod_ros_msgs::RoutePlannerResult route;
-bool newRoute = false;
-int F = 30;
-
-void getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr& routeData){
-    route = *routeData;
-    ROS_INFO("new debug plan received");
-    newRoute = true;
-}
+double F_loop = 30;
+double F_prediction = 10;
 
 int main(int argc, char** argv) {
     cout << "Main loop started" << endl;
 
-    //Polygon footprint({Vec(0,0), Vec(2,0), Vec(2, 0.2), Vec(2.3,0.2), Vec(2.3,0.8), Vec(2,0.8), Vec(2,1), Vec(0,1)}, Closed, true, Pose2D(1,0.5,0));
-    Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.6), Vec(0,0.6)}, Closed, true, Pose2D(0.325,0.3,0));
-    HolonomicModel hmodel(Pose2D(-2,-1,M_PI_2), footprint, 0.5, 3, 0.25);
+    Polygon footprint({Vec(0,0), Vec(2,0), Vec(2, 0.2), Vec(2.3,0.2), Vec(2.3,0.8), Vec(2,0.8), Vec(2,1), Vec(0,1)}, Closed, true, Pose2D(1,0.5,0));
+    //Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.6), Vec(0,0.6)}, Closed, true, Pose2D(0.325,0.3,0));
+    HolonomicModel hmodel(Pose2D(-2,-1,M_PI_2), footprint, 1, 1, 1);
 
-    vector<Obstacle> obstacles;
-    //obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1.5,1,0)));
-
-
-    Tubes tubes(Tube(Vec(59.7,32.3), 2.5, Vec(59.7,60), 2.5, 1));
-    tubes.addPoint(Vec(30,60), 2.5, 1);
-
-    vector<Obstacle> walls;
-    walls.emplace_back(wall(Vec(-1,-1), Vec(-1,9)));
-
+    Tubes tubes;
+//    Tubes tubes(Tube(Vec(60,32), 2, Vec(2,34), 2, 1));
+//    tubes.addPoint(Vec(0,4), 2, 1);
+//    tubes.addPoint(Vec(0,3), 2, 1);
 
     ros::init(argc, argv, "route_navigation");
 
     ros::NodeHandle nroshndl("~");
-    ros::Rate rate(F);
+    ros::Rate rate(F_loop);
 
-    hmodel.subscribe(nroshndl);
+    VisualizationRviz canvas(nroshndl);
+    Communication comm(nroshndl);
 
-    //ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
-    ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod/debug_route_plan", 1, getDebugRoutePlanCallback);
-
-    while(!newRoute){
+    bool startNavigation = false;
+    while(!startNavigation){
         if(ros::ok()) {
             ros::spinOnce();
+            if(comm.initialized) {
+                hmodel.update(1/F_loop, comm);
+                hmodel.show(canvas, Color(0, 0, 0), Thin);
+                hmodel.showCommunicationInput(canvas, Color(0, 0, 0), Thin, comm);
+                comm.obstacles.show(canvas, Color(255,0,0), Thick);
+
+//                Vector2D p1 = hmodel.dilatedFootprint.boundingBoxRotated(hmodel.pose.a)[1];
+//                Pose2D v1 = Pose2D(-0.5, 0.05, 0);
+//                Pose2D i1 = hmodel.translateInput(p1, v1);
+//                canvas.arrow(p1, p1+v1, Color(0,0,255),Thin);
+//                hmodel.input(i1, Frame_World);
+
+                tubes.showSides(canvas);
+                canvas.resetId();
+                if(comm.newPlan()) {
+                    tubes.convertRoute(comm.route, hmodel, canvas);
+                    startNavigation = true;
+                }
+            }
         }
+        hmodel.update(1/F_loop, comm);
         rate.sleep();
     }
 
-    while(nroshndl.ok()){
-        canvas.setorigin(Pose2D(hmodel.pose.x, hmodel.pose.y, 0)-canvas.getWindowMidOffset());
-        canvas.emptycanvas();
+    FollowStatus realStatus = Status_Ok;
+
+    while(nroshndl.ok() && ros::ok() && realStatus != Status_Done){
+
+        canvas.checkId();
+        canvas.resetId();
+
         canvas.arrow(Vec(0,0),Vec(1,0),Color(0,0,0),Thin);
         canvas.arrow(Vec(0,0),Vec(0,1),Color(0,0,0),Thin);
 
         HolonomicModel hmodelCopy = hmodel;
-        FollowStatus status = hmodelCopy.predict(20, 2, 1, 1.0/F, hmodel, tubes, canvas); //nScaling | predictionTime | minDistance
+        FollowStatus predictionStatus = hmodelCopy.predict(10, 4, 0.3, 1/F_prediction, hmodel, tubes, canvas); //nScaling | predictionTime | minDistance
         hmodel.copySettings(hmodelCopy);
 
         //status = Status_Ok;
-        if(status == Status_Ok || status == Status_Done) {
-            FollowStatus realStatus = hmodel.follow(tubes, canvas, true);
-            tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, obstacles, hmodel, DrivingSide_Right, canvas);
-            if(realStatus == Status_Done){
-                cout << "Status Done" << endl;
-                cout << "Exit Simulation" << endl;
-                break;
-            }
-        }else{
-            hmodel.input(Pose2D(0,0,0), Frame_Robot);
-            switch (status){
+
+        if(predictionStatus == Status_Ok || predictionStatus == Status_Done) {
+            realStatus = hmodel.follow(tubes, canvas, false);
+            tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, comm.obstacles, hmodel, DrivingSide_Right, canvas);
+            switch (realStatus){
                 case Status_ToClose: {cout << "Status To Close" << endl; break;}
                 case Status_Stuck: {cout << "Status Stuck" << endl; break;}
                 case Status_Error: {cout << "Status Error" << endl; break;}
                 case Status_Collision: {cout << "Status Collision" << endl; break;}
+                case Status_Done: {cout << "Status Done" << endl; break;}
             }
-            cout << "Exit Simulation" << endl;
-            break;
+        }else{
+            hmodel.input(Pose2D(0,0,0), Frame_Robot);
+            switch (predictionStatus){
+                case Status_ToClose: {cout << "Prediction status To Close" << endl; break;}
+                case Status_Stuck: {cout << "Prediction status Stuck" << endl; break;}
+                case Status_Error: {cout << "Prediction status Error" << endl; break;}
+                case Status_Collision: {cout << "Prediction status Collision" << endl; break;}
+            }
         }
 
         tubes.showSides(canvas);
         hmodel.show(canvas, Color(0,0,0), Thin);
+        comm.obstacles.show(canvas, Color(255,0,0), Thick);
 
-        canvas.visualize();
-
-        hmodel.update(1.0/F);
-        //hmodel.setSpeed(Pose2D(0,0.1,0));
+        hmodel.update(1/F_loop, comm);
 
         ros::spinOnce();
         rate.sleep();
     }
+    ros::shutdown();
     return 0;
 }
 
