@@ -5,7 +5,7 @@
 #include "VisualizationRviz.h"
 
 VisualizationRviz::VisualizationRviz(ros::NodeHandle nroshndl){
-    visualization_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_navigation", 1000, false);
+    visualization_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_navigation", 10, false);
 
     baseMarker.header.frame_id = "map";
     baseMarker.ns = "napoleon";
@@ -22,7 +22,7 @@ void VisualizationRviz::removeAll(){
 }
 
 void VisualizationRviz::checkId(){
-    if(idCounter < idCounterPrev){
+    if(idCounter < idCounterPrev || idCounter > idCounterPrev){
         removeAll();
     }
 }

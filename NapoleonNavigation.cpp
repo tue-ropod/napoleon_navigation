@@ -48,6 +48,8 @@ int main(int argc, char** argv) {
         if(ros::ok()) {
             ros::spinOnce();
             if(comm.initialized) {
+                canvas.checkId();
+                canvas.resetId();
                 hmodel.update(1/F_loop, comm);
                 hmodel.show(canvas, Color(0, 0, 0), Thin);
                 hmodel.showCommunicationInput(canvas, Color(0, 0, 0), Thin, comm);
@@ -59,12 +61,11 @@ int main(int argc, char** argv) {
 //                canvas.arrow(p1, p1+v1, Color(0,0,255),Thin);
 //                hmodel.input(i1, Frame_World);
 
-                tubes.showSides(canvas);
-                canvas.resetId();
                 if(comm.newPlan()) {
                     tubes.convertRoute(comm.route, hmodel, canvas);
                     startNavigation = true;
                 }
+                tubes.showSides(canvas);
             }
         }
         hmodel.update(1/F_loop, comm);

@@ -53,6 +53,7 @@ void Communication::getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceS
 
 void Communication::getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obstacles_msg) {
     obstacles.obstacles.clear();
+    cout << "Obstacles: " << obstacles_msg->objects.size() << endl;
     for(auto & obstacle : obstacles_msg->objects){
         double x = obstacle.pose.position.x;
         double y = obstacle.pose.position.y;
@@ -75,7 +76,6 @@ void Communication::getObstaclesCallback(const ed_gui_server::objsPosVel::ConstP
         obs.movement = Pose2D(obstacle.vel.x, obstacle.vel.y, 0);
 
         obstacles.obstacles.emplace_back(obs);
-
     }
 }
 
