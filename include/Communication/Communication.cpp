@@ -56,31 +56,31 @@ void Communication::getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceS
 }
 
 void Communication::getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obstacles_msg) {
-    obstacles.obstacles.clear();
-    cout << "Obstacles: " << obstacles_msg->objects.size() << endl;
-    for(auto & obstacle : obstacles_msg->objects){
-        double x = obstacle.pose.position.x;
-        double y = obstacle.pose.position.y;
-        double quaternion_x = obstacle.pose.orientation.x;
-        double quaternion_y = obstacle.pose.orientation.y;
-        double quaternion_z = obstacle.pose.orientation.z;
-        double quaternion_w = obstacle.pose.orientation.w;
-        double siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
-        double cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
-        double angle = atan2(siny_cosp, cosy_cosp);
-        Pose2D pose = Pose2D(x, y, angle);
-
-        Vector2D p1 = Vector2D(-obstacle.width/2, -obstacle.depth/2);
-        Vector2D p2 = Vector2D(obstacle.width/2, -obstacle.depth/2);
-        Vector2D p3 = Vector2D(obstacle.width/2, obstacle.depth/2);
-        Vector2D p4 = Vector2D(-obstacle.width/2, obstacle.depth/2);
-        Polygon footprint = Polygon({p1, p2, p3, p4}, Closed);
-
-        Obstacle obs = Obstacle(footprint, pose, Dynamic);
-        obs.movement = Pose2D(obstacle.vel.x, obstacle.vel.y, 0);
-
-        obstacles.obstacles.emplace_back(obs);
-    }
+//    obstacles.obstacles.clear();
+//    cout << "Obstacles: " << obstacles_msg->objects.size() << endl;
+//    for(auto & obstacle : obstacles_msg->objects){
+//        double x = obstacle.pose.position.x;
+//        double y = obstacle.pose.position.y;
+//        double quaternion_x = obstacle.pose.orientation.x;
+//        double quaternion_y = obstacle.pose.orientation.y;
+//        double quaternion_z = obstacle.pose.orientation.z;
+//        double quaternion_w = obstacle.pose.orientation.w;
+//        double siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
+//        double cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
+//        double angle = atan2(siny_cosp, cosy_cosp);
+//        Pose2D pose = Pose2D(x, y, angle);
+//
+//        Vector2D p1 = Vector2D(-obstacle.width/2, -obstacle.depth/2);
+//        Vector2D p2 = Vector2D(obstacle.width/2, -obstacle.depth/2);
+//        Vector2D p3 = Vector2D(obstacle.width/2, obstacle.depth/2);
+//        Vector2D p4 = Vector2D(-obstacle.width/2, obstacle.depth/2);
+//        Polygon footprint = Polygon({p1, p2, p3, p4}, Closed);
+//
+//        Obstacle obs = Obstacle(footprint, pose, Dynamic);
+//        obs.movement = Pose2D(obstacle.vel.x, obstacle.vel.y, 0);
+//
+//        obstacles.obstacles.emplace_back(obs);
+//    }
 }
 
 void Communication::setVel(geometry_msgs::Twist cmd_vel_msg){
