@@ -26,9 +26,9 @@ double F_prediction = 10;
 int main(int argc, char** argv) {
     cout << "Main loop started" << endl;
 
-    Polygon footprint({Vec(0,0), Vec(2,0), Vec(2, 0.2), Vec(2.3,0.2), Vec(2.3,0.8), Vec(2,0.8), Vec(2,1), Vec(0,1)}, Closed, true, Pose2D(1,0.5,0));
-    //Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.6), Vec(0,0.6)}, Closed, true, Pose2D(0.325,0.3,0));
-    HolonomicModel hmodel(Pose2D(-2,-1,M_PI_2), footprint, 1, 1, 1);
+    //Polygon footprint({Vec(0,0), Vec(2,0), Vec(2, 0.2), Vec(2.3,0.2), Vec(2.3,0.8), Vec(2,0.8), Vec(2,1), Vec(0,1)}, Closed, true, Pose2D(1,0.5,0));
+    Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.6), Vec(0,0.6)}, Closed, true, Pose2D(0.325,0.3,0));
+    HolonomicModel hmodel(Pose2D(-2,-1,M_PI_2), footprint, 0.7, 0.7 0.25);
 
     Tubes tubes;
 //    Tubes tubes(Tube(Vec(60,32), 2, Vec(2,34), 2, 1));
