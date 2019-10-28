@@ -4,7 +4,9 @@
 
 #include "Communication.h"
 
-Communication::Communication(ros::NodeHandle nroshndl) {
+Communication::Communication(ros::NodeHandle nroshndl, bool updatePosition_) {
+    updatePosition = updatePosition_;
+    if(updatePosition){initialized = true;}
     vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, &Communication::getAmclPoseCallback, this);
     odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, &Communication::getOdomVelCallback, this);
@@ -26,29 +28,31 @@ void Communication::getOdomVelCallback(const nav_msgs::Odometry::ConstPtr& odom_
 }
 
 void Communication::getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& pose_msg){
-    //ROS_INFO("Amcl pose received");
-    //ROS_INFO("X: %f, Y: %f", pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y);
-    double this_amcl_x = pose_msg->pose.pose.position.x;
-    double this_amcl_y = pose_msg->pose.pose.position.y;
-    double quaternion_x = pose_msg->pose.pose.orientation.x;
-    double quaternion_y = pose_msg->pose.pose.orientation.y;
-    double quaternion_z = pose_msg->pose.pose.orientation.z;
-    double quaternion_w = pose_msg->pose.pose.orientation.w;
+    if(updatePosition) {
+        //ROS_INFO("Amcl pose received");
+        //ROS_INFO("X: %f, Y: %f", pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y);
+        double this_amcl_x = pose_msg->pose.pose.position.x;
+        double this_amcl_y = pose_msg->pose.pose.position.y;
+        double quaternion_x = pose_msg->pose.pose.orientation.x;
+        double quaternion_y = pose_msg->pose.pose.orientation.y;
+        double quaternion_z = pose_msg->pose.pose.orientation.z;
+        double quaternion_w = pose_msg->pose.pose.orientation.w;
 
-    // yaw (z-axis rotation)
-    double siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
-    double cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
-    double this_amcl_theta = atan2(siny_cosp, cosy_cosp);
+        // yaw (z-axis rotation)
+        double siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
+        double cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
+        double this_amcl_theta = atan2(siny_cosp, cosy_cosp);
 
-    measuredPose = Pose2D(this_amcl_x, this_amcl_y, this_amcl_theta);
-    //cout << "Pose: " << pose.x << " " << pose.y << " " << pose.a << endl;
+        measuredPose = Pose2D(this_amcl_x, this_amcl_y, this_amcl_theta);
+        //cout << "Pose: " << pose.x << " " << pose.y << " " << pose.a << endl;
 
-    if(!initialized){
-        cout << "Initial pose: " << measuredPose.x << " " << measuredPose.y << " " << measuredPose.a << endl;
-        initialized = true;
+        if (!initialized) {
+            cout << "Initial pose: " << measuredPose.x << " " << measuredPose.y << " " << measuredPose.a << endl;
+            initialized = true;
+        }
+
+        positionUpdated = true;
     }
-
-    positionUpdated = true;
 }
 
 void Communication::getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obstacles_msg) {
