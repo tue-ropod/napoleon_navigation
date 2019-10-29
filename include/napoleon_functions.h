@@ -21,6 +21,8 @@ double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_fro
 double steerAroundPoint(Point local_pivot, bool dir_cw);
 double dist2(Point v, Point w);
 double distToSegmentSquared(Point p, Point v, Point w);
+double distToEndSegmentSquared(Point p, Point v, Point w);
+double distToEndSegmentSquared(Point p, PointID v, PointID w);
 double distToSegment(Point p, PointID v, PointID w);
 double distToSegment(Point p, Point v, Point w);
 double distToLine(Point p, PointID v, PointID w);

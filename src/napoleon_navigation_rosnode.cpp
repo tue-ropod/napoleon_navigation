@@ -1261,8 +1261,8 @@ void createObstacleBoundingBox()
     bool update_obs = false;
     no_obs = 0;
 
-    if(curr_area.type != "hallway")
-        return;
+    //if(curr_area.type != "hallway")
+    //    return;
     rw_p_rear = getPointByID(task1[0],pointlist);
     rw_p_front = getPointByID(task1[1],pointlist);
     double rw_angle = atan2(rw_p_front.y-rw_p_rear.y,rw_p_front.x-rw_p_rear.x);
@@ -1793,8 +1793,10 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                 if (curr_area.type == "hallway" && next_area.type == "inter")
                 {
                     point_front = getPointByID(task1[1],pointlist);
+                    point_rear = getPointByID(task1[0],pointlist);
                     local_wallpoint_front = coordGlobalToRopod(point_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-                    if(local_wallpoint_front.x < ENTRY_LENGTH)
+                    double distance_to_end_sqrd = distToEndSegmentSquared(pred_xy_ropod[j-1], point_rear, point_front);
+                    if(local_wallpoint_front.x < ENTRY_LENGTH && distance_to_end_sqrd <= ENTRY_LENGTH*ENTRY_LENGTH )
                         pred_ropod_on_entry_inter[j] = true;
                     else
                         pred_ropod_on_entry_inter[j] = false;
@@ -1810,8 +1812,10 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                         distance_to_switch_halls = -0.5*D_AX;
 
                     point_front = getPointByID(task1[1],pointlist);
+                    point_rear = getPointByID(task1[0],pointlist);
                     local_wallpoint_front = coordGlobalToRopod(point_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-                    if(local_wallpoint_front.x < distance_to_switch_halls)
+                    double distance_to_end_sqrd = distToEndSegmentSquared(pred_xy_ropod[j-1], point_rear, point_front);
+                    if(local_wallpoint_front.x < distance_to_switch_halls && distance_to_end_sqrd <= distance_to_switch_halls*distance_to_switch_halls)
                         pred_ropod_on_entry_hall[j] = true;
                     else
                         pred_ropod_on_entry_hall[j] = false;
@@ -1886,6 +1890,8 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
 
         }          // end while finding v_scale
 
+
+
         // Update after a prediction is made where no collision is caused
         // The prediction is ran until t_min_pred, however, the ropod will run a
         // new prediction the next step, so only the first part of the
@@ -1898,7 +1904,14 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         program_duration = ( std::clock() - start_loop ) / (double) CLOCKS_PER_SEC;
         real_time_est = real_time_est+1/F_PLANNER;
 
-        control_v = pred_v_ropod[0]+pred_accel[1]*1/F_PLANNER;
+        if(ropod_colliding_obs || ropod_colliding_wall)
+        {
+            control_v = 0.0; // Force stop if even samllest scale failed
+        }
+        else
+        {
+            control_v = pred_v_ropod[0]+pred_accel[1]*1/F_PLANNER;
+        }
         // Compute v_ax and theta_dot from v_des and phi
 
         myfile << real_time_est << "\t" << program_duration << "\t" << pred_state[0] << "\t" << pred_task_counter[0] << "\t" << pred_tube_width[0] << "\t" <<
@@ -2031,7 +2044,7 @@ int main(int argc, char** argv)
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("scan", bufferSize, scanCallback);
 
 
-    NapoleonPlanner napoleon_planner_("/ropod/goto");
+     NapoleonPlanner napoleon_planner_("/ropod/goto");
     while(nroshndl.ok())
     {
         ROS_INFO("Wait for goto action");
@@ -2045,16 +2058,18 @@ int main(int argc, char** argv)
         followRoute(planner_areas, vel_pub, rate);
     }
 
-//    ROS_INFO("Wait for debug plan on topic");
-//    while(ros::ok())
-//    {
-//        if(start_navigation)
-//        {
-//            break;
-//        }
-//        ros::spinOnce();
-//    }
-//    std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
+    //ROS_INFO("Wait for debug plan on topic");
+    //while(ros::ok())
+    //{
+        //if(start_navigation)
+        //{
+            //break;
+        //}
+        //ros::spinOnce();
+    //}
+    //std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
+    //ROS_INFO("Got new route; following now");
+    //followRoute(planner_areas, vel_pub, rate);
 
     // TODO: Make action serve and topic work non-blocking. For now I placed it here for not forgetting to change the laser topic as well
 

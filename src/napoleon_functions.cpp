@@ -286,6 +286,23 @@ double distToSegmentSquared(Point p, Point v, Point w) {
         return dist2(p, Point(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y)));
     }
 }
+double distToEndSegmentSquared(Point p, PointID v, PointID w) {
+    // P point, v, w points of line segmens
+    Point v_noid(v.x,v.y);
+    Point w_noid(w.x,w.y);
+    return distToEndSegmentSquared(p, v_noid, w_noid);
+}
+
+double distToEndSegmentSquared(Point p, Point v, Point w) {
+    double l2 = dist2(v, w);
+    if (l2 == 0) {
+        return 0.0;
+    } else {
+        double t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+        t = max(0.0, min(1.0, t));
+        return dist2(w, Point(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y)));
+    }
+}
 
 double distToLine(Point p, PointID v, PointID w) {
     // P point, v, w points of line segmens
