@@ -28,6 +28,7 @@ double distToSegment(Point p, Point v, Point w);
 double distToLine(Point p, PointID v, PointID w);
 double distToLine(Point p, Point v, Point w);
 bool do_lines_intersect(Point p0, Point p1, Point p2, Point p3);
+bool does_line_intersect_shape(Point p0, Point p1, AreaQuad shape);
 bool do_shapes_overlap(Point obj1p0, Point obj1p1, Point obj1p2, Point obj1p3, Point obj2p0, Point obj2p1, Point obj2p2, Point obj2p3);
 bool do_shapes_overlap(double shape1[][2], double shape2[][2]);
 bool does_line_intersect_shape(Point p0, Point p1, double shape[][2]);

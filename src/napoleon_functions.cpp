@@ -576,6 +576,22 @@ bool does_line_intersect_shape(Point p0, Point p1, double shape[][2]) {
     return intersecting;
 }
 
+bool does_line_intersect_shape(Point p0, Point p1, AreaQuad shape) {
+    bool intersecting = false;
+
+    if (do_lines_intersect(p0, p1, shape.p0, shape.p1)) {
+        intersecting = true;
+    }else if(do_lines_intersect(p0, p1, shape.p1, shape.p2)) {
+        intersecting = true;
+    }else if(do_lines_intersect(p0, p1, shape.p2, shape.p3)) {
+        intersecting = true;
+    }else if(do_lines_intersect(p0, p1, shape.p3, shape.p0)) {
+        intersecting = true;
+    }
+    return intersecting;
+}
+
+
 // Case where circle is completely within shape is not considered as this is
 // not very likely to occur with the sizes of the objects, plus the velocity
 // adaptation will also work of a few prediction samples say 'no collision',
@@ -779,7 +795,8 @@ vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID 
     string pivotpoint;
     bool foundpivot = false;
     vector<string> intersectiontask;
-    vector<string> next_wall_hallway;
+    vector<string> next_right_wall_hallway;
+    vector<string> next_left_wall_hallway;
 
     for (int i = 0; i < common_points_12.size(); ++i) {
         for (int j = 0; j < common_points_23.size(); ++j) {
@@ -802,22 +819,23 @@ vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID 
         }
 
         if (index_dir == 0) {
-            next_wall_hallway = getWallPointsTowardsB(OBJ3,OBJ2);
+            next_right_wall_hallway = getWallPointsAwayFromB(OBJ3,OBJ2);
+            next_left_wall_hallway = getWallPointsTowardsB(OBJ3,OBJ2);
             // disp('Corner/intersection: turn right');
             // disp(['Use node: ', shiftedOBJ2{3}, ' as rear wall point']);
             // disp(['Use node: ', shiftedOBJ2{2}, ' as front wall point']);
             // disp(['Use node: ', shiftedOBJ2{1}, ' as pivot']);
             // disp('-------------------------------');
             // Wallpoint rear, wallpoint front, pivoting point
-            intersectiontask = {OBJ2_point_IDs[2], OBJ2_point_IDs[1], next_wall_hallway[1], next_wall_hallway[0], OBJ2_point_IDs[0],"right"};
+            intersectiontask = {OBJ2_point_IDs[2], OBJ2_point_IDs[1], next_left_wall_hallway[1], next_left_wall_hallway[0], OBJ2_point_IDs[0], "right", next_right_wall_hallway[0], next_right_wall_hallway[1]};
         } else if (index_dir == 3) {
-            next_wall_hallway = getWallPointsAwayFromB(OBJ3,OBJ2);
+            next_right_wall_hallway = getWallPointsAwayFromB(OBJ3,OBJ2);
             // disp('Corner/intersection: turn left');
             // disp(['Use node: ', shiftedOBJ2{2}, ' as rear wall point']);
             // disp(['Use node: ', shiftedOBJ2{3}, ' as front wall point']);
             // disp(['Use node: ', shiftedOBJ2{4}, ' as pivot']);
             // disp('-------------------------------');
-            intersectiontask = {OBJ2_point_IDs[1], OBJ2_point_IDs[2], next_wall_hallway[0], next_wall_hallway[1], OBJ2_point_IDs[3],"left"};
+            intersectiontask = {OBJ2_point_IDs[1], OBJ2_point_IDs[2], next_right_wall_hallway[0], next_right_wall_hallway[1], OBJ2_point_IDs[3],"left", next_right_wall_hallway[0], next_right_wall_hallway[1] };
             // Wallpoint rear, wallpoint front, pivoting point
         } else {
             ROS_INFO("Cannot turn around 2nd or 3rd node");

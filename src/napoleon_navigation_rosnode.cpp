@@ -427,6 +427,8 @@ bool update_assignment;
 int uprev;
 bool ropod_colliding_obs = true;
 bool ropod_colliding_wall = true;
+bool robot_left_side_wall_first_time = false;
+
 
 AreaQuadID current_hallway;
 AreaQuadID next_hallway;
@@ -530,11 +532,13 @@ void initializeAssignment()
             obj2tasklen = OBJ2TASK.size();
             area_names.push_back(OBJ2TASK[0]);
             area_names.push_back(OBJ2TASK[1]);
-            if (obj2tasklen == 6) {
+            if (obj2tasklen > 5) {
                 area_names.push_back(OBJ2TASK[2]);
                 area_names.push_back(OBJ2TASK[3]);
                 area_names.push_back(OBJ2TASK[4]);
                 area_names.push_back(OBJ2TASK[5]);
+                area_names.push_back(OBJ2TASK[6]);
+                area_names.push_back(OBJ2TASK[7]);
 
                 obj2wall_p0 = getPointByID(OBJ2TASK[0],pointlist);
                 obj2wall_p1 = getPointByID(OBJ2TASK[1],pointlist);
@@ -705,8 +709,8 @@ void updateAreasAndFeatures()
         if (!task2[5].empty()) {
             if (update_assignment) {
                 current_pivot = getPointByID(task2[4],pointlist);
-                cur_next_hallway_rear = getPointByID(task2[2],pointlist);
-                cur_next_hallway_front = getPointByID(task2[3],pointlist);
+                cur_next_hallway_rear = getPointByID(task2[6],pointlist);
+                cur_next_hallway_front = getPointByID(task2[7],pointlist);
             }
             cur_pivot_local = coordGlobalToRopod(current_pivot, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
             cur_next_hallway_rear_local = coordGlobalToRopod(cur_next_hallway_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
@@ -736,11 +740,12 @@ void updateAreasAndFeatures()
 void updateStateAndTask()
 {
 
-
+    
     // Taking a turn on an intersection
     if (!task2[5].empty()) {
+        if(j==1)printf("cur_next_hallway_angle %f \n",cur_next_hallway_angle*180/3.1416);
         //printf("Ropod entry hall task2[5] non empty: %d\n",(int)pred_ropod_on_entry_hall[j]);
-        if (pred_ropod_on_entry_hall[j] && pred_state[prevstate] == CRUSING) {
+        if (pred_ropod_on_entry_hall[j] && (pred_state[prevstate] == CRUSING || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == TIGHT_OVERTAKE) ){
             pred_state[j] = CRUSING;
             //disp([num2str(i), ': Here we can switch to the next hallway']);
             u = u+1;
@@ -774,7 +779,7 @@ void updateStateAndTask()
             next_second_area = getAreaByID(area3ID,arealist);
 
 
-        } else if (pred_ropod_on_entry_inter[j] && pred_state[prevstate] == CRUSING) {
+        } else if (pred_ropod_on_entry_inter[j] && (pred_state[prevstate] == CRUSING || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == TIGHT_OVERTAKE) ) {
             // If cruising and the y position of the ropod exceeds the y
             // position of the entry
             if(j==1)printf("Entry detected to turn intersection u = %d\n",u);
@@ -1381,11 +1386,11 @@ void checkForCollisions()
     pred_ropod_dil_rb.y = pred_y_rearax[m] + (SIZE_REAR+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]+M_PI) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]-M_PI/2);
     pred_ropod_dil_lb.x = pred_x_rearax[m] + (SIZE_REAR+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]+M_PI) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]+M_PI/2);
     pred_ropod_dil_lb.y = pred_y_rearax[m] + (SIZE_REAR+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]+M_PI) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]+M_PI/2);
-    pred_ropod_dil_lt.x = pred_x_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]+M_PI/2);
-    pred_ropod_dil_lt.y = pred_y_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]+M_PI/2);
-    pred_ropod_dil_rt.x = pred_x_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]-M_PI/2);
-    pred_ropod_dil_rt.y = pred_y_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]-M_PI/2);
-
+    pred_ropod_dil_lt.x = pred_x_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN_FRONT*v_scale))*cos(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]+M_PI/2);
+    pred_ropod_dil_lt.y = pred_y_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN_FRONT*v_scale))*sin(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]+M_PI/2);
+    pred_ropod_dil_rt.x = pred_x_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN_FRONT*v_scale))*cos(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]-M_PI/2);
+    pred_ropod_dil_rt.y = pred_y_rearax[m] + (SIZE_FRONT_RAX+(OBS_AVOID_MARGIN_FRONT*v_scale))*sin(pred_theta[m]) + (SIZE_SIDE+(OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]-M_PI/2);
+    AreaQuad robot_footprint(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt);
     ropod_colliding_obs = false;
     pred_ropod_colliding_obs[j] = false;
     // Obstacle detection (crappy implementation in C++)
@@ -1407,9 +1412,9 @@ void checkForCollisions()
     {
         // Here check for collision with laser data
         // Create Area and use contain method with the laser data.
+        
         for(unsigned int iScan = 0; iScan < laser_meas_points.size(); iScan++)
         {
-            AreaQuad robot_footprint(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt);
             Point laser_point(laser_meas_points[iScan].x, laser_meas_points[iScan].y);
             pred_ropod_colliding_obs[j] = robot_footprint.contains(laser_point);
             ropod_colliding_obs = pred_ropod_colliding_obs[j];
@@ -1417,30 +1422,24 @@ void checkForCollisions()
                 break;
         }
     }
-
-
     // Predict intersection times (left out for now)
-    ropod_colliding_wall = false;
-
     // TODO: Finish next line to add checking collision with walls!
-
     // Predict intersection with walls
-    // if ((u < ka_max-1) && update_assignment) {
-    //     walls = getWalls(assignment[u],assignment[u+1],assignment[u+2],arealist);
-    // }
-    // if (t_pred[m] < T_PRED_WALL_COLLISION) {
-    //     pred_ropod_wall_collision(j) = 0;
-    //     for wallidx = 1:size(walls,1)
-    //         wall = walls(wallidx,:);
-    //         wp0 = getPointByID(wall{1},pointlist);
-    //         wp1 = getPointByID(wall{2},pointlist);
-    //         ropod = [pred_ropod_rb(j,:); pred_ropod_lb(j,:); pred_ropod_lt(j,:); pred_ropod_rt(j,:)];
-    //         if does_line_intersect_shape(wp0, wp1, ropod)
-    //             pred_ropod_wall_collision(j) = 1;
-    //             // disp([num2str(t_pred(m)),': Oh noes I collided wiv a wall']);
-    //         end
-    //     end
-    // }
+     if (t_pred[m] < T_PRED_WALL_COLLISION) {
+        rw_p_rear = getPointByID(task1[0],pointlist);
+        Point rw_p_rear_noid(rw_p_rear.x,rw_p_rear.y);
+        rw_p_front = getPointByID(task1[1],pointlist);
+        Point rw_p_front_noid(rw_p_front.x,rw_p_front.y);
+        double distance_point_to_line = -distToLine(pred_xy_ropod[j-1], rw_p_rear, rw_p_front);
+        bool ropod_intersect_wall = does_line_intersect_shape(rw_p_rear_noid, rw_p_front_noid, robot_footprint);
+        if(distance_point_to_line > 0 && ropod_intersect_wall == false)
+        {
+            robot_left_side_wall_first_time = true; 
+        }
+        if(distance_point_to_line > 0 && robot_left_side_wall_first_time){ // if ropod is at the right side of the wall and ropod did not start colliding virtual wall (allow to recover)
+            ropod_colliding_wall = does_line_intersect_shape(rw_p_rear_noid, rw_p_front_noid, robot_footprint);
+        }
+     }
 }
 
 ros::Publisher ropodmarker_pub;
@@ -1769,12 +1768,16 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
 
             // Printing position
             // ROS_INFO("X: %f, Y: %f, Theta: %f", ropod_x, ropod_y, ropod_theta);
+                        
 
             // Prediction
             while (t_pred[m] < T_MIN_PRED) {
                 j = j+1;
 
                 // j and m counter are initialized at 0 instead of 1 in Matlab so we dont have to change their indices
+                robot_left_side_wall_first_time = false;
+                ropod_colliding_wall =  false;
+                
                 overtake_on_current_hallway = false;
                 pred_tube_width[j] = pred_tube_width[j-1];  // Assume same as previous, might change later
 
