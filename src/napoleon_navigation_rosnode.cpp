@@ -1562,6 +1562,42 @@ void resetNavigation()
     current_hallway_task.clear();
     next_hallway_task.clear();
     ropod_reached_target = false;
+    start_navigation = false;
+
+    i = 0; // - simulation/experiment plan
+    n = 1; // - simulation/experiment movement
+    k = -1; //- velocity scaling
+    q = 1; // - for loop for movement simulation (in prediction)
+    j = 0; // - prediction plan
+    m = 0; // - prediction movement
+    u = 0; // - Pred task counter
+
+    t_pred[0] = 0;              // Prediction time [s]
+    t_pred_j[0] = 0;              // Prediction time planning [s]
+    pred_v_ropod[0] = v_ropod_0;
+    pred_v_ropod_plan[0] = pred_v_ropod[0];
+    pred_ropod_on_entry_inter[0] = false;
+    pred_ropod_on_entry_hall[0] = false;
+    pred_x_ropod[0] = x_ropod_0;
+    pred_y_ropod[0] = y_ropod_0;
+    pred_x_obs[0] = 0;
+    pred_y_obs[0] = 0;
+    v_obs_sq = 0;
+    pred_plan_theta[0] = theta_0;
+    pred_accel[0] = 0;
+    sim_theta[0] = pred_plan_theta[0];
+    sim_phi[0] = phi_0;
+    sim_v_scale[0] = 1;
+    prev_sim_tube_width = TUBE_WIDTH_C;
+    pred_phi_des[0] = 0;
+    pred_tube_width[0] = TUBE_WIDTH_C;
+    v_des_scaled[0] = 0;
+    pred_ropod_colliding_obs[0] = false;
+
+    prev_sim_state = 1;
+    pred_state[0] = 1;
+    prev_sim_task_counter = 0;
+    pred_task_counter[0] = 0;
 }
 
 void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
