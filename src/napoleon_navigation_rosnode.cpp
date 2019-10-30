@@ -1477,6 +1477,10 @@ public:
     as_(nh_, name, boost::bind(&NapoleonPlanner::executeCB, this, _1), false),
     action_name_(name), ac_("/route_planner", true), status_(false)
     {
+    }
+
+    void start()
+    {
         ROS_INFO("Waiting for route planner action server to start");
         ac_.waitForServer();
         ROS_INFO("Connected to route planner action server");
@@ -1535,7 +1539,7 @@ public:
     }
 };
 ropod_ros_msgs::RoutePlannerResult debug_route_planner_result_;
-NapoleonPlanner napoleon_planner("/ropod/goto");
+NapoleonPlanner* napoleon_planner;
 
 void getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr& result)
 {
@@ -1968,7 +1972,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                 ROS_INFO("Ropod has reached its target, yay!");
 
                 // we reset the status so that we wait for another action request
-                napoleon_planner.setStatus(false);
+                napoleon_planner->setStatus(false);
             }
         }
 
@@ -2055,15 +2059,16 @@ int main(int argc, char** argv)
     unsigned int bufferSize = 2;
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("scan", bufferSize, scanCallback);
 
-
+    napoleon_planner = new NapoleonPlanner("/ropod/goto");
+    napoleon_planner->start();
     while(nroshndl.ok())
     {
         ROS_INFO("Wait for goto action");
-        while(ros::ok() && !napoleon_planner.getStatus())
+        while(ros::ok() && !napoleon_planner->getStatus())
         {
             ros::spinOnce();
         }
-        std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner.getPlannerResult().areas;
+        std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner->getPlannerResult().areas;
 
         ROS_INFO("Got new route; following now");
         followRoute(planner_areas, vel_pub, rate);
