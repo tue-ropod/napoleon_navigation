@@ -740,7 +740,7 @@ void updateAreasAndFeatures()
 void updateStateAndTask()
 {
 
-    
+
     // Taking a turn on an intersection
     if (!task2[5].empty()) {
         if(j==1)printf("cur_next_hallway_angle %f \n",cur_next_hallway_angle*180/3.1416);
@@ -1412,7 +1412,7 @@ void checkForCollisions()
     {
         // Here check for collision with laser data
         // Create Area and use contain method with the laser data.
-        
+
         for(unsigned int iScan = 0; iScan < laser_meas_points.size(); iScan++)
         {
             Point laser_point(laser_meas_points[iScan].x, laser_meas_points[iScan].y);
@@ -1434,7 +1434,7 @@ void checkForCollisions()
         bool ropod_intersect_wall = does_line_intersect_shape(rw_p_rear_noid, rw_p_front_noid, robot_footprint);
         if(distance_point_to_line > 0 && ropod_intersect_wall == false)
         {
-            robot_left_side_wall_first_time = true; 
+            robot_left_side_wall_first_time = true;
         }
         if(distance_point_to_line > 0 && robot_left_side_wall_first_time){ // if ropod is at the right side of the wall and ropod did not start colliding virtual wall (allow to recover)
             ropod_colliding_wall = does_line_intersect_shape(rw_p_rear_noid, rw_p_front_noid, robot_footprint);
@@ -1494,6 +1494,11 @@ public:
         return status_;
     }
 
+    void setStatus(bool status)
+    {
+        status_ = status;
+    }
+
     ropod_ros_msgs::RoutePlannerResult getPlannerResult()
     {
         return route_planner_result_;
@@ -1530,6 +1535,7 @@ public:
     }
 };
 ropod_ros_msgs::RoutePlannerResult debug_route_planner_result_;
+NapoleonPlanner napoleon_planner("/ropod/goto");
 
 void getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr& result)
 {
@@ -1768,7 +1774,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
 
             // Printing position
             // ROS_INFO("X: %f, Y: %f, Theta: %f", ropod_x, ropod_y, ropod_theta);
-                        
+
 
             // Prediction
             while (t_pred[m] < T_MIN_PRED) {
@@ -1777,7 +1783,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                 // j and m counter are initialized at 0 instead of 1 in Matlab so we dont have to change their indices
                 robot_left_side_wall_first_time = false;
                 ropod_colliding_wall =  false;
-                
+
                 overtake_on_current_hallway = false;
                 pred_tube_width[j] = pred_tube_width[j-1];  // Assume same as previous, might change later
 
@@ -1960,6 +1966,9 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             {
                 ropod_reached_target = true;
                 ROS_INFO("Ropod has reached its target, yay!");
+
+                // we reset the status so that we wait for another action request
+                napoleon_planner.setStatus(false);
             }
         }
 
@@ -2047,15 +2056,14 @@ int main(int argc, char** argv)
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("scan", bufferSize, scanCallback);
 
 
-     NapoleonPlanner napoleon_planner_("/ropod/goto");
     while(nroshndl.ok())
     {
         ROS_INFO("Wait for goto action");
-        while(ros::ok() && !napoleon_planner_.getStatus())
+        while(ros::ok() && !napoleon_planner.getStatus())
         {
             ros::spinOnce();
         }
-        std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner_.getPlannerResult().areas;
+        std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner.getPlannerResult().areas;
 
         ROS_INFO("Got new route; following now");
         followRoute(planner_areas, vel_pub, rate);
