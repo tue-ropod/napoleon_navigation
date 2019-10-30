@@ -18,7 +18,7 @@ void HolonomicModel::input(Pose2D vel, Frame frame) {
         case Frame_World:
             break;
     }
-    inputVelocity = vel;
+    desiredVelocity = vel;
 }
 
 Pose2D HolonomicModel::translateInput(Vector2D position, Pose2D v_p) {
@@ -40,28 +40,16 @@ Pose2D HolonomicModel::translateInput(Vector2D position, Pose2D v_p) {
 }
 
 void HolonomicModel::updatePrediction(double dt) {
-    Pose2D acc = (inputVelocity - velocity)/dt;
-    if(acc.length() > maxAcceleration){
-        Vector2D scaledAcc = acc.unit()*maxAcceleration;
-        acc.x = scaledAcc.x;
-        acc.y = scaledAcc.y;
+    if(applyBrake){
+        inputVelocity = Pose2D(0,0,0);
+    }else{
+        calculateInputVelocity(dt);
     }
+    velocity = inputVelocity;
+    updateModel(dt);
+}
 
-    if(abs(acc.a) > maxRotationalAcceleration){
-        acc.a = (acc.a/abs(acc.a))*maxRotationalAcceleration;
-    }
-
-    velocity = velocity + acc * dt;
-
-    if(velocity.length() > maxSpeed){
-        Vector2D scaledVel = velocity.unit()*maxSpeed;
-        velocity.x = scaledVel.x;
-        velocity.y = scaledVel.y;
-    }
-    if(abs(velocity.a) > maxRotationalSpeed){
-        velocity.a = (velocity.a/abs(velocity.a))*maxRotationalSpeed;
-    }
-
+void HolonomicModel::updateModel(double dt) {
     pose.rotateOrientation(velocity.a*dt);
     pose.transformThis(velocity.x*dt, velocity.y*dt, 0);
     footprint.transformto(pose);

@@ -99,10 +99,14 @@ SET(napoleon_includes
         include/Obstacles/Obstacles.cpp
         include/Obstacles/Obstacles.h)
 
-add_executable(napoleon_navigation NapoleonNavigation.cpp ${napoleon_includes} )
+add_executable(napoleon_navigation src/NapoleonNavigation.cpp ${napoleon_includes} )
 target_link_libraries(napoleon_navigation ${catkin_LIBRARIES} ${OpenCV_LIBS})
 add_dependencies(napoleon_navigation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_executable(napoleon_navigation_standalone NapoleonNavigationStandalone.cpp ${napoleon_includes} )
+add_executable(napoleon_navigation_standalone src/NapoleonNavigationStandalone.cpp ${napoleon_includes} )
 target_link_libraries(napoleon_navigation_standalone ${catkin_LIBRARIES} ${OpenCV_LIBS})
 add_dependencies(napoleon_navigation_standalone ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(point_creator src/PointCreator.cpp ${napoleon_includes} )
+target_link_libraries(point_creator ${catkin_LIBRARIES} ${OpenCV_LIBS})
+add_dependencies(point_creator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

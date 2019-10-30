@@ -28,13 +28,14 @@ int main(int argc, char** argv) {
 
     //Polygon footprint({Vec(0,0), Vec(2,0), Vec(2, 0.2), Vec(2.3,0.2), Vec(2.3,0.8), Vec(2,0.8), Vec(2,1), Vec(0,1)}, Closed, true, Pose2D(1,0.5,0));
     Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.6), Vec(0,0.6)}, Closed, true, Pose2D(0.325,0.3,0));
-    HolonomicModel hmodel(Pose2D(-2,-1,M_PI_2), footprint, 0.7, 0.7, 0.25);
+    HolonomicModel hmodel(Pose2D(0,0,M_PI_2), footprint, 1, 0.8, 0.25);
 
     //Tubes tubes;
-    Tubes tubes(Tube(Vec(0,0), 1, Vec(5,0), 1, 0.5));
-    tubes.addPoint(Vec(5,3), 1, 0.3);
-    tubes.addPoint(Vec(0,3), 1, 0.5);
-    bool testRoute = true;
+    Tubes tubes(Tube(Vec(0,0), 1, Vec(-3,5), 1, 1));
+    tubes.addPoint(Vec(3,5), 1, 1);
+    tubes.addPoint(Vec(3,0.5), 1, 1);
+    tubes.addPoint(Vec(3,0), 1, 1);
+    bool testRoute = false;
 
     ros::init(argc, argv, "route_navigation");
 
@@ -42,7 +43,7 @@ int main(int argc, char** argv) {
     ros::Rate rate(F_loop);
 
     VisualizationRviz canvas(nroshndl);
-    Communication comm(nroshndl);
+    Communication comm(nroshndl, true);
 
     bool startNavigation = false;
     while(!startNavigation){
@@ -93,8 +94,8 @@ int main(int argc, char** argv) {
         //status = Status_Ok;
 
         if(predictionStatus == Status_Ok || predictionStatus == Status_Done) {
-            realStatus = hmodel.follow(tubes, canvas, false);
-            tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, comm.obstacles, hmodel, DrivingSide_Right, canvas);
+            realStatus = hmodel.follow(tubes, canvas, true);
+            //tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, comm.obstacles, hmodel, DrivingSide_Right, canvas);
             switch (realStatus){
                 case Status_ToClose: {cout << "Status To Close" << endl; break;}
                 case Status_Stuck: {cout << "Status Stuck" << endl; break;}
@@ -102,21 +103,26 @@ int main(int argc, char** argv) {
                 case Status_Collision: {cout << "Status Collision" << endl; break;}
                 case Status_Done: {cout << "Status Done" << endl; break;}
             }
+            if(realStatus != Status_Ok) {hmodel.brake();}
         }else{
-            hmodel.input(Pose2D(0,0,0), Frame_Robot);
             switch (predictionStatus){
                 case Status_ToClose: {cout << "Prediction status To Close" << endl; break;}
                 case Status_Stuck: {cout << "Prediction status Stuck" << endl; break;}
                 case Status_Error: {cout << "Prediction status Error" << endl; break;}
                 case Status_Collision: {cout << "Prediction status Collision" << endl; break;}
             }
+            hmodel.brake();
         }
 
         tubes.showSides(canvas);
         hmodel.show(canvas, Color(0,0,0), Thin);
         comm.obstacles.show(canvas, Color(255,0,0), Thick);
 
-        hmodel.update(1/F_loop, comm);
+        double ct = rate.cycleTime().toSec();
+        double ect = rate.expectedCycleTime().toSec();
+        double cycleTime = ct > ect ? ct : ect;
+
+        hmodel.update(cycleTime, comm);
 
         ros::spinOnce();
         rate.sleep();

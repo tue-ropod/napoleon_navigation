@@ -66,9 +66,34 @@ void Model::copyState(Model &modelCopy) {
     predictionBiasVelocity = modelCopy.predictionBiasVelocity;
     velocity = modelCopy.velocity;
     inputVelocity = modelCopy.inputVelocity;
+    desiredVelocity = modelCopy.desiredVelocity;
     pose = modelCopy.pose;
     footprint.transformto(pose);
     dilatedFootprint.transformto(pose);
+}
+
+void Model::calculateInputVelocity(double dt){
+    Pose2D acc = (desiredVelocity - velocity)/dt;
+    if(acc.length() > maxAcceleration){
+        Vector2D scaledAcc = acc.unit()*maxAcceleration;
+        acc.x = scaledAcc.x;
+        acc.y = scaledAcc.y;
+    }
+
+    if(abs(acc.a) > maxRotationalAcceleration){
+        acc.a = (acc.a/abs(acc.a))*maxRotationalAcceleration;
+    }
+
+    inputVelocity = velocity + acc * dt;
+
+    if(inputVelocity.length() > maxSpeed){
+        Vector2D scaledVel = inputVelocity.unit()*maxSpeed;
+        inputVelocity.x = scaledVel.x;
+        inputVelocity.y = scaledVel.y;
+    }
+    if(abs(inputVelocity.a) > maxRotationalSpeed){
+        inputVelocity.a = (inputVelocity.a/abs(inputVelocity.a))*maxRotationalSpeed;
+    }
 }
 
 void Model::update(double dt, Communication &comm) {
@@ -81,15 +106,27 @@ void Model::update(double dt, Communication &comm) {
         velocity = Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a);
     }
 
-    updatePrediction(dt);
+    if(applyBrake){
+        inputVelocity = Pose2D(0,0,0);
+    }else {
+        calculateInputVelocity(dt);
+    }
 
-    Pose2D vel = velocity;
+    updateModel(dt);
+
+    Pose2D vel = inputVelocity;
     vel.transformThis(0, 0, -pose.a);
     geometry_msgs::Twist cmd_vel;
     cmd_vel.linear.x = vel.x;
     cmd_vel.linear.y = vel.y;
     cmd_vel.angular.z = vel.a;
     comm.setVel(cmd_vel);
+
+    applyBrake = false;
+}
+
+void Model::brake(){
+    applyBrake = true;
 }
 
 FollowStatus Model::predict(int nScalings, double predictionTime, double minPredictionDistance, double dt, Model &origionalModel, Tubes &tubes, Visualization &canvas) {
@@ -155,7 +192,9 @@ FollowStatus Model::follow(Tubes &tubes, Visualization &canvas, bool debug) {
     return Status_Error;
 }
 
-void Model::updatePrediction(double dt){}
+void Model::updateModel(double dt){}
+
+void Model::updatePrediction(double dt) {}
 
 void Model::input(Pose2D velocity_, Frame frame){}
 

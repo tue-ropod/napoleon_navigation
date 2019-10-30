@@ -13,44 +13,110 @@ void Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model
     tubes.clear();
 
     bool firstTubePlaced = false;
-    for (auto &area : areas) {
-        for (auto &subarea : area.sub_areas){
-            Vector2D p1 = Vector2D(subarea.geometry.vertices[0].x, subarea.geometry.vertices[0].y);
-            Vector2D p2 = Vector2D(subarea.geometry.vertices[1].x, subarea.geometry.vertices[1].y);
-            Vector2D p3 = Vector2D(subarea.geometry.vertices[2].x, subarea.geometry.vertices[2].y);
-            Vector2D p4 = Vector2D(subarea.geometry.vertices[3].x, subarea.geometry.vertices[3].y);
+    for (int a = 0; a < areas.size(); a++) {
+        ropod_ros_msgs::Area &area = areas[a];
+        ropod_ros_msgs::Area &area2 = areas[a];
+        for (int s = 0; s < area.sub_areas.size(); s++){
+            ropod_ros_msgs::SubArea &subarea = area.sub_areas[s];
+            ropod_ros_msgs::SubArea &subarea2 = area.sub_areas[s];
 
-            double minWidth = model.minWidth()+0.4;
-            double maxWidth = model.maxWidth();
-            double width1 = p1.distance(p4) > minWidth ? p1.distance(p4) : minWidth;
-            width1 = width1 > maxWidth ? maxWidth : width1;
-            double width2 = p2.distance(p3) > minWidth ? p2.distance(p3) : minWidth;
-            width2 = width2 > maxWidth ? maxWidth : width2;
+            //determine vertex ordering
+            bool subarea2found = false;
+//            bool forward = true;
+//            if(s < area.sub_areas.size()-1){ //if there is still an subarea left
+//                subarea2 = area.sub_areas[s+1];
+//                subarea2found = true;
+//            }else{
+//                if(a < areas.size()-1){ //if there is still an area left
+//                    area2 = areas[a+1];
+//                    if(!area2.sub_areas.empty()) {
+//                        subarea2 = area2.sub_areas[0];
+//                        subarea2found = true;
+//                    }
+//                }else{//previous subarea
+//                    forward = false;
+//                    if(s > 0){
+//                        subarea2 = area.sub_areas[s-1];
+//                        subarea2found = true;
+//                    }else if (a > 0){
+//                        area2 = areas[a-1];
+//                        if(!area2.sub_areas.empty()) {
+//                            subarea2 = area2.sub_areas[area2.sub_areas.size() - 1];
+//                            subarea2found = true;
+//                        }
+//                    }
+//                }
+//            }
 
-            if(area.type == "junction"){
-                Vector2D offsetPoint = ((p2-p1).unit())*width1/2 + p1;
-                Vector2D point = ((p2-offsetPoint).unit().transform(0,0,M_PI_2))*width1/2 + offsetPoint;
-                if(!firstTubePlaced){
-                    tubes.emplace_back(Tube(model.pose.toVector(), maxWidth, point, width1, 1));
-                    canvas.point(point, Color(0,255,255),Thick);
-                    firstTubePlaced = true;
-                }
-                else{
-                    addPoint(point, width1, 1);
-                    canvas.point(point, Color(0,255,0),Thick);
-                }
-            }else{
-                Vector2D point1 = ((p2-p1).unit().transform(0,0,M_PI_2))*width1/2 + p1;
-                Vector2D point2 = ((p1-p2).unit().transform(0,0,-M_PI_2))*width2/2 + p2;
-                if(!firstTubePlaced){
-                    tubes.emplace_back(Tube(model.pose.toVector(), maxWidth, point2, width2, 1));
-                    canvas.point(point1, Color(255,0,0),Thick);
-                    canvas.point(point2, Color(0,0,255),Thick);
-                    firstTubePlaced = true;
-                }
-                else{
-                    addPoint(point2, width2, 1);
-                    canvas.point(point2, Color(255,255,0),Thick);
+            if(subarea2found || true){
+//                int matchingVertex1 = 0, matchingVertex2 = 0, beginindex = 0;
+//                bool first = true;
+//                for(int sa1 = 0; sa1 < subarea.geometry.vertices.size(); sa1++){
+//                    for(int sa2 = 0; sa2 < subarea2.geometry.vertices.size(); sa2++){
+//                        if(subarea.geometry.vertices[sa1].id == subarea2.geometry.vertices[sa2].id){
+//                            if(first){
+//                                matchingVertex1 = sa1;
+//                                first = false;
+//                            }else{
+//                                matchingVertex2 = sa2;
+//                            }
+//                        }
+//                    }
+//                }
+//                if(matchingVertex2 == matchingVertex1+1){
+//                    beginindex = matchingVertex1-1;
+//                    if(beginindex < 0){beginindex = 3;}
+//                }else{
+//                    beginindex = 2;
+//                }
+//
+//                Vector2D p1 = Vector2D(subarea.geometry.vertices[beginindex%4].x, subarea.geometry.vertices[beginindex%4].y);
+//                beginindex++;
+//                Vector2D p2 = Vector2D(subarea.geometry.vertices[beginindex%4].x, subarea.geometry.vertices[beginindex%4].y);
+//                beginindex++;
+//                Vector2D p3 = Vector2D(subarea.geometry.vertices[beginindex%4].x, subarea.geometry.vertices[beginindex%4].y);
+//                beginindex++;
+//                Vector2D p4 = Vector2D(subarea.geometry.vertices[beginindex%4].x, subarea.geometry.vertices[beginindex%4].y);
+
+                Vector2D p1 = Vector2D(subarea.geometry.vertices[0].x, subarea.geometry.vertices[0].y);
+                Vector2D p2 = Vector2D(subarea.geometry.vertices[1].x, subarea.geometry.vertices[1].y);
+                Vector2D p3 = Vector2D(subarea.geometry.vertices[2].x, subarea.geometry.vertices[2].y);
+                Vector2D p4 = Vector2D(subarea.geometry.vertices[3].x, subarea.geometry.vertices[3].y);
+
+                //Build tube
+
+                double minWidth = model.minWidth()+0.4;
+                double maxWidth = model.maxWidth();
+                double width1 = p1.distance(p4) > minWidth ? p1.distance(p4) : minWidth;
+                width1 = width1 > maxWidth ? maxWidth : width1;
+                double width2 = p2.distance(p3) > minWidth ? p2.distance(p3) : minWidth;
+                width2 = width2 > maxWidth ? maxWidth : width2;
+
+                if(area.type == "junction"){
+                    Vector2D offsetPoint = ((p2-p1).unit())*width1/2 + p1;
+                    Vector2D point = ((p2-offsetPoint).unit().transform(0,0,M_PI_2))*width1/2 + offsetPoint;
+                    if(!firstTubePlaced){
+                        tubes.emplace_back(Tube(model.pose.toVector(), maxWidth, point, width1, 1));
+                        canvas.point(point, Color(0,255,255),Thick);
+                        firstTubePlaced = true;
+                    }
+                    else{
+                        addPoint(point, width1, 1);
+                        canvas.point(point, Color(0,255,0),Thick);
+                    }
+                }else{
+                    Vector2D point1 = ((p2-p1).unit().transform(0,0,M_PI_2))*width1/2 + p1;
+                    Vector2D point2 = ((p1-p2).unit().transform(0,0,-M_PI_2))*width2/2 + p2;
+                    if(!firstTubePlaced){
+                        tubes.emplace_back(Tube(model.pose.toVector(), maxWidth, point2, width2, 1));
+                        canvas.point(point1, Color(255,0,0),Thick);
+                        canvas.point(point2, Color(0,0,255),Thick);
+                        firstTubePlaced = true;
+                    }
+                    else{
+                        addPoint(point2, width2, 1);
+                        canvas.point(point2, Color(255,255,0),Thick);
+                    }
                 }
             }
         }

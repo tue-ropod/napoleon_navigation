@@ -36,11 +36,12 @@ public:
     double maxRotationalSpeed;
     double maxRotationalAcceleration;
     double footprintClearance = 0.03;
+    bool applyBrake = false;
 
     int currentTubeIndex;
     Polygon footprint;
     Polygon dilatedFootprint;
-    Pose2D pose, velocity, inputVelocity, predictionBiasVelocity = Pose2D(0,0,0);
+    Pose2D pose, velocity, inputVelocity, desiredVelocity, predictionBiasVelocity = Pose2D(0,0,0);
 
     Circle scanradius;
     double footprintMultiplier = 1.1;
@@ -51,6 +52,8 @@ public:
     void scaleFootprint(double x, double y);
     void dilateFootprint(double offset);
     void update(double dt, Communication &comm);
+    void brake();
+    void calculateInputVelocity(double dt);
     void changeSpeedScale(double x);
     void copySettings(Model &modelCopy);
     void copyState(Model &modelCopy);
@@ -61,6 +64,7 @@ public:
 
     virtual void show(Visualization& canvas, Color c, int drawstyle);
     virtual FollowStatus follow(Tubes& tubes, Visualization& canvas, bool debug);
+    virtual void updateModel(double dt);
     virtual void updatePrediction(double dt);
     virtual void input(Pose2D velocity_, Frame frame);
     virtual Pose2D translateInput(Vector2D position, Pose2D velocity_);

@@ -14,6 +14,7 @@ public:
 
     void input(Pose2D velocity_, Frame frame) override ;
     Pose2D translateInput(Vector2D position, Pose2D velocity_) override;
+    void updateModel(double dt) override;
     void updatePrediction(double dt) override;
     void show(Visualization& canvas, Color c, int drawstyle) override;
     FollowStatus follow(Tubes& tubes, Visualization& canvas, bool debug) override;
