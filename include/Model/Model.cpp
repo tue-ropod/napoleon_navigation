@@ -73,6 +73,8 @@ void Model::copyState(Model &modelCopy) {
 }
 
 void Model::calculateInputVelocity(double dt){
+
+
     Pose2D acc = (desiredVelocity - velocity)/dt;
     if(acc.length() > maxAcceleration){
         Vector2D scaledAcc = acc.unit()*maxAcceleration;
@@ -103,7 +105,7 @@ void Model::update(double dt, Communication &comm) {
     if(comm.newOdometry()){
         Pose2D measuredVelocity = comm.measuredVelocity;
         measuredVelocity.transformThis(0,0,pose.a);
-        velocity = Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a);
+        velocity = velocity*0.7 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a)*0.3;
     }
 
     if(applyBrake){
@@ -111,7 +113,7 @@ void Model::update(double dt, Communication &comm) {
     }else {
         calculateInputVelocity(dt);
     }
-
+    velocity = inputVelocity;
     updateModel(dt);
 
     Pose2D vel = inputVelocity;

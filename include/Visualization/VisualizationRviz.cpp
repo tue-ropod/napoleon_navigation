@@ -5,7 +5,7 @@
 #include "VisualizationRviz.h"
 
 VisualizationRviz::VisualizationRviz(ros::NodeHandle nroshndl){
-    visualization_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_navigation", 10, false);
+    visualization_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_navigation", 100, false);
 
     baseMarker.header.frame_id = "map";
     baseMarker.ns = "napoleon";

@@ -15,110 +15,214 @@ void Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model
     bool firstTubePlaced = false;
     for (int a = 0; a < areas.size(); a++) {
         ropod_ros_msgs::Area &area = areas[a];
-        ropod_ros_msgs::Area &area2 = areas[a];
         for (int s = 0; s < area.sub_areas.size(); s++){
             ropod_ros_msgs::SubArea &subarea = area.sub_areas[s];
-            ropod_ros_msgs::SubArea &subarea2 = area.sub_areas[s];
 
-            //determine vertex ordering
-            bool subarea2found = false;
-//            bool forward = true;
-//            if(s < area.sub_areas.size()-1){ //if there is still an subarea left
-//                subarea2 = area.sub_areas[s+1];
-//                subarea2found = true;
-//            }else{
-//                if(a < areas.size()-1){ //if there is still an area left
-//                    area2 = areas[a+1];
-//                    if(!area2.sub_areas.empty()) {
-//                        subarea2 = area2.sub_areas[0];
-//                        subarea2found = true;
-//                    }
-//                }else{//previous subarea
-//                    forward = false;
-//                    if(s > 0){
-//                        subarea2 = area.sub_areas[s-1];
-//                        subarea2found = true;
-//                    }else if (a > 0){
-//                        area2 = areas[a-1];
-//                        if(!area2.sub_areas.empty()) {
-//                            subarea2 = area2.sub_areas[area2.sub_areas.size() - 1];
-//                            subarea2found = true;
-//                        }
-//                    }
-//                }
-//            }
+            vector<int> orderedVertices = getOrderedVertices(route, a, s);
 
-            if(subarea2found || true){
-//                int matchingVertex1 = 0, matchingVertex2 = 0, beginindex = 0;
-//                bool first = true;
-//                for(int sa1 = 0; sa1 < subarea.geometry.vertices.size(); sa1++){
-//                    for(int sa2 = 0; sa2 < subarea2.geometry.vertices.size(); sa2++){
-//                        if(subarea.geometry.vertices[sa1].id == subarea2.geometry.vertices[sa2].id){
-//                            if(first){
-//                                matchingVertex1 = sa1;
-//                                first = false;
-//                            }else{
-//                                matchingVertex2 = sa2;
-//                            }
-//                        }
-//                    }
-//                }
-//                if(matchingVertex2 == matchingVertex1+1){
-//                    beginindex = matchingVertex1-1;
-//                    if(beginindex < 0){beginindex = 3;}
-//                }else{
-//                    beginindex = 2;
-//                }
-//
-//                Vector2D p1 = Vector2D(subarea.geometry.vertices[beginindex%4].x, subarea.geometry.vertices[beginindex%4].y);
-//                beginindex++;
-//                Vector2D p2 = Vector2D(subarea.geometry.vertices[beginindex%4].x, subarea.geometry.vertices[beginindex%4].y);
-//                beginindex++;
-//                Vector2D p3 = Vector2D(subarea.geometry.vertices[beginindex%4].x, subarea.geometry.vertices[beginindex%4].y);
-//                beginindex++;
-//                Vector2D p4 = Vector2D(subarea.geometry.vertices[beginindex%4].x, subarea.geometry.vertices[beginindex%4].y);
+            Vector2D p1 = Vector2D(subarea.geometry.vertices[0].x, subarea.geometry.vertices[0].y);
+            Vector2D p2 = Vector2D(subarea.geometry.vertices[1].x, subarea.geometry.vertices[1].y);
+            Vector2D p3 = Vector2D(subarea.geometry.vertices[2].x, subarea.geometry.vertices[2].y);
+            Vector2D p4 = Vector2D(subarea.geometry.vertices[3].x, subarea.geometry.vertices[3].y);
+            if(!orderedVertices.empty()){
+                p1 = Vector2D(subarea.geometry.vertices[orderedVertices[0]].x, subarea.geometry.vertices[orderedVertices[0]].y);
+                p2 = Vector2D(subarea.geometry.vertices[orderedVertices[1]].x, subarea.geometry.vertices[orderedVertices[1]].y);
+                p3 = Vector2D(subarea.geometry.vertices[orderedVertices[2]].x, subarea.geometry.vertices[orderedVertices[2]].y);
+                p4 = Vector2D(subarea.geometry.vertices[orderedVertices[3]].x, subarea.geometry.vertices[orderedVertices[3]].y);
+            }
 
-                Vector2D p1 = Vector2D(subarea.geometry.vertices[0].x, subarea.geometry.vertices[0].y);
-                Vector2D p2 = Vector2D(subarea.geometry.vertices[1].x, subarea.geometry.vertices[1].y);
-                Vector2D p3 = Vector2D(subarea.geometry.vertices[2].x, subarea.geometry.vertices[2].y);
-                Vector2D p4 = Vector2D(subarea.geometry.vertices[3].x, subarea.geometry.vertices[3].y);
+            //Build tube
+            double minWidth = model.minWidth()+0.4;
+            double maxWidth = model.maxWidth()+0.4;
+            double width1 = p1.distance(p4) > minWidth ? p1.distance(p4) : minWidth;
+            width1 = width1 > maxWidth ? maxWidth : width1;
+            double width2 = p2.distance(p3) > minWidth ? p2.distance(p3) : minWidth;
+            width2 = width2 > maxWidth ? maxWidth : width2;
 
-                //Build tube
+            if(area.type == "junction"){
+                Vector2D offsetPoint;
+                Vector2D point;
+                Vector2D point2 = ((p1-p2).unit().transform(0,0,-M_PI_2))*width2/2 + p2;
+                if(!firstTubePlaced){
+                    tubes.emplace_back(Tube(model.pose.toVector(), maxWidth, point2, width1, 1));
+                    firstTubePlaced = true;
+                }
+                else{
+                    Corner corner = getJunctionDirection(route, a, s);
+                    switch (corner){
+                        case Corner_None:
+                            addPoint(point2, width2, 1);
+                            cout << "Junction > Straight" << endl;
+                            break;
+                        case Corner_Left:
+                            offsetPoint = ((p2-p1).unit())*maxWidth/2 + p1;
+                            point = ((p1-offsetPoint).unit().transform(0,0,-M_PI_2))*maxWidth/2 + offsetPoint;
+                            addPoint(point, maxWidth, 1);
+                            cout << "Junction > Left" << endl;
 
-                double minWidth = model.minWidth()+0.4;
-                double maxWidth = model.maxWidth();
-                double width1 = p1.distance(p4) > minWidth ? p1.distance(p4) : minWidth;
-                width1 = width1 > maxWidth ? maxWidth : width1;
-                double width2 = p2.distance(p3) > minWidth ? p2.distance(p3) : minWidth;
-                width2 = width2 > maxWidth ? maxWidth : width2;
+                            break;
+                        case Corner_Right:
+                            offsetPoint = ((p1-p2).unit())*maxWidth/2 + p2;
+                            point = ((p2-offsetPoint).unit().transform(0,0,M_PI_2))*maxWidth/2 + offsetPoint;
+                            addPoint(point, maxWidth, 1);
+                            cout << "Junction > Right" << endl;
 
-                if(area.type == "junction"){
-                    Vector2D offsetPoint = ((p2-p1).unit())*width1/2 + p1;
-                    Vector2D point = ((p2-offsetPoint).unit().transform(0,0,M_PI_2))*width1/2 + offsetPoint;
-                    if(!firstTubePlaced){
-                        tubes.emplace_back(Tube(model.pose.toVector(), maxWidth, point, width1, 1));
-                        canvas.point(point, Color(0,255,255),Thick);
-                        firstTubePlaced = true;
+                            break;
                     }
-                    else{
-                        addPoint(point, width1, 1);
-                        canvas.point(point, Color(0,255,0),Thick);
-                    }
-                }else{
-                    Vector2D point1 = ((p2-p1).unit().transform(0,0,M_PI_2))*width1/2 + p1;
-                    Vector2D point2 = ((p1-p2).unit().transform(0,0,-M_PI_2))*width2/2 + p2;
-                    if(!firstTubePlaced){
-                        tubes.emplace_back(Tube(model.pose.toVector(), maxWidth, point2, width2, 1));
-                        canvas.point(point1, Color(255,0,0),Thick);
-                        canvas.point(point2, Color(0,0,255),Thick);
-                        firstTubePlaced = true;
-                    }
-                    else{
-                        addPoint(point2, width2, 1);
-                        canvas.point(point2, Color(255,255,0),Thick);
+                }
+            }else{
+                Vector2D point1 = ((p2-p1).unit().transform(0,0,M_PI_2))*width1/2 + p1;
+                Vector2D point2 = ((p1-p2).unit().transform(0,0,-M_PI_2))*width2/2 + p2;
+                if(!firstTubePlaced){
+                    tubes.emplace_back(Tube(model.pose.toVector(), maxWidth, point2, width2, 1));
+                    firstTubePlaced = true;
+                }
+                else{
+                    addPoint(point2, width2, 1);
+                }
+            }
+        }
+    }
+}
+
+vector<int> Tubes::getConnectedVertices(ropod_ros_msgs::RoutePlannerResult &route, int a, int s, bool &forward, bool &found){
+    vector<int> connectingVertices;
+
+    std::vector<ropod_ros_msgs::Area> &areas = route.areas;
+    ropod_ros_msgs::Area &area = areas[a];
+    ropod_ros_msgs::Area *area2;
+    ropod_ros_msgs::SubArea &subarea = area.sub_areas[s];
+    ropod_ros_msgs::SubArea *subarea2;
+
+    found = false;
+    bool subarea2found = false;
+
+    for(int tryCounter = 0; tryCounter < 2; tryCounter++){
+        if(forward && !subarea2found){
+            if (s < area.sub_areas.size() - 1) { //if there is still an subarea left
+                subarea2 = &area.sub_areas[s + 1];
+                subarea2found = true;
+            }else {
+                if (a < areas.size() - 1) { //if there is still an area left
+                    area2 = &areas[a + 1];
+                    if (!area2->sub_areas.empty()) {
+                        subarea2 = &area2->sub_areas[0];
+                        subarea2found = true;
                     }
                 }
             }
+            if(!subarea2found){forward = false;}
+        }else if(!forward && !subarea2found){ //backwards
+            if (s > 0) {
+                subarea2 = &area.sub_areas[s - 1];
+                subarea2found = true;
+            } else if (a > 0) {
+                area2 = &areas[a - 1];
+                if (!area2->sub_areas.empty()) {
+                    subarea2 = &area2->sub_areas[area2->sub_areas.size() - 1];
+                    subarea2found = true;
+                }
+            }
+            if(!subarea2found){forward = true;}
+        }
+    }
+
+    if (subarea2found) {
+        int matchingVertex1 = -1, matchingVertex2 = -1;
+        bool first = true;
+        for (int sa1 = 0; sa1 < subarea.geometry.vertices.size(); sa1++) {
+            for (int sa2 = 0; sa2 < subarea2->geometry.vertices.size(); sa2++) {
+                if (subarea.geometry.vertices[sa1].id == subarea2->geometry.vertices[sa2].id) {
+                    if (first) { matchingVertex1 = sa1; first = false; }
+                    else { matchingVertex2 = sa1; }
+                }
+            }
+        }
+        if(matchingVertex1 != -1 && matchingVertex2 != -1){
+            found = true;
+            connectingVertices.emplace_back(matchingVertex1);
+            connectingVertices.emplace_back(matchingVertex2);
+        }
+    }
+    return connectingVertices;
+}
+
+vector<int> Tubes::getOrderedVertices(ropod_ros_msgs::RoutePlannerResult &route, int a, int s) {
+    vector<int> orderedVetices;
+    std::vector<ropod_ros_msgs::Area> &areas = route.areas;
+    ropod_ros_msgs::Area &area = areas[a];
+    ropod_ros_msgs::SubArea &subarea = area.sub_areas[s];
+
+    bool connectedVerticesFound = false;
+    bool forward = true;
+    vector<int> connectedVertices = getConnectedVertices(route, a, s, forward, connectedVerticesFound);
+
+    if (connectedVerticesFound) {
+        int beginindex = 0;
+        int matchingVertex1 = connectedVertices[0];
+        int matchingVertex2 = connectedVertices[1];
+        if(forward){
+            if (matchingVertex2 == matchingVertex1 + 1) {
+                beginindex = (4 + matchingVertex1 - 1) % 4;
+            } else {
+                beginindex = (4 + matchingVertex2 - 1) % 4;
+            }
+        }else{
+            if (matchingVertex2 == matchingVertex1 + 1) {
+                beginindex = matchingVertex2;
+            } else {
+                beginindex = matchingVertex1;
+            }
+        }
+        orderedVetices = {(beginindex+0) % 4, (beginindex+1) % 4, (beginindex+2) % 4, (beginindex+3) % 4};
+    }
+    return orderedVetices;
+}
+
+Corner Tubes::getJunctionDirection(ropod_ros_msgs::RoutePlannerResult &route, int a, int s){
+    Corner corner = Corner_None;
+
+    bool connectedVerticesFound = false;
+    bool forward = false;
+    vector<int> connectedVertices = getConnectedVertices(route, a, s, forward, connectedVerticesFound);
+    vector<int> orderedVertices = getOrderedVertices(route, a, s);
+    int beginIndex = orderedVertices[0];
+
+    connectedVertices[0] = (4+connectedVertices[0]-beginIndex)%4;
+    connectedVertices[1] = (4+connectedVertices[1]-beginIndex)%4;
+
+    if(connectedVerticesFound && !forward){
+        if(connectedVertices == vector<int>{0,3} || connectedVertices == vector<int>{3,0}){ corner = Corner_None; }
+        if(connectedVertices == vector<int>{2,3} || connectedVertices == vector<int>{3,2}){ corner = Corner_Left; }
+        if(connectedVertices == vector<int>{0,1} || connectedVertices == vector<int>{1,0}){ corner = Corner_Right; }
+    }
+    return corner;
+}
+
+
+void Tubes::visualizePlan(ropod_ros_msgs::RoutePlannerResult &route, Visualization &canvas){
+    std::vector<ropod_ros_msgs::Area> &areas = route.areas;
+    for(auto &area : areas){
+        for(auto &subarea : area.sub_areas){
+            vector<Vector2D> points;
+            for(auto &vertex : subarea.geometry.vertices){
+                points.emplace_back(Vector2D(vertex.x, vertex.y));
+            }
+            canvas.polygon(points, Color(0,50,200), Thin);
+        }
+    }
+}
+
+void Tubes::visualizeRightWall(ropod_ros_msgs::RoutePlannerResult &route, Visualization &canvas) {
+    std::vector<ropod_ros_msgs::Area> &areas = route.areas;
+    for (int a = 0; a < areas.size(); a++) {
+        ropod_ros_msgs::Area &area = areas[a];
+        for (int s = 0; s < area.sub_areas.size(); s++) {
+            ropod_ros_msgs::SubArea &subarea = area.sub_areas[s];
+            vector<int> orderedVertices = getOrderedVertices(route, a, s);
+            Vector2D p1 = Vector2D(subarea.geometry.vertices[orderedVertices[0]].x, subarea.geometry.vertices[orderedVertices[0]].y);
+            Vector2D p2 = Vector2D(subarea.geometry.vertices[orderedVertices[1]].x, subarea.geometry.vertices[orderedVertices[1]].y);
+            canvas.arrow(p1, p2, Color(200,50,100), Thick);
         }
     }
 }

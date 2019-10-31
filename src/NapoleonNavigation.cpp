@@ -30,11 +30,11 @@ int main(int argc, char** argv) {
     Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.6), Vec(0,0.6)}, Closed, true, Pose2D(0.325,0.3,0));
     HolonomicModel hmodel(Pose2D(0,0,M_PI_2), footprint, 1, 0.8, 0.25);
 
-    //Tubes tubes;
-    Tubes tubes(Tube(Vec(0,0), 1, Vec(-3,5), 1, 1));
-    tubes.addPoint(Vec(3,5), 1, 1);
-    tubes.addPoint(Vec(3,0.5), 1, 1);
-    tubes.addPoint(Vec(3,0), 1, 1);
+    Tubes tubes;
+//    Tubes tubes(Tube(Vec(0,0), 1, Vec(-3,5), 1, 1));
+//    tubes.addPoint(Vec(3,5), 1, 1);
+//    tubes.addPoint(Vec(3,0.5), 1, 1);
+//    tubes.addPoint(Vec(3,0), 1, 1);
     bool testRoute = false;
 
     ros::init(argc, argv, "route_navigation");
@@ -83,6 +83,9 @@ int main(int argc, char** argv) {
 
         canvas.checkId();
         canvas.resetId();
+
+        tubes.visualizePlan(comm.route, canvas);
+        tubes.visualizeRightWall(comm.route, canvas);
 
         canvas.arrow(Vec(0,0),Vec(1,0),Color(0,0,0),Thin);
         canvas.arrow(Vec(0,0),Vec(0,1),Color(0,0,0),Thin);

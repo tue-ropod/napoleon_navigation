@@ -25,7 +25,7 @@ int main() {
 
     //Polygon footprint({Vec(0,0), Vec(2,0), Vec(2, 0.2), Vec(2.3,0.2), Vec(2.3,0.8), Vec(2,0.8), Vec(2,1), Vec(0,1)}, Closed, true, Pose2D(1,0.5,0));
     Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.6), Vec(0,0.6)}, Closed, true, Pose2D(0.325,0.3,0));
-    HolonomicModel hmodel(Pose2D(-3.4,-4,M_PI_2), footprint, 2, 2, 0.25);
+    HolonomicModel hmodel(Pose2D(-3.4,-4,M_PI_2), footprint, 1, 0.8, 0.25);
 
     Obstacles obstacles;
     obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1.5,1,0)));
