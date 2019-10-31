@@ -232,7 +232,7 @@ void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ro
     //ROS_INFO_STREAM("showWallPoints (" << local_wallpoint_front.x  << ", " << local_wallpoint_front.y << "), ("
     //        << local_wallpoint_rear.x << ", " << local_wallpoint_rear.y << ")");
     visualization_msgs::Marker vis_wall;
-    vis_wall.header.frame_id = "ropod/base_link";
+    vis_wall.header.frame_id = "ropod_tue_2/base_link";
     vis_wall.header.stamp = ros::Time::now();
     // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
     vis_wall.action = visualization_msgs::Marker::ADD;
@@ -1324,6 +1324,7 @@ void createObstacleBoundingBox()
             }
         }
     }
+    update_obs =  false;
     if( update_obs )
     {
         no_obs = 1;
@@ -2088,8 +2089,8 @@ int main(int argc, char** argv)
 
     ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
     ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, getAmclPoseCallback);
-    ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, getOdomVelCallback);
-    ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod/debug_route_plan", 1, getDebugRoutePlanCallback);
+    ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod_tue_2/odom", 100, getOdomVelCallback);
+    ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod_tue_2/debug_route_plan", 1, getDebugRoutePlanCallback);
 
     ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
@@ -2118,7 +2119,6 @@ int main(int argc, char** argv)
         //ROS_INFO("Got new route; following now");
         //followRoute(planner_areas, vel_pub, rate);
     //}
-
 
 
     ROS_INFO("Wait for debug plan on topic");
