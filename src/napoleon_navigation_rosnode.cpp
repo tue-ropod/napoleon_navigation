@@ -581,10 +581,12 @@ void considerOvertaking()
     if (u < ka_max-1 && no_obs > 0) {
         if(j==1)printf("Areas type curr: %s\n",curr_area.type.c_str());
         if(curr_area.type == "hallway"){
-            current_hallway = curr_area;
-            current_hallway_task = task1;
-            overtake_on_current_hallway = true;
-            // This strategy only allows to overtake 1 obstacle
+            if(curr_area.contains(obs_center_global) || next_area.contains(obs_center_global) || (next_second_area.contains(obs_center_global) && next_second_area.type == "hallway")){
+                current_hallway = curr_area;
+                current_hallway_task = task1;
+                overtake_on_current_hallway = true;
+                // This strategy only allows to overtake 1 obstacle
+            }
         }
     }
 }
@@ -595,7 +597,6 @@ void overtakeStateMachine()
     obs_in_ropod_frame_pos = coordGlobalToRopod(obs_center_global, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
     v_obs_sq = current_obstacle.rectangle.vel.x*current_obstacle.rectangle.vel.x+current_obstacle.rectangle.vel.y*current_obstacle.rectangle.vel.y;
     if ((v_obs_sq < V_OBS_OVERTAKE_MAX*V_OBS_OVERTAKE_MAX) && obs_in_ropod_frame_pos.x > 0) {
-        printf("Slow obstacle, check if there is space to overtake\n");
         if (overtake_on_current_hallway) {
             rw_p_rear = getPointByID(current_hallway_task[0],pointlist);
             rw_p_front = getPointByID(current_hallway_task[1],pointlist);
@@ -614,17 +615,16 @@ void overtakeStateMachine()
         }
         // TODO: Invlude in palnner left walls! so we can also consider them while overtaking
         space_left = 100.0; //distToSegment(obs_center_global,lw_p_rear,lw_p_front);
-        space_right = distToSegment(obs_center_global,rw_p_rear,rw_p_front);
+        space_right = fmax(-distToLine(obs_center_global,rw_p_rear,rw_p_front), 0.0);
         // TODO: for now obstacle angle is aligned with wall (from bounding box) So only width is looked at
         space_left = space_left-current_obstacle.rectangle.width/2;
         space_right = space_right-current_obstacle.rectangle.width/2;
-
 
         if (space_right > TUBE_WIDTH_C) {
             if (j == 1) {
                 ROS_INFO("No overtake necessary, passing on right should be possible");
             }
-        } else if (space_right > 2*(SIZE_SIDE+ENV_TCTW_SIZE)+OBS_AVOID_MARGIN) {
+        } else if (space_right > 2*(SIZE_SIDE+OBS_AVOID_MARGIN)) {
             // Same state, but change tube width so ropod will
             // fit through space right
             pred_tube_width[j] = space_right;
@@ -638,13 +638,13 @@ void overtakeStateMachine()
             // Start overtake
             if (space_left < TUBE_WIDTH_C) {
                 if (obs_in_ropod_frame_pos.x < MIN_DIST_TO_OVERTAKE && abs(obs_in_ropod_frame_pos.y) < MIN_DIST_TO_OVERTAKE) {
-                    ROS_INFO("Tight overtake");
+                    if (j == 1) ROS_INFO("Tight overtake");
                     pred_state[j] = TIGHT_OVERTAKE;
-                    pred_tube_width[j] = 2*(SIZE_SIDE+ENV_TCTW_SIZE+ENV_TRNS_SIZE);
+                    pred_tube_width[j] = 2*(SIZE_SIDE+ENV_TCTW_SIZE+OBS_AVOID_MARGIN);
                 }
             } else {
                 if (obs_in_ropod_frame_pos.x < MIN_DIST_TO_OVERTAKE && abs(obs_in_ropod_frame_pos.y) < MIN_DIST_TO_OVERTAKE) {
-                    ROS_INFO("Spacious overtake");
+                    if (j == 1) ROS_INFO("Spacious overtake");
                     pred_state[j] = SPACIOUS_OVERTAKE;
                     // TODO: for now obstacle angle is aligned with wall (from bounding box) So only width is looked at
                     shift_wall = space_right+current_obstacle.rectangle.width+OBS_AVOID_MARGIN;
@@ -1054,6 +1054,8 @@ void computeSteeringAndVelocity()
             v_des = V_OVERTAKE;
         } else if (pred_state[j] == SPACIOUS_OVERTAKE) { // Spacious overtake
             if(j==1) printf("SPACIOUS_OVERTAKE\n");
+            if (j == 1) printf("space_right obstacle %f\n",space_right);
+
             point_rear = getPointByID(task1[0],pointlist);
             point_front = getPointByID(task1[1],pointlist);
             wallang = atan2(point_front.y-point_rear.y,point_front.x-point_rear.x);
@@ -1068,8 +1070,15 @@ void computeSteeringAndVelocity()
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         if(j==1) showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
-
-        pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
+        double distance_point_to_line = -distToLine(pred_xy_ropod[j-1], glob_wallpoint_rear, glob_wallpoint_front);
+        double carrot_length = CARROT_LENGTH;
+        if(distance_point_to_line < 0)
+        {
+            if(j==1) printf("DECREASE CARROT\n");
+            carrot_length = 0.3*CARROT_LENGTH; // this increases sharpness of corrections
+        }
+        
+        pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], carrot_length, FEELER_SIZE );
     } else if (pred_state[j] == ENTRY_BEFORE_TURN_ON_INTERSECTION || pred_state[j] == ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION) {
         if(j==1) printf("ENTRY_BEFORE_INTERSECTION\n");
         // disp([num2str[j],' - Ropod is now in entry']);
@@ -1084,7 +1093,7 @@ void computeSteeringAndVelocity()
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         if(j==1) showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
-        pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
+        pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], CARROT_LENGTH, FEELER_SIZE);
         v_des = V_ENTRY;
     } else if (pred_state[j] == ACCELERATE_ON_INTERSECTION) {
         if(j==1) printf("ACCELERATE_ON_INTERSECTION\n");
@@ -1101,7 +1110,7 @@ void computeSteeringAndVelocity()
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         if(j==1) showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
-        pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
+        pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], CARROT_LENGTH, FEELER_SIZE);
         v_des = V_INTER_ACC;
 
         // Monitor if we don't bump into front wall
@@ -1137,7 +1146,7 @@ void computeSteeringAndVelocity()
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         if(j==1) showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
-        pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j]);
+        pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], CARROT_LENGTH, FEELER_SIZE);
         v_des = V_INTER_DEC;
 
         // Monitor if we don't bump into front wall
@@ -1181,10 +1190,10 @@ void computeSteeringAndVelocity()
             local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
             local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
             //pred_phi_des[j] = getSteeringTurn(ropod_length, size_side, feeler_size_steering, d_ax, dir_cw, local_pivot, local_wallpoint_front, local_wallpoint_rear,  follow_wall_distance, env_tctw_size, env_trns_size_cornering, env_carrot_size);
-            pred_phi_des[j] = getSteeringTurn(local_pivot, dir_cw, local_wallpoint_front, local_wallpoint_rear);
+            pred_phi_des[j] = getSteeringTurn(local_pivot, dir_cw, local_wallpoint_front, local_wallpoint_rear, CARROT_LENGTH, FEELER_SIZE);
         } else {
             //pred_phi_des[j] = getSteeringTurnSharp(pred_x_ropod(j-1), pred_y_ropod(j-1), pred_plan_theta[j-1], size_front_ropod, size_side, feeler_size_steering, d_ax, dir_cw, task2, pointlist, follow_wall_distance, env_tctw_size, env_trns_size_cornering, env_carrot_size);
-            pred_phi_des[j] = getSteeringTurnSharp(pred_xy_ropod[j-1], pred_plan_theta[j-1], dir_cw, task2, pointlist);
+            pred_phi_des[j] = getSteeringTurnSharp(pred_xy_ropod[j-1], pred_plan_theta[j-1], dir_cw, task2, pointlist, CARROT_LENGTH, FEELER_SIZE_STEERING);
         }
 
         v_des = V_INTER_TURNING;
@@ -1257,7 +1266,7 @@ void simulateRobotDuringCurrentPredictionStep()
 void createObstacleBoundingBox()
 {
     double distance_point_to_line_max = 0;
-    double distance_point_to_line_min = 1.0*TUBE_WIDTH_C;
+    double distance_point_to_line_min = 100.0;
     double distance_point_to_robot_max = -(ROPOD_TO_AX+SIZE_REAR);
     double distance_point_to_robot_min = MIN_DIST_TO_OVERTAKE+SIZE_FRONT_ROPOD;
     double distance_point_to_line;
@@ -1285,8 +1294,8 @@ void createObstacleBoundingBox()
         Point local_robot_wall_laser_point = coordGlobalToRopod(laser_point, pred_xy_ropod[j-1], rw_angle);
         distance_point_to_line = -distToLine(laser_point, rw_p_rear, rw_p_front);
         // consider only points that are in front of ropod up to certain distance
-        if( local_robot_wall_laser_point.x < (MIN_DIST_TO_OVERTAKE+SIZE_FRONT_ROPOD) && local_robot_wall_laser_point.x > -(ROPOD_TO_AX+SIZE_REAR)
-            && distance_point_to_line > 0 && distance_point_to_line < 1.0*TUBE_WIDTH_C )
+        if( local_robot_wall_laser_point.x < (MIN_DIST_TO_OVERTAKE+SIZE_FRONT_ROPOD+1.0) && local_robot_wall_laser_point.x > -(ROPOD_TO_AX+SIZE_REAR)
+            && distance_point_to_line > 0 && distance_point_to_line < 2.0*(ENV_TCTW_SIZE+ENV_TRNS_SIZE+SIZE_SIDE+OBS_AVOID_MARGIN) )
         {
             update_obs =  true;
             // update upperleft corner
@@ -2095,33 +2104,35 @@ int main(int argc, char** argv)
     unsigned int bufferSize = 2;
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("scan", bufferSize, scanCallback);
 
-    napoleon_planner = new NapoleonPlanner("/ropod/goto");
-    napoleon_planner->start();
-    while(nroshndl.ok())
-    {
-        ROS_INFO("Wait for goto action");
-        while(ros::ok() && !napoleon_planner->getStatus())
-        {
-            ros::spinOnce();
-        }
-        std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner->getPlannerResult().areas;
-
-        ROS_INFO("Got new route; following now");
-        followRoute(planner_areas, vel_pub, rate);
-    }
-
-    //ROS_INFO("Wait for debug plan on topic");
-    //while(ros::ok())
+    //napoleon_planner = new NapoleonPlanner("/ropod/goto");
+    //napoleon_planner->start();
+    //while(nroshndl.ok())
     //{
-        //if(start_navigation)
+        //ROS_INFO("Wait for goto action");
+        //while(ros::ok() && !napoleon_planner->getStatus())
         //{
-            //break;
+            //ros::spinOnce();
         //}
-        //ros::spinOnce();
+        //std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner->getPlannerResult().areas;
+
+        //ROS_INFO("Got new route; following now");
+        //followRoute(planner_areas, vel_pub, rate);
     //}
-    //std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
-    //ROS_INFO("Got new route; following now");
-    //followRoute(planner_areas, vel_pub, rate);
+
+
+
+    ROS_INFO("Wait for debug plan on topic");
+    while(ros::ok())
+    {
+        if(start_navigation)
+        {
+            break;
+        }
+        ros::spinOnce();
+    }
+    std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
+    ROS_INFO("Got new route; following now");
+    followRoute(planner_areas, vel_pub, rate);
 
     // TODO: Make action serve and topic work non-blocking. For now I placed it here for not forgetting to change the laser topic as well
 

@@ -43,10 +43,9 @@ PointID getPointByID(string wantedID, vector<PointID> pointlist);
 vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID OBJ3, vector<string> OBJ1TASK);
 vector<string> getWalls(int id_OBJ1, int id_OBJ2, int id_OBJ3, vector<AreaQuadID> arealist);
 
-double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, double tubewidth);
-double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_front, Point local_wallpoint_rear);
-
-double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist);
+double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, double tubewidth, double carrot_length, double feeler_size);
+double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_front, Point local_wallpoint_rear, double carrot_length, double feeler_size);
+double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist, double carrot_length, double feeler_size_steering);
 
 double wrapToPi(double angle);
 double modf(double x, double y);

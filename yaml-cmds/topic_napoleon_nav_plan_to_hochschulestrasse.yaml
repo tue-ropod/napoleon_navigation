@@ -1,0 +1,2187 @@
+rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
+    - 
+      id: '5'
+      name: 'BRSU_C_L0_C9'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: 'BRSU_C_L0_C9_LA1'
+          id: '61'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: 63.395690918
+                y: 33.1979217529
+                id: 1571
+              - 
+                x: 54.3451690674
+                y: 33.4537239075
+                id: 1570
+              - 
+                x: 54.3025970459
+                y: 32.0084457397
+                id: 1572
+              - 
+                x: 63.3531188965
+                y: 31.7526473999
+                id: 1573
+          right: 
+            point1: 
+              x: 54.3025970459
+              y: 32.0084457397
+              id: 1572
+            point2: 
+              x: 63.3531188965
+              y: 31.7526473999
+              id: 1573
+          left: 
+            point1: 
+              x: 54.3451690674
+              y: 33.4537239075
+              id: 1570
+            point2: 
+              x: 63.395690918
+              y: 33.1979217529
+              id: 1571
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: 54.3451690674
+                y: 33.4537239075
+                id: 1570
+              - 
+                x: 53.0334472656
+                y: 33.4637107849
+                id: 1595
+              - 
+                x: 53.4655265808
+                y: 31.5283699036
+                id: 1594
+              - 
+                x: 54.3025970459
+                y: 32.0084457397
+                id: 1572
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '7'
+      name: 'BRSU_C_L0_C8'
+      type: 'junction'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: 'BRSU_C_L0_C8_LA1'
+          id: '64'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: 53.0334472656
+                y: 33.4637107849
+                id: 1595
+              - 
+                x: 50.4813156128
+                y: 33.5153083801
+                id: 1596
+              - 
+                x: 50.9491882324
+                y: 31.6013393402
+                id: 1593
+              - 
+                x: 53.4655265808
+                y: 31.5283699036
+                id: 1594
+          right: 
+            point1: 
+              x: 50.9491882324
+              y: 31.6013393402
+              id: 1593
+            point2: 
+              x: 53.4655265808
+              y: 31.5283699036
+              id: 1594
+          left: 
+            point1: 
+              x: 50.4813156128
+              y: 33.5153083801
+              id: 1596
+            point2: 
+              x: 53.0334472656
+              y: 33.4637107849
+              id: 1595
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '92'
+      name: 'BRSU_C_L0_C7'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: 50.4813156128
+                y: 33.5153083801
+                id: 1596
+              - 
+                x: 50.1147499084
+                y: 33.5243186951
+                id: 1601
+              - 
+                x: 50.0909767151
+                y: 32.5569801331
+                id: 1600
+              - 
+                x: 50.9491882324
+                y: 31.6013393402
+                id: 1593
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: 'BRSU_C_L0_C7_LA1'
+          id: '66'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: 50.1147499084
+                y: 33.5243186951
+                id: 1601
+              - 
+                x: 40.239730835
+                y: 33.8115310669
+                id: 1602
+              - 
+                x: 40.2089080811
+                y: 32.844367981
+                id: 1599
+              - 
+                x: 50.0909767151
+                y: 32.5569801331
+                id: 1600
+          right: 
+            point1: 
+              x: 40.2089080811
+              y: 32.844367981
+              id: 1599
+            point2: 
+              x: 50.0909767151
+              y: 32.5569801331
+              id: 1600
+          left: 
+            point1: 
+              x: 40.239730835
+              y: 33.8115310669
+              id: 1602
+            point2: 
+              x: 50.1147499084
+              y: 33.5243186951
+              id: 1601
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: 40.239730835
+                y: 33.8115310669
+                id: 1602
+              - 
+                x: 39.6828346252
+                y: 33.8252220154
+                id: 1607
+              - 
+                x: 39.6590576172
+                y: 32.8578834534
+                id: 1606
+              - 
+                x: 40.2089080811
+                y: 32.844367981
+                id: 1599
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '8'
+      name: 'BRSU_C_L0_C6'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: 'BRSU_C_L0_C6_LA1'
+          id: '68'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: 39.6828346252
+                y: 33.8252220154
+                id: 1607
+              - 
+                x: 24.6327877045
+                y: 34.2062911987
+                id: 1608
+              - 
+                x: 24.6090087891
+                y: 33.2389526367
+                id: 1605
+              - 
+                x: 39.6590576172
+                y: 32.8578834534
+                id: 1606
+          right: 
+            point1: 
+              x: 24.6090087891
+              y: 33.2389526367
+              id: 1605
+            point2: 
+              x: 39.6590576172
+              y: 32.8578834534
+              id: 1606
+          left: 
+            point1: 
+              x: 24.6327877045
+              y: 34.2062911987
+              id: 1608
+            point2: 
+              x: 39.6828346252
+              y: 33.8252220154
+              id: 1607
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: 24.6327877045
+                y: 34.2062911987
+                id: 1608
+              - 
+                x: 23.3354377747
+                y: 34.2270584106
+                id: 1613
+              - 
+                x: 23.3043365479
+                y: 33.2487716675
+                id: 1612
+              - 
+                x: 24.6090087891
+                y: 33.2389526367
+                id: 1605
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '9'
+      name: 'BRSU_C_L0_C5'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: 'BRSU_C_L0_C5_LA1'
+          id: '70'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: 23.3354377747
+                y: 34.2270584106
+                id: 1613
+              - 
+                x: 8.09615421295
+                y: 34.6573295593
+                id: 1614
+              - 
+                x: 8.07182407379
+                y: 33.6677513123
+                id: 1611
+              - 
+                x: 23.3043365479
+                y: 33.2487716675
+                id: 1612
+          right: 
+            point1: 
+              x: 8.07182407379
+              y: 33.6677513123
+              id: 1611
+            point2: 
+              x: 23.3043365479
+              y: 33.2487716675
+              id: 1612
+          left: 
+            point1: 
+              x: 8.09615421295
+              y: 34.6573295593
+              id: 1614
+            point2: 
+              x: 23.3354377747
+              y: 34.2270584106
+              id: 1613
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: 8.09615421295
+                y: 34.6573295593
+                id: 1614
+              - 
+                x: 7.80172204971
+                y: 34.7313194275
+                id: 1619
+              - 
+                x: 7.78252840042
+                y: 33.6637382507
+                id: 1618
+              - 
+                x: 8.07182407379
+                y: 33.6677513123
+                id: 1611
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '10'
+      name: 'BRSU_C_L0_C4'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: 'BRSU_C_L0_C4_LA1'
+          id: '72'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: 7.80172204971
+                y: 34.7313194275
+                id: 1619
+              - 
+                x: 5.49467754364
+                y: 34.7101631165
+                id: 1620
+              - 
+                x: 5.45624923706
+                y: 33.7209320068
+                id: 1617
+              - 
+                x: 7.78252840042
+                y: 33.6637382507
+                id: 1618
+          right: 
+            point1: 
+              x: 5.45624923706
+              y: 33.7209320068
+              id: 1617
+            point2: 
+              x: 7.78252840042
+              y: 33.6637382507
+              id: 1618
+          left: 
+            point1: 
+              x: 5.49467754364
+              y: 34.7101631165
+              id: 1620
+            point2: 
+              x: 7.80172204971
+              y: 34.7313194275
+              id: 1619
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: 5.49467754364
+                y: 34.7101631165
+                id: 1620
+              - 
+                x: 3.90994524956
+                y: 34.8047523499
+                id: 1623
+              - 
+                x: 3.85745787621
+                y: 32.6699371338
+                id: 1622
+              - 
+                x: 5.45624923706
+                y: 33.7209320068
+                id: 1617
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '12'
+      name: 'BRSU_C_L0_C2'
+      type: 'junction'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: 'BRSU_C_L0_C2_LA1'
+          id: '75'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: 0.942177534103
+                y: 34.8777198792
+                id: 1624
+              - 
+                x: 0.854168891907
+                y: 32.7326507568
+                id: 1621
+              - 
+                x: 3.85745787621
+                y: 32.6699371338
+                id: 1622
+              - 
+                x: 3.90994524956
+                y: 34.8047523499
+                id: 1623
+          right: 
+            point1: 
+              x: 3.85745787621
+              y: 32.6699371338
+              id: 1622
+            point2: 
+              x: 3.90994524956
+              y: 34.8047523499
+              id: 1623
+          left: 
+            point1: 
+              x: 0.854168891907
+              y: 32.7326507568
+              id: 1621
+            point2: 
+              x: 0.942177534103
+              y: 34.8777198792
+              id: 1624
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '13'
+      name: ''
+      type: 'corridor'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: 0.854168891907
+                y: 32.7326507568
+                id: 1621
+              - 
+                x: 0.913610160351
+                y: 31.7076377869
+                id: 1627
+              - 
+                x: 1.90024352074
+                y: 31.6722545624
+                id: 1628
+              - 
+                x: 3.85745787621
+                y: 32.6699371338
+                id: 1622
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: '77'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: 0.913610160351
+                y: 31.7076377869
+                id: 1627
+              - 
+                x: 0.773406863213
+                y: 24.8577384949
+                id: 1630
+              - 
+                x: 1.76736426353
+                y: 24.8333015442
+                id: 1629
+              - 
+                x: 1.90024352074
+                y: 31.6722545624
+                id: 1628
+          right: 
+            point1: 
+              x: 1.76736426353
+              y: 24.8333015442
+              id: 1629
+            point2: 
+              x: 1.90024352074
+              y: 31.6722545624
+              id: 1628
+          left: 
+            point1: 
+              x: 0.773406863213
+              y: 24.8577384949
+              id: 1630
+            point2: 
+              x: 0.913610160351
+              y: 31.7076377869
+              id: 1627
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: 0.773406863213
+                y: 24.8577384949
+                id: 1630
+              - 
+                x: 0.599165856838
+                y: 22.6480369568
+                id: 1473
+              - 
+                x: 2.79938197136
+                y: 22.6273174286
+                id: 1472
+              - 
+                x: 1.76736426353
+                y: 24.8333015442
+                id: 1629
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '123'
+      name: ''
+      type: 'junction'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: ''
+          id: '117'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: 0.599165856838
+                y: 22.6480369568
+                id: 1473
+              - 
+                x: 0.525568783283
+                y: 19.367805481
+                id: 1470
+              - 
+                x: 2.71141433716
+                y: 19.3363132477
+                id: 1471
+              - 
+                x: 2.79938197136
+                y: 22.6273174286
+                id: 1472
+          right: 
+            point1: 
+              x: 2.71141433716
+              y: 19.3363132477
+              id: 1471
+            point2: 
+              x: 2.79938197136
+              y: 22.6273174286
+              id: 1472
+          left: 
+            point1: 
+              x: 0.525568783283
+              y: 19.367805481
+              id: 1470
+            point2: 
+              x: 0.599165856838
+              y: 22.6480369568
+              id: 1473
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '124'
+      name: ''
+      type: 'area'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: 0.525568783283
+                y: 19.367805481
+                id: 1470
+              - 
+                x: -0.519355297089
+                y: 16.7456130981
+                id: 1469
+              - 
+                x: 3.56954360008
+                y: 16.656206131
+                id: 1468
+              - 
+                x: 2.71141433716
+                y: 19.3363132477
+                id: 1471
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: '118'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: -0.519355297089
+                y: 16.7456130981
+                id: 1469
+              - 
+                x: -0.657040715218
+                y: 10.2850475311
+                id: 1466
+              - 
+                x: 3.43186330795
+                y: 10.195640564
+                id: 1467
+              - 
+                x: 3.56954360008
+                y: 16.656206131
+                id: 1468
+          right: 
+            point1: 
+              x: 3.43186330795
+              y: 10.195640564
+              id: 1467
+            point2: 
+              x: 3.56954360008
+              y: 16.656206131
+              id: 1468
+          left: 
+            point1: 
+              x: -0.657040715218
+              y: 10.2850475311
+              id: 1466
+            point2: 
+              x: -0.519355297089
+              y: 16.7456130981
+              id: 1469
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: -0.657040715218
+                y: 10.2850475311
+                id: 1466
+              - 
+                x: -0.648526549339
+                y: 9.48379802704
+                id: 1465
+              - 
+                x: 3.42709946632
+                y: 9.42809391022
+                id: 1464
+              - 
+                x: 3.43186330795
+                y: 10.195640564
+                id: 1467
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '126'
+      name: ''
+      type: 'junction'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: ''
+          id: '119'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: 3.42709946632
+                y: 9.42809391022
+                id: 1464
+              - 
+                x: -0.648526549339
+                y: 9.48379802704
+                id: 1465
+              - 
+                x: -0.705466985703
+                y: 5.44661903381
+                id: 1462
+              - 
+                x: 3.37721157074
+                y: 5.3907418251
+                id: 1463
+          right: 
+            point1: 
+              x: -0.705466985703
+              y: 5.44661903381
+              id: 1462
+            point2: 
+              x: 3.37721157074
+              y: 5.3907418251
+              id: 1463
+          left: 
+            point1: 
+              x: -0.648526549339
+              y: 9.48379802704
+              id: 1465
+            point2: 
+              x: 3.42709946632
+              y: 9.42809391022
+              id: 1464
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '272'
+      name: ''
+      type: 'area'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: -0.648526549339
+                y: 9.48379802704
+                id: 1465
+              - 
+                x: -1.89981794357
+                y: 9.36993122101
+                id: 3279
+              - 
+                x: -2.0236594677
+                y: 0.316769212484
+                id: 3280
+              - 
+                x: -0.705466985703
+                y: 5.44661903381
+                id: 1462
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: '263'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: -1.89981794357
+                y: 9.36993122101
+                id: 3279
+              - 
+                x: -7.87931919098
+                y: 9.45020103455
+                id: 3282
+              - 
+                x: -8.19432449341
+                y: 0.368362307549
+                id: 3281
+              - 
+                x: -2.0236594677
+                y: 0.316769212484
+                id: 3280
+          right: 
+            point1: 
+              x: -8.19432449341
+              y: 0.368362307549
+              id: 3281
+            point2: 
+              x: -2.0236594677
+              y: 0.316769212484
+              id: 3280
+          left: 
+            point1: 
+              x: -7.87931919098
+              y: 9.45020103455
+              id: 3282
+            point2: 
+              x: -1.89981794357
+              y: 9.36993122101
+              id: 3279
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: -7.87931919098
+                y: 9.45020103455
+                id: 3282
+              - 
+                x: -10.9443950653
+                y: 4.41893386841
+                id: 3268
+              - 
+                x: -11.0153608322
+                y: 2.1065621376
+                id: 3269
+              - 
+                x: -8.19432449341
+                y: 0.368362307549
+                id: 3281
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '274'
+      name: ''
+      type: 'junction'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: ''
+          id: '262'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: -10.9443950653
+                y: 4.41893386841
+                id: 3268
+              - 
+                x: -12.7287063599
+                y: 4.42943191528
+                id: 3267
+              - 
+                x: -12.813498497
+                y: 2.12852573395
+                id: 3270
+              - 
+                x: -11.0153608322
+                y: 2.1065621376
+                id: 3269
+          right: 
+            point1: 
+              x: -12.813498497
+              y: 2.12852573395
+              id: 3270
+            point2: 
+              x: -11.0153608322
+              y: 2.1065621376
+              id: 3269
+          left: 
+            point1: 
+              x: -12.7287063599
+              y: 4.42943191528
+              id: 3267
+            point2: 
+              x: -10.9443950653
+              y: 4.41893386841
+              id: 3268
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '276'
+      name: ''
+      type: 'corridor'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: -12.7287063599
+                y: 4.42943191528
+                id: 3267
+              - 
+                x: -16.6495227814
+                y: 4.47021579742
+                id: 3266
+              - 
+                x: -16.6779594421
+                y: 3.31385660172
+                id: 3263
+              - 
+                x: -12.813498497
+                y: 2.12852573395
+                id: 3270
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: '261'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: -16.6495227814
+                y: 4.47021579742
+                id: 3266
+              - 
+                x: -37.339641571
+                y: 5.25716733932
+                id: 3265
+              - 
+                x: -37.3822402954
+                y: 3.81189155579
+                id: 3264
+              - 
+                x: -16.6779594421
+                y: 3.31385660172
+                id: 3263
+          right: 
+            point1: 
+              x: -37.3822402954
+              y: 3.81189155579
+              id: 3264
+            point2: 
+              x: -16.6779594421
+              y: 3.31385660172
+              id: 3263
+          left: 
+            point1: 
+              x: -37.339641571
+              y: 5.25716733932
+              id: 3265
+            point2: 
+              x: -16.6495227814
+              y: 4.47021579742
+              id: 3266
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: -37.339641571
+                y: 5.25716733932
+                id: 3265
+              - 
+                x: -38.0857810974
+                y: 5.32002019882
+                id: 3257
+              - 
+                x: -38.1182899475
+                y: 2.85094451904
+                id: 3260
+              - 
+                x: -37.3822402954
+                y: 3.81189155579
+                id: 3264
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '268'
+      name: ''
+      type: 'corridor'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: ''
+          id: '259'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: -38.0857810974
+                y: 5.32002019882
+                id: 3257
+              - 
+                x: -45.2658691406
+                y: 5.34085559845
+                id: 3258
+              - 
+                x: -45.375377655
+                y: 2.89592456818
+                id: 3259
+              - 
+                x: -38.1182899475
+                y: 2.85094451904
+                id: 3260
+          right: 
+            point1: 
+              x: -45.375377655
+              y: 2.89592456818
+              id: 3259
+            point2: 
+              x: -38.1182899475
+              y: 2.85094451904
+              id: 3260
+          left: 
+            point1: 
+              x: -45.2658691406
+              y: 5.34085559845
+              id: 3258
+            point2: 
+              x: -38.0857810974
+              y: 5.32002019882
+              id: 3257
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: -45.2658691406
+                y: 5.34085559845
+                id: 3258
+              - 
+                x: -47.7013969421
+                y: 5.5453915596
+                id: 3256
+              - 
+                x: -47.7333908081
+                y: 4.24448728561
+                id: 3253
+              - 
+                x: -45.375377655
+                y: 2.89592456818
+                id: 3259
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '267'
+      name: ''
+      type: 'corridor'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: ''
+          id: '258'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: -47.7013969421
+                y: 5.5453915596
+                id: 3256
+              - 
+                x: -60.0236930847
+                y: 5.84848546982
+                id: 3255
+              - 
+                x: -60.0340003967
+                y: 4.56929922104
+                id: 3254
+              - 
+                x: -47.7333908081
+                y: 4.24448728561
+                id: 3253
+          right: 
+            point1: 
+              x: -60.0340003967
+              y: 4.56929922104
+              id: 3254
+            point2: 
+              x: -47.7333908081
+              y: 4.24448728561
+              id: 3253
+          left: 
+            point1: 
+              x: -60.0236930847
+              y: 5.84848546982
+              id: 3255
+            point2: 
+              x: -47.7013969421
+              y: 5.5453915596
+              id: 3256
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: -60.0236930847
+                y: 5.84848546982
+                id: 3255
+              - 
+                x: -60.8318481445
+                y: 6.25776004791
+                id: 3231
+              - 
+                x: -60.8997421265
+                y: 3.2110247612
+                id: 3232
+              - 
+                x: -60.0340003967
+                y: 4.56929922104
+                id: 3254
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '278'
+      name: ''
+      type: 'junction'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: ''
+          id: '252'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: -60.8318481445
+                y: 6.25776004791
+                id: 3231
+              - 
+                x: -73.0503234863
+                y: 6.4804520607
+                id: 3230
+              - 
+                x: -73.1501846313
+                y: 3.56800985336
+                id: 3233
+              - 
+                x: -60.8997421265
+                y: 3.2110247612
+                id: 3232
+          right: 
+            point1: 
+              x: -73.1501846313
+              y: 3.56800985336
+              id: 3233
+            point2: 
+              x: -60.8997421265
+              y: 3.2110247612
+              id: 3232
+          left: 
+            point1: 
+              x: -73.0503234863
+              y: 6.4804520607
+              id: 3230
+            point2: 
+              x: -60.8318481445
+              y: 6.25776004791
+              id: 3231
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '273'
+      name: ''
+      type: 'corridor'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: -73.0503234863
+                y: 6.4804520607
+                id: 3230
+              - 
+                x: -76.3949432373
+                y: 6.71849155426
+                id: 3225
+              - 
+                x: -76.4559631348
+                y: 5.38492488861
+                id: 3227
+              - 
+                x: -73.1501846313
+                y: 3.56800985336
+                id: 3233
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: '251'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: -76.3949432373
+                y: 6.71849155426
+                id: 3225
+              - 
+                x: -81.8020858765
+                y: 6.84039258957
+                id: 3224
+              - 
+                x: -81.8305969238
+                y: 5.39477014542
+                id: 3226
+              - 
+                x: -76.4559631348
+                y: 5.38492488861
+                id: 3227
+          right: 
+            point1: 
+              x: -81.8305969238
+              y: 5.39477014542
+              id: 3226
+            point2: 
+              x: -76.4559631348
+              y: 5.38492488861
+              id: 3227
+          left: 
+            point1: 
+              x: -81.8020858765
+              y: 6.84039258957
+              id: 3224
+            point2: 
+              x: -76.3949432373
+              y: 6.71849155426
+              id: 3225
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+        - 
+          name: ''
+          id: ''
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              - 
+                x: -81.8020858765
+                y: 6.84039258957
+                id: 3224
+              - 
+                x: -83.8038330078
+                y: 6.90076684952
+                id: 3223
+              - 
+                x: -83.8369903564
+                y: 5.2661242485
+                id: 3220
+              - 
+                x: -81.8305969238
+                y: 5.39477014542
+                id: 3226
+          right: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          left: 
+            point1: 
+              x: 0.0
+              y: 0.0
+              id: 0
+            point2: 
+              x: 0.0
+              y: 0.0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '281'
+      name: ''
+      type: 'corridor'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: ''
+          id: '249'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+          geometry: 
+            vertices: 
+              - 
+                x: -83.8038330078
+                y: 6.90076684952
+                id: 3223
+              - 
+                x: -95.7918624878
+                y: 7.02883815765
+                id: 3222
+              - 
+                x: -95.8483047485
+                y: 5.59502840042
+                id: 3221
+              - 
+                x: -83.8369903564
+                y: 5.2661242485
+                id: 3220
+          right: 
+            point1: 
+              x: -95.8483047485
+              y: 5.59502840042
+              id: 3221
+            point2: 
+              x: -83.8369903564
+              y: 5.2661242485
+              id: 3220
+          left: 
+            point1: 
+              x: -95.7918624878
+              y: 7.02883815765
+              id: 3222
+            point2: 
+              x: -83.8038330078
+              y: 6.90076684952
+              id: 3223
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0" -1
