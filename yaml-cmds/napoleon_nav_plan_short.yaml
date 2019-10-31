@@ -1,0 +1,74 @@
+rosrun actionlib axclient.py  "/ropod/goto" ropod_ros_msgs/GoToAction
+
+action: 
+  action_id: 'a990bb98-762a-441a-802e-db58c757ad18'
+  type: 'GOTO'
+  areas:
+    -
+      id: '5'
+      name: 'BRSU_C_L0_C9'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'BRSU_C_L0_C9_LA1'
+          id: '61'
+          floor_number: 0
+          waypoint_pose:
+            position:
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+    -
+      id: '7'
+      name: 'BRSU_C_L0_C8'
+      type: 'junction'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'BRSU_C_L0_C8_LA1'
+          id: '64'
+          floor_number: 0
+          waypoint_pose:
+            position:
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+    -
+      id: '2'
+      name: 'BRSU_C_L0_C11'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'BRSU_C_L0_C11_LA2'
+          id: '57'
+          floor_number: 0
+          waypoint_pose:
+            position:
+              x: -1.0
+              y: -1.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 1.0
+  sub_areas: []
+  elevator: 
+    elevator_id: 0
+    door_id: 0
+  start_floor: 0
+  goal_floor: 0
+  execution_status: ''
+  estimated_duration: 0.0

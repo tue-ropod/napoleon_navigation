@@ -1,115 +1,15 @@
 #include <iostream>
-#define _USE_MATH_DEFINES
 #include <math.h>
 #include "napoleon_config.h"
+#include "napoleon_geometry.h"
 #include "napoleon_functions.h"
+
+
 #include <ros/ros.h>
 #include <algorithm>    // std::rotate
 using namespace std;
 #include <time.h>
 #define MAX_DATE 12
-
-// For all points except map points
-Point::Point(double xval = 0.0, double yval = 0.0) {
-    x = xval;
-    y = yval;
-}
-
-// For map points
-PointID::PointID(double xval = 0.0, double yval = 0.0, string idval = " ") {
-    x = xval;
-    y = yval;
-    id = idval;
-}
-
-// For dynamic areas like entries
-AreaQuad::AreaQuad(Point p0val, Point p1val, Point p2val, Point p3val) {
-    p0 = p0val;
-    p1 = p1val;
-    p2 = p2val;
-    p3 = p3val;
-}
-
-// For static areas like hallways and intersections
-AreaQuadID::AreaQuadID(PointID p0val, PointID p1val, PointID p2val, PointID p3val, int idval, string typeval) {
-    p0 = p0val;
-    p1 = p1val;
-    p2 = p2val;
-    p3 = p3val;
-    id = idval;
-    type = typeval;
-}
-
-// Code can be cleaner if PointID inherits Point
-Point Point::sub(Point b) {
-    return Point(x - b.x, y - b.y);
-}
-
-Point Point::add(Point b) {
-    return Point(x + b.x, y + b.y);
-}
-
-Point Point::sub(PointID b) {
-    return Point(x - b.x, y - b.y);
-}
-
-Point Point::add(PointID b) {
-    return Point(x + b.x, y + b.y);
-}
-
-PointID PointID::sub(Point b) {
-    return PointID(x - b.x, y - b.y, id);
-}
-
-PointID PointID::add(Point b) {
-    return PointID(x + b.x, y + b.y, id);
-}
-
-PointID PointID::sub(PointID b) {
-    return PointID(x - b.x, y - b.y, id);
-}
-
-PointID PointID::add(PointID b) {
-    return PointID(x + b.x, y + b.y, id);
-}
-
-bool AreaQuad::contains(Point q) {
-    bool c = false;
-    int i, j = 0;
-    int nvert = 4;
-    double vertx[4] = {p0.x, p1.x, p2.x, p3.x};
-    double verty[4] = {p0.y, p1.y, p2.y, p3.y};
-    for (i = 0, j = nvert-1; i < nvert; j = i++) {
-        if ( ((verty[i]>q.y) != (verty[j]>q.y)) && (q.x < (vertx[j]-vertx[i]) * (q.y-verty[i]) / (verty[j]-verty[i]) + vertx[i]) ){
-            c = !c;
-        }
-    }
-    return c;
-}
-
-bool AreaQuadID::contains(Point q) {
-    bool c = false;
-    int i, j = 0;
-    int nvert = 4;
-    double vertx[4] = {p0.x, p1.x, p2.x, p3.x};
-    double verty[4] = {p0.y, p1.y, p2.y, p3.y};
-    for (i = 0, j = nvert-1; i < nvert; j = i++) {
-        if ( ((verty[i]>q.y) != (verty[j]>q.y)) && (q.x < (vertx[j]-vertx[i]) * (q.y-verty[i]) / (verty[j]-verty[i]) + vertx[i]) ){
-            c = !c;
-        }
-    }
-    return c;
-}
-
-Point AreaQuadID::center() {
-    Point a((p0.x+p1.x+p2.x+p3.x)/4, (p0.y+p1.y+p2.y+p3.y)/4);
-    return a;
-}
-
-vector<string> AreaQuadID::getPointIDs() {
-    vector<string> s {p0.id, p1.id, p2.id, p3.id};
-    return s;
-}
 
 void printstringvec(vector<string> vec)
 {
@@ -386,6 +286,38 @@ double distToSegmentSquared(Point p, Point v, Point w) {
         return dist2(p, Point(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y)));
     }
 }
+double distToEndSegmentSquared(Point p, PointID v, PointID w) {
+    // P point, v, w points of line segmens
+    Point v_noid(v.x,v.y);
+    Point w_noid(w.x,w.y);
+    return distToEndSegmentSquared(p, v_noid, w_noid);
+}
+
+double distToEndSegmentSquared(Point p, Point v, Point w) {
+    double l2 = dist2(v, w);
+    if (l2 == 0) {
+        return 0.0;
+    } else {
+        double t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+        t = max(0.0, min(1.0, t));
+        return dist2(w, Point(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y)));
+    }
+}
+
+double distToLine(Point p, PointID v, PointID w) {
+    // P point, v, w points of line segmens
+    Point v_noid(v.x,v.y);
+    Point w_noid(w.x,w.y);
+    return distToLine(p, v_noid, w_noid);
+}
+
+double distToLine(Point p, Point v, Point w) {
+    // https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
+    // P point, v, w points of line segmens
+    double numerator =  (w.y-v.y)*p.x - (w.x-v.x)*p.y + w.x*v.y - w.y*v.x;
+    double denominator = sqrt( (w.y-v.y)*(w.y-v.y) + (w.x-v.x)*(w.x-v.x) );
+    return numerator/denominator;
+}
 
 bool do_lines_intersect(Point p0, Point p1, Point p2, Point p3) {
     // Returns 1 if the lines intersect, otherwise 0.
@@ -644,6 +576,22 @@ bool does_line_intersect_shape(Point p0, Point p1, double shape[][2]) {
     return intersecting;
 }
 
+bool does_line_intersect_shape(Point p0, Point p1, AreaQuad shape) {
+    bool intersecting = false;
+
+    if (do_lines_intersect(p0, p1, shape.p0, shape.p1)) {
+        intersecting = true;
+    }else if(do_lines_intersect(p0, p1, shape.p1, shape.p2)) {
+        intersecting = true;
+    }else if(do_lines_intersect(p0, p1, shape.p2, shape.p3)) {
+        intersecting = true;
+    }else if(do_lines_intersect(p0, p1, shape.p3, shape.p0)) {
+        intersecting = true;
+    }
+    return intersecting;
+}
+
+
 // Case where circle is completely within shape is not considered as this is
 // not very likely to occur with the sizes of the objects, plus the velocity
 // adaptation will also work of a few prediction samples say 'no collision',
@@ -711,6 +659,22 @@ AreaQuad generateEntry(int hallwayID, int interID, double e_length, vector<AreaQ
     AreaQuad entry(start_entry_wall, e_wall_idless, e_leftwall_idless, start_entry_leftwall);
     return entry;
 }
+
+double getAngleBetweenHallways(vector<string> taskhallway1, vector<string> taskhallway2, vector<PointID> pointlist) {
+    PointID s_wall1 = getPointByID(taskhallway1[0], pointlist);
+    PointID e_wall1 = getPointByID(taskhallway1[1], pointlist);
+    PointID s_wall2 = getPointByID(taskhallway2[0], pointlist);
+    PointID e_wall2 = getPointByID(taskhallway2[1], pointlist);
+    
+
+    double wall1_angle = atan2(e_wall1.y-s_wall1.y,e_wall1.x-s_wall1.x);
+    double wall2_angle = atan2(e_wall2.y-s_wall2.y,e_wall2.x-s_wall2.x);
+    
+    double angle = wall2_angle - wall1_angle;
+    
+    return remainder(angle, 2.0*M_PI);
+}
+
 
 AreaQuadID getAreaByID(int wantedID, vector<AreaQuadID> arealist) {
     int listlength = arealist.size();
@@ -831,7 +795,8 @@ vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID 
     string pivotpoint;
     bool foundpivot = false;
     vector<string> intersectiontask;
-    vector<string> next_wall_hallway;
+    vector<string> next_right_wall_hallway;
+    vector<string> next_left_wall_hallway;
 
     for (int i = 0; i < common_points_12.size(); ++i) {
         for (int j = 0; j < common_points_23.size(); ++j) {
@@ -854,22 +819,23 @@ vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID 
         }
 
         if (index_dir == 0) {
-            next_wall_hallway = getWallPointsTowardsB(OBJ3,OBJ2);
+            next_right_wall_hallway = getWallPointsAwayFromB(OBJ3,OBJ2);
+            next_left_wall_hallway = getWallPointsTowardsB(OBJ3,OBJ2);
             // disp('Corner/intersection: turn right');
             // disp(['Use node: ', shiftedOBJ2{3}, ' as rear wall point']);
             // disp(['Use node: ', shiftedOBJ2{2}, ' as front wall point']);
             // disp(['Use node: ', shiftedOBJ2{1}, ' as pivot']);
             // disp('-------------------------------');
             // Wallpoint rear, wallpoint front, pivoting point
-            intersectiontask = {OBJ2_point_IDs[2], OBJ2_point_IDs[1], next_wall_hallway[1], next_wall_hallway[0], OBJ2_point_IDs[0],"right"};
+            intersectiontask = {OBJ2_point_IDs[2], OBJ2_point_IDs[1], next_left_wall_hallway[1], next_left_wall_hallway[0], OBJ2_point_IDs[0], "right", next_right_wall_hallway[0], next_right_wall_hallway[1]};
         } else if (index_dir == 3) {
-            next_wall_hallway = getWallPointsAwayFromB(OBJ3,OBJ2);
+            next_right_wall_hallway = getWallPointsAwayFromB(OBJ3,OBJ2);
             // disp('Corner/intersection: turn left');
             // disp(['Use node: ', shiftedOBJ2{2}, ' as rear wall point']);
             // disp(['Use node: ', shiftedOBJ2{3}, ' as front wall point']);
             // disp(['Use node: ', shiftedOBJ2{4}, ' as pivot']);
             // disp('-------------------------------');
-            intersectiontask = {OBJ2_point_IDs[1], OBJ2_point_IDs[2], next_wall_hallway[0], next_wall_hallway[1], OBJ2_point_IDs[3],"left"};
+            intersectiontask = {OBJ2_point_IDs[1], OBJ2_point_IDs[2], next_right_wall_hallway[0], next_right_wall_hallway[1], OBJ2_point_IDs[3],"left", next_right_wall_hallway[0], next_right_wall_hallway[1] };
             // Wallpoint rear, wallpoint front, pivoting point
         } else {
             ROS_INFO("Cannot turn around 2nd or 3rd node");
@@ -988,7 +954,7 @@ vector<string> getWalls(int id_OBJ1, int id_OBJ2, int id_OBJ3, vector<AreaQuadID
     return wallsABC;
 }
 
-double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, array<string, 6> task, vector<PointID> pointlist) {
+double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist) {
     // NOT IN LOCAL COORDINATES (YET)
     // Function to determine steering action while rotating around a point
     // aka taking a turn, this time with a sharp angle.
@@ -1186,9 +1152,6 @@ double modf(double x, double y) {
     return m;
 }
 
-template <typename T> int sgn(T val) {
-    return (T(0) < val) - (val < T(0));
-}
 
 string get_date(void) {
    time_t now;

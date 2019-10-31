@@ -20,8 +20,12 @@
   <build_depend>costmap_2d</build_depend>
   <build_depend>maneuver_planner</build_depend>
   <build_depend>ed</build_depend>
+  <build_depend>ed_gui_server</build_depend>
   <build_depend>pluginlib</build_depend>
   <build_depend>nav_core</build_depend>
+  <build_depend>actionlib_msgs</build_depend>
+  <build_depend>ropod_ros_msgs</build_depend>
+  <build_depend>route_planner</build_depend>
   
   
 
@@ -36,6 +40,9 @@
   <run_depend>ed</run_depend>
   <run_depend>pluginlib</run_depend>
   <run_depend>nav_core</run_depend>
+  <run_depend>actionlib_msgs</run_depend>
+  <run_depend>ropod_ros_msgs</run_depend>
+  <run_depend>route_planner</run_depend>
  
   <buildtool_depend>catkin</buildtool_depend>
 
