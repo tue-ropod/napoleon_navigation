@@ -1324,7 +1324,6 @@ void createObstacleBoundingBox()
             }
         }
     }
-    update_obs =  false;
     if( update_obs )
     {
         no_obs = 1;

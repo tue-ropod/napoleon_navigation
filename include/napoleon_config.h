@@ -72,7 +72,7 @@ static constexpr double SIZE_FRONT_ROPOD = ROPOD_LENGTH/2.0;  // How long ropod 
     static constexpr double V_OBS_OVERTAKE_MAX = 0.1;       // Max speed an obstacle can have to overtake is [m/s]
     static constexpr double MIN_DIST_TO_OVERTAKE = 2.5;     // Don't start earlier than x meters to overtake [m]
     // Performance based on position in environment
-    static constexpr double START_STEERING_EARLY = 0.1;     // Start steering earlier by x [m]
+    static constexpr double START_STEERING_EARLY = 0.3;     // Start steering earlier by x [m]
     static constexpr double ROTATED_ENOUGH_TRES = 0.8*M_PI/4;   // Stop turning when within x rad of the new corridor
 #endif
 
