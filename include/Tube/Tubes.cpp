@@ -83,6 +83,9 @@ void Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model
             }
         }
     }
+    if(!tubes.empty()){
+		addPoint(tubes[tubes.size()-1].p2, tubes[tubes.size()-1].width2, 1);
+	}
 }
 
 vector<int> Tubes::getConnectedVertices(ropod_ros_msgs::RoutePlannerResult &route, int a, int s, bool &forward, bool &found){

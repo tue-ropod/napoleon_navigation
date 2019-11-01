@@ -103,7 +103,7 @@ void Model::update(double dt, Communication &comm) {
     if(comm.newOdometry()){
         Pose2D measuredVelocity = comm.measuredVelocity;
         measuredVelocity.transformThis(0,0,pose.a);
-        velocity = velocity*0.7 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a)*0.3;
+        velocity = velocity*0.1 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a)*0.9;
     }
 
     if(applyBrake){

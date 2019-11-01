@@ -7,9 +7,9 @@
 Communication::Communication(ros::NodeHandle nroshndl, bool updatePosition_) {
     updatePosition = updatePosition_;
     if(!updatePosition){initializedPosition = true;}
-    vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+    vel_pub = nroshndl.advertise<geometry_msgs::Twist>("/ropod_tue_2/cmd_vel", 1);
     amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, &Communication::getAmclPoseCallback, this);
-    odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("odom", 100, &Communication::getOdomVelCallback, this);
+    odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod_tue_2/odom", 100, &Communication::getOdomVelCallback, this);
     obstacles_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, &Communication::getObstaclesCallback, this);
     //ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
     ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod/debug_route_plan", 1, &Communication::getDebugRoutePlanCallback, this);
