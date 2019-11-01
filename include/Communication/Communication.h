@@ -31,9 +31,11 @@ public:
     bool positionUpdated = false;
     bool odometryUpdated = false;
     bool initializedPosition = false, initializedOdometry = false, initialized = false;
-    bool updatePosition;
 
-    Communication(ros::NodeHandle nroshndl, bool updatePosition_ = true);
+    bool updatePosition = true;
+    bool communicate = true;
+
+    Communication(ros::NodeHandle nroshndl);
 
     void checkInitialized();
     bool newPosition();

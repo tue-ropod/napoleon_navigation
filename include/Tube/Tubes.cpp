@@ -84,7 +84,8 @@ void Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model
         }
     }
     if(!tubes.empty()){
-		addPoint(tubes[tubes.size()-1].p2, tubes[tubes.size()-1].width2, 1);
+        Vector2D point = (tubes[tubes.size()-1].p2 - tubes[tubes.size()-1].p1).unit()*0.1 + tubes[tubes.size()-1].p2;
+		addPoint(point, tubes[tubes.size()-1].width2, 1);
 	}
 }
 
