@@ -9,7 +9,7 @@ Communication::Communication(ros::NodeHandle nroshndl, bool updatePosition_) {
     if(!updatePosition){initializedPosition = true;}
     vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, &Communication::getAmclPoseCallback, this);
-    odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod_tue_2/odom", 100, &Communication::getOdomVelCallback, this);
+    odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("odom", 100, &Communication::getOdomVelCallback, this);
     obstacles_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, &Communication::getObstaclesCallback, this);
     //ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
     ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod/debug_route_plan", 1, &Communication::getDebugRoutePlanCallback, this);
@@ -67,21 +67,23 @@ void Communication::getObstaclesCallback(const ed_gui_server::objsPosVel::ConstP
     obstacles.obstacles.clear();
     cout << "Obstacles: " << obstacles_msg->objects.size() << endl;
     for(auto & obstacle : obstacles_msg->objects){
-        double x = obstacle.rectangle.pose.position.x;
-        double y = obstacle.rectangle.pose.position.y;
-        double angle = obstacle.rectangle.yaw;
-        Pose2D pose = Pose2D(x, y, angle);
+        if(obstacle.rectangle.probability > obstacle.circle.probability) {
+            double x = obstacle.rectangle.pose.position.x;
+            double y = obstacle.rectangle.pose.position.y;
+            double angle = obstacle.rectangle.yaw;
+            Pose2D pose = Pose2D(x, y, angle);
 
-        Vector2D p1 = Vector2D(-obstacle.rectangle.width/2, -obstacle.rectangle.depth/2);
-        Vector2D p2 = Vector2D(obstacle.rectangle.width/2, -obstacle.rectangle.depth/2);
-        Vector2D p3 = Vector2D(obstacle.rectangle.width/2, obstacle.rectangle.depth/2);
-        Vector2D p4 = Vector2D(-obstacle.rectangle.width/2, obstacle.rectangle.depth/2);
-        Polygon footprint = Polygon({p1, p2, p3, p4}, Closed);
+            Vector2D p1 = Vector2D(-obstacle.rectangle.width / 2, -obstacle.rectangle.depth / 2);
+            Vector2D p2 = Vector2D(obstacle.rectangle.width / 2, -obstacle.rectangle.depth / 2);
+            Vector2D p3 = Vector2D(obstacle.rectangle.width / 2, obstacle.rectangle.depth / 2);
+            Vector2D p4 = Vector2D(-obstacle.rectangle.width / 2, obstacle.rectangle.depth / 2);
+            Polygon footprint = Polygon({p1, p2, p3, p4}, Closed);
 
-        Obstacle obs = Obstacle(footprint, pose, Dynamic);
-        obs.movement = Pose2D(obstacle.rectangle.vel.x, obstacle.rectangle.vel.y, 0);
+            Obstacle obs = Obstacle(footprint, pose, Dynamic);
+            obs.movement = Pose2D(obstacle.rectangle.vel.x, obstacle.rectangle.vel.y, 0);
 
-        obstacles.obstacles.emplace_back(obs);
+            obstacles.obstacles.emplace_back(obs);
+        }
     }
 }
 

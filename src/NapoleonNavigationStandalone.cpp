@@ -9,7 +9,7 @@
 #include <Tube/Tubes.h>
 #include <Visualization/VisualizationOpenCV.h>
 
-VisualizationOpenCV canvas(1000,1000,60);
+VisualizationOpenCV canvas(1000,1000,40);
 
 typedef Vector2D Vec;
 
@@ -25,7 +25,7 @@ int main() {
 
     //Polygon footprint({Vec(0,0), Vec(2,0), Vec(2, 0.2), Vec(2.3,0.2), Vec(2.3,0.8), Vec(2,0.8), Vec(2,1), Vec(0,1)}, Closed, true, Pose2D(1,0.5,0));
     Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.6), Vec(0,0.6)}, Closed, true, Pose2D(0.325,0.3,0));
-    HolonomicModel hmodel(Pose2D(-3.4,-4,M_PI_2), footprint, 1, 0.8, 0.25);
+    HolonomicModel hmodel(Pose2D(-3.4,-4,M_PI_2), footprint, 3, 0.8, 0.25);
 
     Obstacles obstacles;
     obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1.5,1,0)));
@@ -34,7 +34,7 @@ int main() {
     //obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(9,4,0)));
 
     Tubes tubes(Tube(Vec(-3,-6), 2, Vec(-3,-2), 2, 1));
-    tubes.addPoint(Vec(-3,2), 2, 1);
+    tubes.addPoint(Vec(-3,-1), 1, 1);
     tubes.addPoint(Vec(-3,8), 2, 1);
     tubes.addPoint(Vec(8,9), 2, 1);
     tubes.addPoint(Vec(8,3), 1.7, 0.6);
@@ -84,6 +84,7 @@ int main() {
                 case Status_Collision: {cout << "Status Collision" << endl; break;}
                 case Status_Done: {cout << "Status Done" << endl; break;}
             }
+            if(realStatus != Status_Ok) {hmodel.brake();}
         }else{
             hmodel.input(Pose2D(0,0,0), Frame_Robot);
             switch (predictionStatus){
@@ -92,6 +93,7 @@ int main() {
                 case Status_Error: {cout << "Prediction status Error" << endl; break;}
                 case Status_Collision: {cout << "Prediction status Collision" << endl; break;}
             }
+            hmodel.brake();
         }
 
         tubes.showSides(canvas);
