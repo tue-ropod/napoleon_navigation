@@ -77,10 +77,10 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
             int ti = tubes.tubeContainingPoint(vertex, currentTubeIndex);
             if(ti != -1){
                 Tube &currentTube = tubes.tubes[ti];
-                if(ti > currentTubeIndex) currentTubeIndex = ti;
+                currentTubeIndex = ti;
                 Vector2D pointVelocity;
                 int ci = tubes.tubeCornerContainingPoint(vertex, currentTubeIndex);
-                if(ci != -1){
+                if(ci != -1){ //Ropod in corner
                     Vector2D r = tubes.getCornerPoint(ci) - vertex;
                     switch(tubes.getCornerSide(ci)){
                         case Corner_Left:
@@ -94,7 +94,7 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
                     }
                     double tubeWidth = tubes.tubes[ci].width2;
                     pointVelocity = (r/tubeWidth) * maxSpeed * speedScale * currentTube.velocity.length();
-                }else{
+                }else{ //straight ahead
                     pointVelocity = currentTube.velocity * maxSpeed * speedScale;
                 }
                 nVelocityVector++;

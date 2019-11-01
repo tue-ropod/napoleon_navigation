@@ -72,7 +72,8 @@
     </node>
 
     % Launch ED
-   <!-- <node pkg="ed" type="ed" name="ed" args="$(find ropod_navigation_test)/config/brsu-config-ED.yaml"> </node> -->
+<!--    <node pkg="ed" type="ed" name="ed" args="$(find ropod_navigation_test)/config/brsu-config-ED.yaml"> </node>-->
+    <node pkg="ed" type="ed" name="ed" > </node>
 
     <node name="napoleon_navigation" pkg="napoleon_navigation" type="napoleon_navigation" output="screen">
 
@@ -84,12 +85,11 @@
         <param name="default_ropod_load_navigation_param_file" value ="$(find napoleon_navigation)/config/footprint_local_planner_params_ropod_load.yaml"/>
 
         <!-- In Gazebo: -->
-        <remap from="/napoleon_navigation/cmd_vel" to="/load/cmd_vel"/>
+         <remap from="/napoleon_navigation/cmd_vel" to="/load/cmd_vel"/>
         <!-- On ropod: -->
-        <!--<remap from="/napoleon_navigation/cmd_vel" to="/ropod_tue_1/cmd_vel"/>-->
+<!--        <remap from="/napoleon_navigation/cmd_vel" to="/ropod_tue_2/cmd_vel"/>-->
 
         <remap from="odom" to="/load/odom"/>
-
 
 
     </node>

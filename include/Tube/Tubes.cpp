@@ -388,21 +388,18 @@ void Tubes::connectTubes(unsigned int index){
 
 int Tubes::tubeContainingPoint(Vector2D& point, int initialSearchPoint){
     int searchvalue = 0;
-    bool lb = false, ub = false;
-
+    bool lowerBound = false, upperBound = false;
     while(true){
         int i = initialSearchPoint+searchvalue;
-        if(i < 0) lb = true;
-        else if(i >= tubes.size()) ub = true;
+        if(i < 0) lowerBound = true;
+        else if(i >= tubes.size()) upperBound = true;
         else{
             Tube &testtube = tubes[i];
             if(testtube.connectedShape.polygonContainsPoint(point)){
                 return i;
             }
         }
-
-        if(lb && ub) break; // break if index out of bounds
-
+        if(lowerBound && upperBound) break; // break if index out of bounds
         //search around the offset using searchvalue [0 1 -1 2 -2 3 -3 ...]
         if(searchvalue == 0) searchvalue = 1;
         else{
@@ -415,20 +412,17 @@ int Tubes::tubeContainingPoint(Vector2D& point, int initialSearchPoint){
 
 int Tubes::tubeCornerContainingPoint(Vector2D& point, int initialSearchPoint){
     int searchvalue = 0;
-    bool lb = false, ub = false;
-
+    bool lowerBound = false, upperBound = false;
     while(true){
         int i = initialSearchPoint+searchvalue;
-        if(i < 0) lb = true;
-        else if(i >= tubes.size()) ub = true;
+        if(i < 0) lowerBound = true;
+        else if(i >= tubes.size()) upperBound = true;
         else{
             if(getCornerArea(i).polygonContainsPoint(point)){
                 return i;
             }
         }
-
-        if(lb && ub) break; // break if index out of bounds
-
+        if(lowerBound && upperBound) break; // break if index out of bounds
         //search around the offset using searchvalue [0 1 -1 2 -2 3 -3 ...]
         if(searchvalue == 0) searchvalue = 1;
         else{
@@ -445,9 +439,9 @@ Corner Tubes::getCornerSide(unsigned int index) {
         Vector2D v1 = tubes[index].p2 - tubes[index].p1;
         Vector2D v2 = tubes[index+1].p2 - tubes[index+1].p1;
         v2.transformThis(0,0,-v1.angle());
-        if(v2.angle() <= 0){ //right turn
+        if(v2.angle() < -M_PI/32){ //right turn
             side = Corner_Right;
-        }else{
+        }else if(v2.angle() > M_PI/32){
             side = Corner_Left;
         }
     }
@@ -474,24 +468,26 @@ Polygon Tubes::getCornerArea(unsigned int index){
     Polygon cornerArea;
     if(index < tubes.size()-1) {
         Vector2D c = getCornerPoint(index);
-        Vector2D p1, p2, p3, p4;
-        switch(getCornerSide(index)){
-            case Corner_Left:
-                p1 = c;
-                p2 = tubes[index].rightSide.lineProjectionPointConstrained(c);
-                p3 = tubes[index].rightSide.p2;
-                p4 = tubes[index+1].rightSide.lineProjectionPointConstrained(c);
-                break;
-            case Corner_Right:
-                p1 = c;
-                p2 = tubes[index+1].leftSide.lineProjectionPointConstrained(c);
-                p3 = tubes[index].leftSide.p2;
-                p4 = tubes[index].leftSide.lineProjectionPointConstrained(c);
-                break;
-            case Corner_None:
-                break;
+        if(c.valid()) {
+            Vector2D p1, p2, p3, p4;
+            switch (getCornerSide(index)) {
+                case Corner_Left:
+                    p1 = c;
+                    p2 = tubes[index].rightSide.lineProjectionPointConstrained(c);
+                    p3 = tubes[index].rightSide.p2;
+                    p4 = tubes[index + 1].rightSide.lineProjectionPointConstrained(c);
+                    break;
+                case Corner_Right:
+                    p1 = c;
+                    p2 = tubes[index + 1].leftSide.lineProjectionPointConstrained(c);
+                    p3 = tubes[index].leftSide.p2;
+                    p4 = tubes[index].leftSide.lineProjectionPointConstrained(c);
+                    break;
+                case Corner_None:
+                    break;
+            }
+            cornerArea = Polygon({p1, p2, p3, p4});
         }
-        cornerArea = Polygon({p1, p2, p3, p4});
     }
     return cornerArea;
 }

@@ -18,7 +18,6 @@ enum Type {Open = 0, Closed = 1};
 class Polygon{
 public:
     vector<Vector2D> vertices;
-    vector<Line> sides;
     Pose2D middle;
     bool closed;
 
@@ -37,7 +36,6 @@ public:
             middle = Pose2D(m, 0);
         }
         closed = bool(type);
-        sides = getSides();
     }
 
     vector<Line> getSides(){
@@ -55,10 +53,10 @@ public:
         for(auto & vertex : vertices){
             vertex.scaleThis(x, y);
         }
-        sides = getSides();
     }
 
     void dilate(double offset){
+        vector<Line> sides = getSides();
         for(auto & side : sides){
             Vector2D normal = (side.p2 - side.p1).transform(0,0,-M_PI_2).unit();
             side.p1 = side.p1 + normal*offset;
@@ -70,45 +68,37 @@ public:
             Line side2 = sides[(i+1)%sides.size()];
             vertices[(i+1)%sides.size()] = side2.lineProjectionPoint(side1.p2);
         }
-        sides = getSides();
     }
 
-    void transform(double x, double y, double a, bool updateSides = true){
+    void transform(double x, double y, double a){
         middle.transformThis(x, y, 0);
         middle.rotateOrientation(a);
         for(auto & vertex : vertices){
             vertex.transformThis(x, y, 0);
             vertex.transformThis(0, 0, a);
         }
-        if(updateSides) {
-            sides = getSides();
-        }
     }
 
-    void rotateAroundMiddle(double a, bool updateSides = true){
+    void rotateAroundMiddle(double a){
         middle.rotateOrientation(a);
         for(auto & vertex : vertices){
             vertex = vertex - middle;
             vertex.transformThis(0, 0, a);
             vertex = vertex + middle;
         }
-        if(updateSides) {
-            sides = getSides();
-        }
     }
 
     void transformto(Pose2D p){
-        transform(-middle.x, -middle.y, 0, false);
-        rotateAroundMiddle(-middle.a, false);
-        transform(p.x, p.y, 0, false);
-        rotateAroundMiddle(p.a, false);
-        sides = getSides();
+        transform(-middle.x, -middle.y, 0);
+        rotateAroundMiddle(-middle.a);
+        transform(p.x, p.y, 0);
+        rotateAroundMiddle(p.a);
     }
 
     vector<Vector2D> boundingBoxRotated(double angle){
-        rotateAroundMiddle(-angle, false);
+        rotateAroundMiddle(-angle);
         vector<Vector2D> points = boundingBox();
-        rotateAroundMiddle(angle, false);
+        rotateAroundMiddle(angle);
         for(auto &point : points){
             point = point - middle;
             point.transformThis(0, 0, angle);
@@ -145,6 +135,7 @@ public:
             if(point.x > min.x && point.x < max.x && point.y > min.y && point.y < max.y) {
                 int count = 0;
                 Line ray(Vector2D(min.x-1,min.y), point);
+                vector<Line> sides = getSides();
                 for(auto & side : sides){
                     if(side.lineLineCollision(ray)){count++;}
                 }
@@ -155,6 +146,7 @@ public:
     }
 
     bool polygonLineCollision(Line& l){
+        vector<Line> sides = getSides();
         for(auto & side : sides){
             if(side.lineLineCollision(l)){return true;}
         }
@@ -162,6 +154,7 @@ public:
     }
 
     bool polygonPolygonCollision(Polygon& other){
+        vector<Line> sides = getSides();
         for(auto & side : sides){
             if(other.polygonLineCollision(side)){return true;}
         }
@@ -170,6 +163,7 @@ public:
 
     vector<Line> sidesPolygonPolygonCollision(Polygon& other){
         vector<Line> collisionSides;
+        vector<Line> sides = getSides();
         for(auto & side : sides){
             if(other.polygonLineCollision(side)){collisionSides.emplace_back(side);}
         }
@@ -177,6 +171,7 @@ public:
     }
 
     bool polygonInCircle(Circle& c){
+        vector<Line> sides = getSides();
         for(auto & side : sides){
             if(side.lineInCircle(c)){return true;}
         }
@@ -186,13 +181,13 @@ public:
     vector<Vector2D> projectPolygonOnLine(Line& line){
         Vector2D minProjection(0,0), maxProjection(0,0);
         double lineAngle = (line.p2-line.p1).angle();
-        transform(-line.p1.x, -line.p1.y, 0, false);
-        transform(0, 0, -lineAngle, false);
+        transform(-line.p1.x, -line.p1.y, 0);
+        transform(0, 0, -lineAngle);
         vector<Vector2D> bB = boundingBox();
         minProjection = bB[0];
         maxProjection = bB[2];
-        transform(0, 0, lineAngle, false);
-        transform(line.p1.x, line.p1.y, 0, false);
+        transform(0, 0, lineAngle);
+        transform(line.p1.x, line.p1.y, 0);
 
         minProjection.y = 0;
         minProjection.transformThis(0, 0, lineAngle);
@@ -208,13 +203,13 @@ public:
     vector<double> distancePolygonToLineMinMax(Line& line){
         Vector2D minProjection(0,0), maxProjection(0,0);
         double lineAngle = (line.p2-line.p1).angle();
-        transform(-line.p1.x, -line.p1.y, 0, false);
-        transform(0, 0, -lineAngle, false);
+        transform(-line.p1.x, -line.p1.y, 0);
+        transform(0, 0, -lineAngle);
         vector<Vector2D> bB = boundingBox();
         minProjection = bB[0];
         maxProjection = bB[2];
-        transform(0, 0, lineAngle, false);
-        transform(line.p1.x, line.p1.y, 0, false);
+        transform(0, 0, lineAngle);
+        transform(line.p1.x, line.p1.y, 0);
         double min = abs(maxProjection.y) < abs(minProjection.y) ? (maxProjection.y) : (minProjection.y);
         double max = abs(maxProjection.y) > abs(minProjection.y) ? (maxProjection.y) : (minProjection.y);
         vector<double> distances = {min, max};

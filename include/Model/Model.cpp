@@ -52,7 +52,7 @@ void Model::dilateFootprint(double offset){
 }
 
 void Model::changeSpeedScale(double x) {
-    speedScale += x;
+    speedScale = x;
     speedScale = speedScale > 1 ? 1 : speedScale;
     speedScale = speedScale < 0 ? 0 : speedScale;
 }
@@ -73,8 +73,6 @@ void Model::copyState(Model &modelCopy) {
 }
 
 void Model::calculateInputVelocity(double dt){
-
-
     Pose2D acc = (desiredVelocity - velocity)/dt;
     if(acc.length() > maxAcceleration){
         Vector2D scaledAcc = acc.unit()*maxAcceleration;
@@ -134,7 +132,7 @@ void Model::brake(){
 FollowStatus Model::predict(int nScalings, double predictionTime, double minPredictionDistance, double dt, Model &origionalModel, Tubes &tubes, Visualization &canvas) {
     FollowStatus status = Status_Error;
 
-    changeSpeedScale(1/double(nScalings));
+    changeSpeedScale(speedScale*1.1);
     //changeSpeedScale(1);
 
     for(int s = 0; s < nScalings; s++) {
@@ -154,15 +152,15 @@ FollowStatus Model::predict(int nScalings, double predictionTime, double minPred
             percentage = beginPercentage * percentage;
             finalPredictionBias = finalPredictionBias + predictionBiasVelocity * percentage;
             //show(canvas, Color(255,255,255), Thin);
-            if (status != Status_Ok && status != Status_Collision) { break; }
+            if (status != Status_Ok) { break; }
         }
         predictionBiasVelocity = finalPredictionBias;
         show(canvas, Color(255, 255, 255), Thin);
-        if (distance < minPredictionDistance && status != Status_Done) {
+        if (distance < minPredictionDistance && status == Status_Ok) {
             status = Status_ToClose;
         }
         if (status != Status_Ok && status != Status_Done) {
-            changeSpeedScale(-1/double(nScalings));
+            changeSpeedScale(speedScale*0.9);
             if (speedScale == 0) { break; }
         } else { break; }
     }
