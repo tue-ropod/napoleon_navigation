@@ -6,9 +6,9 @@
 <!--    <arg name="map_file" default="$(find ed_object_models)/models/hospital_test_amcl/walls/map_amcl.yaml" />-->
 <!--	<arg name="map_file" default="$(find ropod_navigation_test)/config/amk-f064/map.yaml"/>-->
 <!--    <arg name="map_file" default="/home/cesar/ropod-project-software/catkin_workspace/src/applications/occupancy_grids/tue/lab-level/map.yaml"/>-->
-<!--    <arg name="map_file" default="$(find ed_object_models)/models/tue_hallway_RLtoAL/walls/shape/map.yaml" />-->
+    <arg name="map_file" default="$(find ed_object_models)/models/tue_hallway_RLtoAL/walls/shape/map.yaml" />
 <!--    <arg name="map_file" default="$(find ed_object_models)/models/tue_hallway_RLtoAL/walls/shape/map_2DoorsOpen.yaml" />-->
-    <arg name="map_file" default="$(find ed_object_models)/models/brsu/walls/shape/map.yaml" />
+<!--    <arg name="map_file" default="$(find ed_object_models)/models/brsu/walls/shape/map.yaml" /> -->
 <!--        <arg name="map_file" default="/home/bob/ropod-project-software/catkin_workspace/src/applications/occupancy_grids/brsu/brsu-c-floor0_osm/map.yaml"/>-->
 
    <!-- Run the map server -->
@@ -60,14 +60,14 @@
         <param name="laser_model_type" value="likelihood_field"/>
 
         <!-- initial pose of the robot in TU/e hallway-->
-<!--        <param name="initial_pose_x" value="-1.6"/>-->
-<!--        <param name="initial_pose_y" value="2.2"/>-->
-<!--        <param name="initial_pose_a" value="0"/>-->
+        <param name="initial_pose_x" value="-1.6"/>
+        <param name="initial_pose_y" value="2.2"/>
+        <param name="initial_pose_a" value="0"/>
 
         <!-- initial pose of the robot in BRSU-->
-        <param name="initial_pose_x" value="59.74"/>
-        <param name="initial_pose_y" value="32.36"/>
-        <param name="initial_pose_a" value="-3.14"/>
+        <!--<param name="initial_pose_x" value="59.74"/>-->
+        <!--<param name="initial_pose_y" value="32.36"/>-->
+        <!--<param name="initial_pose_a" value="-3.14"/>-->
 
     </node>
 
@@ -84,11 +84,11 @@
         <param name="default_ropod_load_navigation_param_file" value ="$(find napoleon_navigation)/config/footprint_local_planner_params_ropod_load.yaml"/>
 
         <!-- In Gazebo: -->
-        <remap from="/napoleon_navigation/cmd_vel" to="/load/cmd_vel"/>
+        <!-- <remap from="/napoleon_navigation/cmd_vel" to="/load/cmd_vel"/> -->
         <!-- On ropod: -->
-        <!--<remap from="/napoleon_navigation/cmd_vel" to="/ropod_tue_1/cmd_vel"/>-->
+        <remap from="/napoleon_navigation/cmd_vel" to="/ropod_tue_2/cmd_vel"/>
 
-        <remap from="odom" to="/load/odom"/>
+        <!--<remap from="/ropod_tue_2/odom" to="/load/odom"/>-->
 
 
 
