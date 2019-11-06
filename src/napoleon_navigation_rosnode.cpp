@@ -2095,7 +2095,7 @@ int main(int argc, char** argv)
     unsigned int bufferSize = 2;
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("scan", bufferSize, scanCallback);
 
-    napoleon_planner = new NapoleonPlanner("/ropod/goto");
+    napoleon_planner = new NapoleonPlanner("/napoleon/goto");
     napoleon_planner->start();
     while(nroshndl.ok())
     {
