@@ -1459,104 +1459,12 @@ void visualizeRopodMarkers()
     ropodmarker_pub.publish(vis_points);
 }
 
-// route planner integration
-class NapoleonPlanner
-{
-protected:
-    ros::NodeHandle nh_;
-    actionlib::SimpleActionServer<ropod_ros_msgs::GoToAction> as_;
-    actionlib::SimpleActionClient<ropod_ros_msgs::RoutePlannerAction> ac_;
-    std::string action_name_;
-    ropod_ros_msgs::GoToFeedback feedback_;
-    ropod_ros_msgs::GoToResult result_;
-    ropod_ros_msgs::RoutePlannerResult route_planner_result_;
-    bool status_;
-
-public:
-    NapoleonPlanner(std::string name) :
-    as_(nh_, name, boost::bind(&NapoleonPlanner::executeCB, this, _1), false),
-    action_name_(name), ac_("/route_planner", true), status_(false)
-    {
-    }
-
-    void start()
-    {
-        ROS_INFO("Waiting for route planner action server to start");
-        ac_.waitForServer();
-        ROS_INFO("Connected to route planner action server");
-        // waiting for route planner action server to start
-        as_.start();
-        ROS_INFO("Waiting for GOTO action");
-    }
-
-    ~NapoleonPlanner(void)
-    {
-    }
-
-    bool getStatus()
-    {
-        return status_;
-    }
-
-    void setStatus(bool status)
-    {
-        status_ = status;
-    }
-
-    void setSucceeded()
-    {
-        as_.setSucceeded();
-    }
-
-    void setAborted()
-    {
-        as_.setAborted();
-    }
-
-    ropod_ros_msgs::RoutePlannerResult getPlannerResult()
-    {
-        return route_planner_result_;
-    }
-
-
-    void plannerResultCB(const actionlib::SimpleClientGoalState& state, const ropod_ros_msgs::RoutePlannerResultConstPtr& result)
-    {
-        route_planner_result_ = *result;
-    }
-
-    void executeCB(const ropod_ros_msgs::GoToGoalConstPtr &goal)
-    {
-        std::vector<ropod_ros_msgs::Area> area_list = goal->action.areas;
-        ropod_ros_msgs::RoutePlannerGoal route_planner_goal;
-        route_planner_goal.areas = area_list;
-        ac_.sendGoal(route_planner_goal, boost::bind(&NapoleonPlanner::plannerResultCB, this, _1, _2));
-
-        //wait for the action to return
-        status_ = false;
-        bool finished_before_timeout = ac_.waitForResult(ros::Duration(60.0));
-
-        if (finished_before_timeout)
-        {
-            actionlib::SimpleClientGoalState state = ac_.getState();
-            ROS_INFO("Action finished: %s", state.toString().c_str());
-            status_ = true;
-        }
-        else
-        {
-            ROS_INFO("Action did not finish before the time out.");
-            status_ = false;
-        }
-    }
-};
-ropod_ros_msgs::RoutePlannerResult debug_route_planner_result_;
-NapoleonPlanner* napoleon_planner;
-
 void getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr& result)
 {
-    debug_route_planner_result_ = *result;
-
-    ROS_INFO("new debug plan received");
-    start_navigation = true;
+    // debug_route_planner_result_ = *result;
+    //
+    // ROS_INFO("new debug plan received");
+    // start_navigation = true;
 }
 
 void resetNavigation()
@@ -2016,10 +1924,6 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             {
                 ropod_reached_target = true;
                 ROS_INFO("Ropod has reached its target, yay!");
-
-                // we reset the status so that we wait for another action request
-                napoleon_planner->setStatus(false);
-                napoleon_planner->setSucceeded();
             }
         }
 
@@ -2081,6 +1985,102 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
     myfile.close();
 }
 
+// route planner integration
+class NapoleonPlanner
+{
+protected:
+    ros::NodeHandle nh_;
+    actionlib::SimpleActionServer<ropod_ros_msgs::GoToAction> as_;
+    actionlib::SimpleActionClient<ropod_ros_msgs::RoutePlannerAction> ac_;
+    std::string action_name_;
+    ropod_ros_msgs::GoToFeedback feedback_;
+    ropod_ros_msgs::GoToResult result_;
+    ropod_ros_msgs::RoutePlannerResult route_planner_result_;
+    bool status_;
+    ros::Publisher vel_pub_;
+    ros::Rate napoleon_rate_;
+
+public:
+    NapoleonPlanner(std::string name, ros::Publisher& vel_pub, ros::Rate& napoleon_rate) :
+    as_(nh_, name, boost::bind(&NapoleonPlanner::executeCB, this, _1), false),
+    action_name_(name), ac_("/route_planner", true), status_(false), napoleon_rate_(napoleon_rate)
+    {
+        vel_pub_ = vel_pub;
+    }
+
+    void start()
+    {
+        ROS_INFO("Waiting for route planner action server to start");
+        ac_.waitForServer();
+        ROS_INFO("Connected to route planner action server");
+        // waiting for route planner action server to start
+        as_.start();
+        ROS_INFO("Waiting for GOTO action");
+    }
+
+    ~NapoleonPlanner(void)
+    {
+    }
+
+    bool getStatus()
+    {
+        return status_;
+    }
+
+    void setStatus(bool status)
+    {
+        status_ = status;
+    }
+
+    ropod_ros_msgs::RoutePlannerResult getPlannerResult()
+    {
+        return route_planner_result_;
+    }
+
+
+    void plannerResultCB(const actionlib::SimpleClientGoalState& state, const ropod_ros_msgs::RoutePlannerResultConstPtr& result)
+    {
+        route_planner_result_ = *result;
+    }
+
+    void executeCB(const ropod_ros_msgs::GoToGoalConstPtr &goal)
+    {
+        std::vector<ropod_ros_msgs::Area> area_list = goal->action.areas;
+        ropod_ros_msgs::RoutePlannerGoal route_planner_goal;
+        route_planner_goal.areas = area_list;
+        ac_.sendGoal(route_planner_goal, boost::bind(&NapoleonPlanner::plannerResultCB, this, _1, _2));
+
+        //wait for the action to return
+        status_ = false;
+        bool finished_before_timeout = ac_.waitForResult(ros::Duration(60.0));
+
+        if (finished_before_timeout)
+        {
+            actionlib::SimpleClientGoalState state = ac_.getState();
+            ROS_INFO("Action finished: %s", state.toString().c_str());
+            status_ = true;
+        }
+        else
+        {
+            ROS_INFO("Action did not finish before the time out.");
+            status_ = false;
+        }
+
+        if (status_)
+        {
+            std::vector<ropod_ros_msgs::Area> planner_areas = route_planner_result_.areas;
+
+            ROS_INFO("Got new route; following now");
+            followRoute(planner_areas, vel_pub_, napoleon_rate_);
+
+            status_ = false;
+            as_.setSucceeded();
+        }
+    }
+};
+// ropod_ros_msgs::RoutePlannerResult debug_route_planner_result_;
+NapoleonPlanner* napoleon_planner;
+
 int main(int argc, char** argv)
 {
 
@@ -2106,7 +2106,7 @@ int main(int argc, char** argv)
     unsigned int bufferSize = 2;
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("scan", bufferSize, scanCallback);
 
-    napoleon_planner = new NapoleonPlanner("/napoleon/goto");
+    napoleon_planner = new NapoleonPlanner("/napoleon/goto", vel_pub, rate);
     napoleon_planner->start();
     while(nroshndl.ok())
     {
@@ -2115,10 +2115,12 @@ int main(int argc, char** argv)
         {
             ros::spinOnce();
         }
-        std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner->getPlannerResult().areas;
 
-        ROS_INFO("Got new route; following now");
-        followRoute(planner_areas, vel_pub, rate);
+        ROS_INFO("Received goto action");
+        while(ros::ok() && napoleon_planner->getStatus())
+        {
+            ros::spinOnce();
+        }
     }
 
     //ROS_INFO("Wait for debug plan on topic");
