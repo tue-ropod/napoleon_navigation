@@ -102,16 +102,16 @@ void Model::update(double dt, Communication &comm) {
             poseInitialized = true;
             pose = comm.measuredPose;
         }else{
-//            Pose2D diff = comm.measuredPose - pose;
-//            diff.constrainThis(0.1, 0.1, M_PI/16);
-//            pose = pose + diff;
-            pose = comm.measuredPose;
+            Pose2D diff = comm.measuredPose - pose;
+            diff.constrainThis(0.1, M_PI/16);
+            pose = pose + diff;
+            //pose = comm.measuredPose;
         }
     }
     if(comm.newOdometry()){
         Pose2D measuredVelocity = comm.measuredVelocity;
         measuredVelocity.transformThis(0,0,pose.a);
-        velocity = velocity*0.9 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a)*0.1;
+        velocity = velocity*0.8 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a)*0.2;
     }
 
     if(applyBrake){
@@ -165,7 +165,7 @@ FollowStatus Model::predict(int nScalings, double predictionTime, double minPred
             }
             if (status != Status_Ok) { break; }
         }
-        finalPredictionBias.constrainThis(velocity.toVector(), velocity.a);
+        finalPredictionBias.constrainThis(velocity.toVector().length(), velocity.a);
         predictionBiasVelocity = finalPredictionBias;
         show(canvas, Color(255, 255, 255), Thin);
         if (distance < minPredictionDistance && status == Status_Ok) {

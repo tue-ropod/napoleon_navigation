@@ -123,9 +123,9 @@ struct Vector2D{
         this->x = abs(this->x) > abs(x_) ? (this->x/abs(this->x)) * abs(x_) : this->x;
         this->y = abs(this->y) > abs(y_) ? (this->y/abs(this->y)) * abs(y_) : this->y;
     }
-    void constrainThis(Vector2D v_){
-        if(this->length() > v_.length()){
-            Vector2D newV = this->unit()*v_.length();
+    void constrainThis(double v_){
+        if(this->length() > v_){
+            Vector2D newV = this->unit()*v_;
             this->x = newV.x;
             this->y = newV.y;
         }

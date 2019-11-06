@@ -59,9 +59,9 @@ public:
         this->y = abs(this->y) > abs(y_) ? (this->y/abs(this->y)) * abs(y_) : this->y;
         this->a = abs(this->a) > abs(a_) ? (this->a/abs(this->a)) * abs(a_) : this->a;
     }
-    void constrainThis(Vector2D v_, double a_){
-        if(this->length() > v_.length()){
-            Vector2D newV = this->toVector().unit()*v_.length();
+    void constrainThis(double v_, double a_){
+        if(this->length() > v_){
+            Vector2D newV = this->toVector().unit()*v_;
             this->x = newV.x;
             this->y = newV.y;
         }
