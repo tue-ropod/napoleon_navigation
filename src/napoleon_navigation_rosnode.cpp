@@ -55,6 +55,7 @@ double program_duration = 0, real_time_est = 0;
 bool start_navigation = false;
 geometry_msgs::PoseStamped simple_goal;
 
+bool action_server_enabled =  false;
 bool goal_received = false;
 
 
@@ -1326,6 +1327,7 @@ void createFreeNavigationBoundingBox()
             }
         }
     }
+
     double distance_robot_to_wall = -distToLine(pred_xy_ropod[j-1], rw_p_rear, rw_p_front);
 
     Rectangle local_freeNavArea;
@@ -1342,6 +1344,7 @@ void createFreeNavigationBoundingBox()
     freeNavigationRightLane_C = computeGlobalFreeArea(local_freeNavArea, rw_angle);
 
     if ( freeNavigationRightLane_R.width >= freeNavigationRightLane_C.width)
+
     {
         freeNavigationRightLaneRight = freeNavigationRightLane_R;
     }
@@ -1569,14 +1572,22 @@ public:
     {
     }
 
-    void start()
+    bool start()
     {
         ROS_INFO("Waiting for route planner action server to start");
-        ac_.waitForServer();
-        ROS_INFO("Connected to route planner action server");
-        // waiting for route planner action server to start
-        as_.start();
-        ROS_INFO("Waiting for GOTO action");
+        if(ac_.waitForServer( ros::Duration(5.0)))
+        {
+            ROS_INFO("Connected to route planner action server");
+            // waiting for route planner action server to start
+            as_.start();
+            ROS_INFO("Waiting for GOTO action");
+            return true;
+        }
+        else
+        {
+            ROS_INFO("Server not started. Navigation still available via topic");
+            return false;
+        }
     }
 
     ~NapoleonPlanner(void)
@@ -2100,7 +2111,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                 ROS_INFO("Ropod has reached its target, yay!");
 
                 // we reset the status so that we wait for another action request
-                napoleon_planner->setStatus(false);
+                if(action_server_enabled) napoleon_planner->setStatus(false);
             }
         }
 
@@ -2189,38 +2200,27 @@ int main(int argc, char** argv)
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("scan", bufferSize, scanCallback);
 
     napoleon_planner = new NapoleonPlanner("/ropod/goto");
-    napoleon_planner->start();
+    action_server_enabled = napoleon_planner->start();
+    if(action_server_enabled) ROS_INFO("Wait for goto action");
+    std::vector<ropod_ros_msgs::Area> planner_areas;
     while(nroshndl.ok())
     {
-        ROS_INFO("Wait for goto action");
-        while(ros::ok() && !napoleon_planner->getStatus())
+        if(action_server_enabled && napoleon_planner->getStatus())
         {
-            ros::spinOnce();
+            std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner->getPlannerResult().areas;
+            ROS_INFO("Got new route; following now");
+            followRoute(planner_areas, vel_pub, rate);
         }
-        std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner->getPlannerResult().areas;
-
-        ROS_INFO("Got new route; following now");
-        followRoute(planner_areas, vel_pub, rate);
+        
+        if(start_navigation)
+        {
+            std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
+            ROS_INFO("Got new route via debug topic; following now");
+            followRoute(planner_areas, vel_pub, rate);
+            start_navigation =  false;            
+        }
+        ros::spinOnce();
     }
-
-
-    //ROS_INFO("Wait for debug plan on topic");
-    //while(ros::ok())
-    //{
-        //if(start_navigation)
-        //{
-            //break;
-        //}
-        //ros::spinOnce();
-    //}
-    //std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
-    //ROS_INFO("Got new route; following now");
-    //followRoute(planner_areas, vel_pub, rate);
-
-    // TODO: Make action serve and topic work non-blocking. For now I placed it here for not forgetting to change the laser topic as well
-
-
-
 
     return 0;
 }
