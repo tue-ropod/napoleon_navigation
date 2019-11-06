@@ -1503,6 +1503,16 @@ public:
         status_ = status;
     }
 
+    void setSucceeded()
+    {
+        as_.setSucceeded();
+    }
+
+    void setAborted()
+    {
+        as_.setAborted();
+    }
+
     ropod_ros_msgs::RoutePlannerResult getPlannerResult()
     {
         return route_planner_result_;
@@ -2009,6 +2019,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
 
                 // we reset the status so that we wait for another action request
                 napoleon_planner->setStatus(false);
+                napoleon_planner->setSucceeded();
             }
         }
 
