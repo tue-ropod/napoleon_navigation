@@ -54,6 +54,19 @@ public:
     Vector2D toVector()const{
         return {x,y};
     }
+    void constrainThis(double x_, double y_, double a_){
+        this->x = abs(this->x) > abs(x_) ? (this->x/abs(this->x)) * abs(x_) : this->x;
+        this->y = abs(this->y) > abs(y_) ? (this->y/abs(this->y)) * abs(y_) : this->y;
+        this->a = abs(this->a) > abs(a_) ? (this->a/abs(this->a)) * abs(a_) : this->a;
+    }
+    void constrainThis(Vector2D v_, double a_){
+        if(this->length() > v_.length()){
+            Vector2D newV = this->toVector().unit()*v_.length();
+            this->x = newV.x;
+            this->y = newV.y;
+        }
+        this->a = abs(this->a) > abs(a_) ? (this->a/abs(this->a)) * abs(a_) : this->a;
+    }
 //    void constrainAngle_Zero_TwoPi(){
 //        a = fmod(a, M_PI*2);
 //        if (a < 0) a += M_PI*2;

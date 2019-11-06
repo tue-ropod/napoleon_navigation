@@ -24,7 +24,7 @@
 class Tubes;
 
 enum Frame {Frame_Robot, Frame_World};
-enum FollowStatus {Status_Ok, Status_Collision, Status_Stuck, Status_Error, Status_Done, Status_ToClose};
+enum FollowStatus {Status_Ok, Status_ObstacleCollision, Status_Stuck, Status_Error, Status_Done, Status_ShortPredictionDistance, Status_OutsideTube};
 
 class Model {
 protected:
@@ -35,21 +35,17 @@ public:
     double maxAcceleration;
     double maxRotationalSpeed;
     double maxRotationalAcceleration;
-    double footprintClearance = 0.03;
+    double footprintClearance = 0.05;
     bool applyBrake = false;
+    bool poseInitialized = false;
 
     int currentTubeIndex;
     Polygon footprint;
     Polygon dilatedFootprint;
     Pose2D pose, velocity, inputVelocity, desiredVelocity, predictionBiasVelocity = Pose2D(0,0,0);
 
-    Circle scanradius;
-    double footprintMultiplier = 1.1;
-    double footprintscalex = 1, footprintscaley = 1;
-
     Model(Pose2D pose_, Polygon footprint_, double maxSpeed_, double maxAcceleration_, double wheelDistanceToMiddle_);
-    bool collision(Obstacle& o);
-    void scaleFootprint(double x, double y);
+    bool collision(Obstacles& o);
     void dilateFootprint(double offset);
     void update(double dt, Communication &comm);
     void brake();
@@ -57,9 +53,11 @@ public:
     void changeSpeedScale(double x);
     void copySettings(Model &modelCopy);
     void copyState(Model &modelCopy);
-    double minWidth();
-    double maxWidth();
-    FollowStatus predict(int nScalings, double predictionTime, double minPredictionDistance, double dt, Model &origionalModel, Tubes &tubes, Visualization &canvas);
+    double width();
+    double length();
+    double turnWidth();
+    double brakeDistance();
+    FollowStatus predict(int nScalings, double predictionTime, double minPredictionDistance, double dt, Model &origionalModel, Tubes &tubes, Obstacles &obstacles, Visualization &canvas);
     void showCommunicationInput(Visualization& canvas, Color c, int drawstyle, Communication &comm);
 
     virtual void show(Visualization& canvas, Color c, int drawstyle);

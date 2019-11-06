@@ -119,6 +119,17 @@ struct Vector2D{
         v.y = y * y_;
         return v;
     }
+    void constrainThis(double x_, double y_){
+        this->x = abs(this->x) > abs(x_) ? (this->x/abs(this->x)) * abs(x_) : this->x;
+        this->y = abs(this->y) > abs(y_) ? (this->y/abs(this->y)) * abs(y_) : this->y;
+    }
+    void constrainThis(Vector2D v_){
+        if(this->length() > v_.length()){
+            Vector2D newV = this->unit()*v_.length();
+            this->x = newV.x;
+            this->y = newV.y;
+        }
+    }
     bool valid()const{
         return !(isnan(x) || isnan(y) || isinf(x) || isinf(y));
     }
