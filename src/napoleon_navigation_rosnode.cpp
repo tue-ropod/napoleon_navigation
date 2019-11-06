@@ -43,8 +43,12 @@ double this_amcl_x = 0, this_amcl_y = 0, quaternion_x = 0, quaternion_y = 0, qua
 double odom_xdot_ropod_global = 0, odom_ydot_ropod_global = 0, odom_thetadot_global = 0, odom_phi_local = 0, odom_phi_global = 0, odom_vropod_global = 0;
 int no_obs = 0;
 ed_gui_server::objPosVel current_obstacle;
-double obs_theta;
+double obs_theta = 0.0;
 Point obs_center_global;
+Rectangle freeNavigationRightLaneRight;
+Rectangle freeNavigationLeftLaneLeft;
+Rectangle freeNavigationCenter;
+double steering_offset;
 double program_duration = 0, real_time_est = 0;
 
 //std::vector<geometry_msgs::PoseStamped> global_path;
@@ -232,7 +236,7 @@ void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ro
     //ROS_INFO_STREAM("showWallPoints (" << local_wallpoint_front.x  << ", " << local_wallpoint_front.y << "), ("
     //        << local_wallpoint_rear.x << ", " << local_wallpoint_rear.y << ")");
     visualization_msgs::Marker vis_wall;
-    vis_wall.header.frame_id = "ropod_tue_2/base_link";
+    vis_wall.header.frame_id = "ropod/base_link";
     vis_wall.header.stamp = ros::Time::now();
     // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
     vis_wall.action = visualization_msgs::Marker::ADD;
@@ -572,94 +576,6 @@ void initializeAssignment()
 }
 
 
-void considerOvertaking()
-{
-    // Consider overtaking.
-    // Cesar -> TODO: Because of the changes to support consecutive hallway areas, this part still needs to be adapted
-    // Cesar -> TODO: The contains function should consider not only the center but all corners. Also how to deal with multiple obstacles?
-    overtake_on_current_hallway = false;
-    if (u < ka_max-1 && no_obs > 0) {
-        if(j==1)printf("Areas type curr: %s\n",curr_area.type.c_str());
-        if(curr_area.type == "hallway"){
-            if(curr_area.contains(obs_center_global) || next_area.contains(obs_center_global) || (next_second_area.contains(obs_center_global) && next_second_area.type == "hallway")){
-                current_hallway = curr_area;
-                current_hallway_task = task1;
-                overtake_on_current_hallway = true;
-                // This strategy only allows to overtake 1 obstacle
-            }
-        }
-    }
-}
-
-
-void overtakeStateMachine()
-{
-    obs_in_ropod_frame_pos = coordGlobalToRopod(obs_center_global, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-    v_obs_sq = current_obstacle.rectangle.vel.x*current_obstacle.rectangle.vel.x+current_obstacle.rectangle.vel.y*current_obstacle.rectangle.vel.y;
-    if ((v_obs_sq < V_OBS_OVERTAKE_MAX*V_OBS_OVERTAKE_MAX) && obs_in_ropod_frame_pos.x > 0) {
-        if (overtake_on_current_hallway) {
-            rw_p_rear = getPointByID(current_hallway_task[0],pointlist);
-            rw_p_front = getPointByID(current_hallway_task[1],pointlist);
-            cur_obj = current_hallway;
-            areaIDs = cur_obj.getPointIDs();
-            ind = 0;
-            qmax = areaIDs.size();
-            for (int q = 0; q < qmax; ++q) {
-                if (areaIDs[q].compare(rw_p_rear.id) == 0) {
-                    ind = q;
-                }
-            }
-            rotate(areaIDs.begin(), areaIDs.begin() + ind, areaIDs.end());
-            lw_p_rear = getPointByID(areaIDs[3],pointlist);
-            lw_p_front = getPointByID(areaIDs[2],pointlist);
-        }
-        // TODO: Invlude in palnner left walls! so we can also consider them while overtaking
-        space_left = 100.0; //distToSegment(obs_center_global,lw_p_rear,lw_p_front);
-        space_right = fmax(-distToLine(obs_center_global,rw_p_rear,rw_p_front), 0.0);
-        // TODO: for now obstacle angle is aligned with wall (from bounding box) So only width is looked at
-        space_left = space_left-current_obstacle.rectangle.width/2;
-        space_right = space_right-current_obstacle.rectangle.width/2;
-
-        if (space_right > TUBE_WIDTH_C) {
-            if (j == 1) {
-                ROS_INFO("No overtake necessary, passing on right should be possible");
-            }
-        } else if (space_right > 2*(SIZE_SIDE+OBS_AVOID_MARGIN)) {
-            // Same state, but change tube width so ropod will
-            // fit through space right
-            pred_tube_width[j] = space_right;
-            if (j == 1) {
-                ROS_INFO("No overtake necessary, but tube size scaled down");
-            }
-        } else if (space_left > 2*(SIZE_SIDE+ENV_TRNS_SIZE)+ENV_TCTW_SIZE) {
-            if (j == 1) {
-                ROS_INFO("Can overtake on left side, there should be enough space there");
-            }
-            // Start overtake
-            if (space_left < TUBE_WIDTH_C) {
-                if (obs_in_ropod_frame_pos.x < MIN_DIST_TO_OVERTAKE && abs(obs_in_ropod_frame_pos.y) < MIN_DIST_TO_OVERTAKE) {
-                    if (j == 1) ROS_INFO("Tight overtake");
-                    pred_state[j] = TIGHT_OVERTAKE;
-                    pred_tube_width[j] = 2*(SIZE_SIDE+ENV_TCTW_SIZE+OBS_AVOID_MARGIN);
-                }
-            } else {
-                if (obs_in_ropod_frame_pos.x < MIN_DIST_TO_OVERTAKE && abs(obs_in_ropod_frame_pos.y) < MIN_DIST_TO_OVERTAKE) {
-                    if (j == 1) ROS_INFO("Spacious overtake");
-                    pred_state[j] = SPACIOUS_OVERTAKE;
-                    // TODO: for now obstacle angle is aligned with wall (from bounding box) So only width is looked at
-                    shift_wall = space_right+current_obstacle.rectangle.width+OBS_AVOID_MARGIN;
-                    pred_tube_width[j] = TUBE_WIDTH_C;
-                }
-            }
-        } else {
-            if (j == 1) {
-                ROS_INFO("No overtake possible, stuck behind this obstacle");
-            }
-        }
-    }
-
-}
-
 
 /**
  * Update areas and features (corner pivot clocations, walls, etc)
@@ -740,10 +656,9 @@ void updateAreasAndFeatures()
 void updateStateAndTask()
 {
 
-
     // Taking a turn on an intersection
     if (!task2[5].empty()) {
-        if(j==1)printf("cur_next_hallway_angle %f \n",cur_next_hallway_angle*180/3.1416);
+ 
         //printf("Ropod entry hall task2[5] non empty: %d\n",(int)pred_ropod_on_entry_hall[j]);
         if (pred_ropod_on_entry_hall[j] && (pred_state[prevstate] == CRUSING || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == TIGHT_OVERTAKE) ){
             pred_state[j] = CRUSING;
@@ -789,12 +704,30 @@ void updateStateAndTask()
             // If in entry and the y position of the ropod exceeds the y
             // position of the intersection
             pred_state[j] = ACCELERATE_ON_INTERSECTION;
+            PointID point_right_entry_next_wall = getPointByID(task2[2],pointlist);
+            point_pivot = getPointByID(task2[4],pointlist);
+            
+            double standard_steering_offset;
+            // TODO: change calculation to perpendicular distances
+            if(task2[5] == "right")
+            {
+                standard_steering_offset = 0.0;
+            }
+            else
+            {
+                standard_steering_offset = fmin( 0.0, fabs(cur_pivot_local.y)
+                                  - (sqrt(dist2(getPoint(point_right_entry_next_wall), getPoint(point_pivot))) - TUBE_WIDTH_C/2.0)
+                                  ) + ROPOD_TO_AX;
+            }
+                            
+            steering_offset = START_STEERING_EARLY + standard_steering_offset;
 
-        } else if (cur_pivot_local.x <= SIZE_FRONT_RAX + START_STEERING_EARLY && pred_state[prevstate] == ACCELERATE_ON_INTERSECTION) {
+
+        } else if (cur_pivot_local.x <= SIZE_FRONT_RAX + steering_offset && pred_state[prevstate] == ACCELERATE_ON_INTERSECTION) {
             // If middle of vehicle is on y height of pivot
             pred_state[j] = ALIGN_AXIS_AT_INTERSECTION;
 
-        } else if (cur_pivot_local.x <= -ROPOD_TO_AX+START_STEERING_EARLY && pred_state[prevstate] == ALIGN_AXIS_AT_INTERSECTION) {
+        } else if (cur_pivot_local.x <= -ROPOD_TO_AX + steering_offset && pred_state[prevstate] == ALIGN_AXIS_AT_INTERSECTION) {
             // If rearaxle is aligned with the pivot minus sse
             if(j==1)printf("Turning on  u = %d\n",u+1);
             pred_state[j] = TURNING;
@@ -884,7 +817,7 @@ void updateStateAndTask()
             // position of the entry
             if(j==1)printf("Entry detected to straight intersection u = %d\n",u);
             pred_state[j] = ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION;
-        } else if (current_inter_rear_wall_local.x < SIZE_FRONT_ROPOD+START_STEERING_EARLY && pred_state[prevstate] == ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION) {
+        } else if (current_inter_rear_wall_local.x < SIZE_FRONT_ROPOD + steering_offset && pred_state[prevstate] == ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION) {
             // If in entry and the y position of the ropod exceeds the y
             // position of the intersection
             if(j==1)printf("Staright on u = %d\n",u+1);
@@ -997,7 +930,8 @@ void updateStateAndTask()
 
 ros::Publisher mapmarker_pub;
 ros::Publisher wallmarker_pub;
-ros::Publisher obsboxmarker_pub;
+ros::Publisher freeAreaOR_marker_pub;
+ros::Publisher freeAreaOL_marker_pub;
 /**
  * Compute steering and default forward acceleration based on computed state and local features
  * */
@@ -1054,7 +988,6 @@ void computeSteeringAndVelocity()
             v_des = V_OVERTAKE;
         } else if (pred_state[j] == SPACIOUS_OVERTAKE) { // Spacious overtake
             if(j==1) printf("SPACIOUS_OVERTAKE\n");
-            if (j == 1) printf("space_right obstacle %f\n",space_right);
 
             point_rear = getPointByID(task1[0],pointlist);
             point_front = getPointByID(task1[1],pointlist);
@@ -1077,7 +1010,7 @@ void computeSteeringAndVelocity()
             if(j==1) printf("DECREASE CARROT\n");
             carrot_length = 0.3*CARROT_LENGTH; // this increases sharpness of corrections
         }
-        
+
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], carrot_length, FEELER_SIZE );
     } else if (pred_state[j] == ENTRY_BEFORE_TURN_ON_INTERSECTION || pred_state[j] == ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION) {
         if(j==1) printf("ENTRY_BEFORE_INTERSECTION\n");
@@ -1259,20 +1192,78 @@ void simulateRobotDuringCurrentPredictionStep()
     }
 }
 
+Rectangle computeGlobalFreeArea(Rectangle local_freeNavArea, double rw_angle)
+{
+    Rectangle freeNavArea;
+    freeNavArea.x = pred_xy_ropod[j-1].x + local_freeNavArea.x * cos(rw_angle)- local_freeNavArea.y * sin(rw_angle);
+    freeNavArea.y = pred_xy_ropod[j-1].y + local_freeNavArea.x * sin(rw_angle)+ local_freeNavArea.y * cos(rw_angle);
+    freeNavArea.width = local_freeNavArea.width;
+    freeNavArea.depth = local_freeNavArea.depth;
+    return freeNavArea;
+}
+
+void visualizeGlobalFreeArea(Rectangle freeNavArea, double rw_angle, int vis_id)
+{
+     if(j==1)
+    {
+        visualization_msgs::Marker vis_free_Area;
+        vis_free_Area.header.frame_id = "/map";
+        vis_free_Area.header.stamp = ros::Time::now();
+        // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
+        vis_free_Area.action = visualization_msgs::Marker::ADD;
+        vis_free_Area.pose.orientation.w = 1.0;
+        vis_free_Area.id = vis_id;
+        if(vis_id == 100)
+        {
+            vis_free_Area.color.r = 0.1;
+            vis_free_Area.color.g = 0.9;
+            vis_free_Area.color.b = 0.1;
+        }
+        else
+        {
+            vis_free_Area.color.r = 0.9;
+            vis_free_Area.color.g = 0.1;
+            vis_free_Area.color.b = 0.1;
+        } 
+        vis_free_Area.color.a = 0.7;
+
+        vis_free_Area.type = visualization_msgs::Marker::LINE_STRIP;
+        vis_free_Area.scale.x = 0.02;
+        vis_free_Area.scale.y = 0.02;
+        geometry_msgs::Point area_corner;
+
+        vis_free_Area.points.clear();
+        area_corner.x =  freeNavArea.x + (0.5*freeNavArea.depth*cos(rw_angle) - 0.5*freeNavArea.width*sin(rw_angle));
+        area_corner.y =  freeNavArea.y + (0.5*freeNavArea.depth*sin(rw_angle) + 0.5*freeNavArea.width*cos(rw_angle));
+        vis_free_Area.points.push_back(area_corner);
+        area_corner.x =  freeNavArea.x + (0.5*freeNavArea.depth*cos(rw_angle) + 0.5*freeNavArea.width*sin(rw_angle));
+        area_corner.y =  freeNavArea.y + (0.5*freeNavArea.depth*sin(rw_angle) - 0.5*freeNavArea.width*cos(rw_angle));
+        vis_free_Area.points.push_back(area_corner);
+        area_corner.x =  freeNavArea.x + (-0.5*freeNavArea.depth*cos(rw_angle) + 0.5*freeNavArea.width*sin(rw_angle));
+        area_corner.y =  freeNavArea.y + (-0.5*freeNavArea.depth*sin(rw_angle) - 0.5*freeNavArea.width*cos(rw_angle));
+        vis_free_Area.points.push_back(area_corner);
+        area_corner.x =  freeNavArea.x + (-0.5*freeNavArea.depth*cos(rw_angle) - 0.5*freeNavArea.width*sin(rw_angle));
+        area_corner.y =  freeNavArea.y + (-0.5*freeNavArea.depth*sin(rw_angle) + 0.5*freeNavArea.width*cos(rw_angle));
+        vis_free_Area.points.push_back(area_corner);
+        area_corner.x =  freeNavArea.x + (0.5*freeNavArea.depth*cos(rw_angle) - 0.5*freeNavArea.width*sin(rw_angle));
+        area_corner.y =  freeNavArea.y + (0.5*freeNavArea.depth*sin(rw_angle) + 0.5*freeNavArea.width*cos(rw_angle));
+        vis_free_Area.points.push_back(area_corner);
+
+
+        freeAreaOR_marker_pub.publish(vis_free_Area);
+
+    }
+}
+
 /**
  * Use laser points to create bounding box
- * Feed the data into a virtual obstacle
  * */
-void createObstacleBoundingBox()
+void createFreeNavigationBoundingBox()
 {
+    double minFreeSpaceDepth = (ROPOD_TO_AX + SIZE_FRONT_ROPOD + MIN_DIST_TO_OVERTAKE); // TODO: Add later + ROPOD_LENGTH + OBS_AVOID_MARGIN_FRONT so robot fits also while overtaking?
     double distance_point_to_line_max = 0;
     double distance_point_to_line_min = 100.0;
-    double distance_point_to_robot_max = -(ROPOD_TO_AX+SIZE_REAR);
-    double distance_point_to_robot_min = MIN_DIST_TO_OVERTAKE+SIZE_FRONT_ROPOD;
     double distance_point_to_line;
-    Point local_robot_wall_obstacle_ul;
-    Point local_robot_wall_obstacle_br;
-    bool update_obs = false;
     no_obs = 0;
 
     //if(curr_area.type != "hallway")
@@ -1281,104 +1272,193 @@ void createObstacleBoundingBox()
     rw_p_front = getPointByID(task1[1],pointlist);
     double rw_angle = atan2(rw_p_front.y-rw_p_rear.y,rw_p_front.x-rw_p_rear.x);
 
-    current_obstacle.rectangle.width = 0;
-    current_obstacle.rectangle.depth = 0;
-    current_obstacle.rectangle.pose.position.x = 0;
-    current_obstacle.rectangle.pose.position.y = 0;
-    current_obstacle.rectangle.vel.x = 0;
-    current_obstacle.rectangle.vel.y = 0;
+    double right_lane_space_left = TUBE_WIDTH_C;
+    double right_lane_space_right = TUBE_WIDTH_C;
+    double right_lane_space_center_left = 0.5*TUBE_WIDTH_C;
+    double right_lane_space_center_right = 0.5*TUBE_WIDTH_C;
+    Rectangle freeNavigationRightLane_R;
+    Rectangle freeNavigationRightLane_C;
+
+    double left_lane_space_left = TUBE_WIDTH_C;
+    double left_lane_space_right = TUBE_WIDTH_C;
+    double left_lane_space_center_left = 0.5*TUBE_WIDTH_C;
+    double left_lane_space_center_right = 0.5*TUBE_WIDTH_C;
+    Rectangle freeNavigationLeftLane_C;
+    Rectangle freeNavigationLeftLane_L;
 
     for(unsigned int iScan = 0; iScan < laser_meas_points.size(); iScan++)
     {
         Point laser_point(laser_meas_points[iScan].x, laser_meas_points[iScan].y);
         Point local_robot_wall_laser_point = coordGlobalToRopod(laser_point, pred_xy_ropod[j-1], rw_angle);
-        distance_point_to_line = -distToLine(laser_point, rw_p_rear, rw_p_front);
-        // consider only points that are in front of ropod up to certain distance
-        if( local_robot_wall_laser_point.x < (MIN_DIST_TO_OVERTAKE+SIZE_FRONT_ROPOD+1.0) && local_robot_wall_laser_point.x > -(ROPOD_TO_AX+SIZE_REAR)
-            && distance_point_to_line > 0 && distance_point_to_line < 2.0*(ENV_TCTW_SIZE+ENV_TRNS_SIZE+SIZE_SIDE+OBS_AVOID_MARGIN) )
+        distance_point_to_line = -perpDistToSegment(laser_point, rw_p_rear, rw_p_front);
+        // consider only points within defined areas
+        if ( curr_area.type == "hallway"
+        || ( next_area.type == "hallway" && isPointOnLeftSide(task2[0], task2[1], pointlist, laser_point, 2.0*TUBE_WIDTH_C) )
+        || ( next_second_area.type == "hallway" ) && isPointOnLeftSide(task3[0], task3[1], pointlist, laser_point, 2.0*TUBE_WIDTH_C) )
         {
-            update_obs =  true;
-            // update upperleft corner
-            if( distance_point_to_line > distance_point_to_line_max )
+            if(distance_point_to_line > 0 && distance_point_to_line < 2.0*TUBE_WIDTH_C && local_robot_wall_laser_point.x > (-ROPOD_TO_AX)  && local_robot_wall_laser_point.x < minFreeSpaceDepth)
             {
-                distance_point_to_line_max = distance_point_to_line ;
-                local_robot_wall_obstacle_ul.y = local_robot_wall_laser_point.y;
-            }
-            // update bottom right corner
-            if( distance_point_to_line < distance_point_to_line_min )
-            {
-                distance_point_to_line_min = distance_point_to_line ;
-                local_robot_wall_obstacle_br.y = local_robot_wall_laser_point.y;
-            }
-            // update upperleft corner
-            if( local_robot_wall_laser_point.x > distance_point_to_robot_max )
-            {
-                distance_point_to_robot_max = local_robot_wall_laser_point.x;
-                local_robot_wall_obstacle_ul.x = local_robot_wall_laser_point.x;
-            }
-            // update bottom right corner
-            if( local_robot_wall_laser_point.x < distance_point_to_robot_min )
-            {
-                distance_point_to_robot_min = local_robot_wall_laser_point.x;
-                local_robot_wall_obstacle_br.x = local_robot_wall_laser_point.x;
+                // Process right lane
+                if(distance_point_to_line < TUBE_WIDTH_C)
+                {
+                    if( (TUBE_WIDTH_C - distance_point_to_line) < right_lane_space_left)
+                        right_lane_space_left = (TUBE_WIDTH_C - distance_point_to_line);
+                    if( distance_point_to_line < right_lane_space_right)
+                        right_lane_space_right = distance_point_to_line;
+                    if( distance_point_to_line < (0.5*TUBE_WIDTH_C)  && (0.5*TUBE_WIDTH_C - distance_point_to_line) < right_lane_space_center_right )
+                        right_lane_space_center_right = (0.5*TUBE_WIDTH_C - distance_point_to_line);
+                    if( distance_point_to_line >= (0.5*TUBE_WIDTH_C) && (distance_point_to_line - 0.5*TUBE_WIDTH_C) <   right_lane_space_center_left )
+                        right_lane_space_center_left = (distance_point_to_line - 0.5*TUBE_WIDTH_C);
+                }
+                 // Process left lane
+                else if(distance_point_to_line < 2*TUBE_WIDTH_C)
+                {
+                    if( (2*TUBE_WIDTH_C - distance_point_to_line) < left_lane_space_left )
+                        left_lane_space_left = (2*TUBE_WIDTH_C - distance_point_to_line);
+                    if( (distance_point_to_line - TUBE_WIDTH_C) < left_lane_space_right )
+                        left_lane_space_right = (distance_point_to_line - TUBE_WIDTH_C);
+                    if( distance_point_to_line < (1.5*TUBE_WIDTH_C)  && (1.5*TUBE_WIDTH_C - distance_point_to_line) < left_lane_space_center_right )
+                        left_lane_space_center_right = (1.5*TUBE_WIDTH_C - distance_point_to_line);
+                    if( distance_point_to_line >= (1.5*TUBE_WIDTH_C) && (distance_point_to_line - 1.5*TUBE_WIDTH_C) <   left_lane_space_center_left )
+                        left_lane_space_center_left = (distance_point_to_line - 1.5*TUBE_WIDTH_C);
+                }
+
             }
         }
     }
-    update_obs =  false;
-    if( update_obs )
+    double distance_robot_to_wall = -distToLine(pred_xy_ropod[j-1], rw_p_rear, rw_p_front);
+
+    Rectangle local_freeNavArea;
+    local_freeNavArea.width = right_lane_space_right;
+    local_freeNavArea.depth = minFreeSpaceDepth;
+    local_freeNavArea.x = 0.5*local_freeNavArea.depth-ROPOD_TO_AX;
+    local_freeNavArea.y = 0.5*local_freeNavArea.width - distance_robot_to_wall;
+    freeNavigationRightLane_R = computeGlobalFreeArea(local_freeNavArea, rw_angle);
+
+    local_freeNavArea.width = right_lane_space_center_left + right_lane_space_center_right;
+    local_freeNavArea.depth = minFreeSpaceDepth;
+    local_freeNavArea.x = 0.5*local_freeNavArea.depth-ROPOD_TO_AX;
+    local_freeNavArea.y = 0.5*local_freeNavArea.width - distance_robot_to_wall + (0.5*TUBE_WIDTH_C - right_lane_space_center_right);
+    freeNavigationRightLane_C = computeGlobalFreeArea(local_freeNavArea, rw_angle);
+
+    if ( freeNavigationRightLane_R.width >= freeNavigationRightLane_C.width)
     {
-        no_obs = 1;
-        current_obstacle.rectangle.width = fabs(local_robot_wall_obstacle_ul.y - local_robot_wall_obstacle_br.y);
-        current_obstacle.rectangle.depth = fabs(local_robot_wall_obstacle_ul.x - local_robot_wall_obstacle_br.x);
-        Point obs_center_local_robot_wall;
-        obs_center_local_robot_wall.x = 0.5*(local_robot_wall_obstacle_ul.x + local_robot_wall_obstacle_br.x);
-        obs_center_local_robot_wall.y = 0.5*(local_robot_wall_obstacle_ul.y + local_robot_wall_obstacle_br.y);
+        freeNavigationRightLaneRight = freeNavigationRightLane_R;
+    }
+    else
+    {
+        freeNavigationRightLaneRight = freeNavigationRightLane_C;
+    }
 
-        obs_center_global.x = pred_xy_ropod[j-1].x + obs_center_local_robot_wall.x * cos(rw_angle)- obs_center_local_robot_wall.y * sin(rw_angle);
-        obs_center_global.y = pred_xy_ropod[j-1].y + obs_center_local_robot_wall.x * sin(rw_angle)+ obs_center_local_robot_wall.y * cos(rw_angle);
-        if(j==1)
-        {
-            visualization_msgs::Marker vis_obsbox;
-            vis_obsbox.header.frame_id = "/map";
-            vis_obsbox.header.stamp = ros::Time::now();
-            // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
-            vis_obsbox.action = visualization_msgs::Marker::ADD;
-            vis_obsbox.pose.orientation.w = 1.0;
-            vis_obsbox.id = 100;
-            vis_obsbox.color.a = 0.7;
-            vis_obsbox.color.r = 0.9;
-            vis_obsbox.color.g = 0.1;
-            vis_obsbox.color.b = 0.1;
-            vis_obsbox.type = visualization_msgs::Marker::LINE_STRIP;
-            vis_obsbox.scale.x = 0.3;
-            vis_obsbox.scale.y = 0.3;
-            geometry_msgs::Point obs_corner;
+    visualizeGlobalFreeArea(freeNavigationRightLaneRight, rw_angle, 100);
 
-            vis_obsbox.points.clear();
-            obs_corner.x =  obs_center_global.x + 0.5*current_obstacle.rectangle.depth;
-            obs_corner.y =  obs_center_global.y + 0.5*current_obstacle.rectangle.width;;
-            vis_obsbox.points.push_back(obs_corner);
-            obs_corner.x =  obs_center_global.x + 0.5*current_obstacle.rectangle.depth;
-            obs_corner.y =  obs_center_global.y - 0.5*current_obstacle.rectangle.width;;
-            vis_obsbox.points.push_back(obs_corner);
-            obs_corner.x =  obs_center_global.x - 0.5*current_obstacle.rectangle.depth;
-            obs_corner.y =  obs_center_global.y - 0.5*current_obstacle.rectangle.width;;
-            vis_obsbox.points.push_back(obs_corner);
-            obs_corner.x =  obs_center_global.x - 0.5*current_obstacle.rectangle.depth;
-            obs_corner.y =  obs_center_global.y + 0.5*current_obstacle.rectangle.width;;
-            vis_obsbox.points.push_back(obs_corner);
 
-            obsboxmarker_pub.publish(vis_obsbox);
+    local_freeNavArea.width = fmin(right_lane_space_left + left_lane_space_right, TUBE_WIDTH_C);
+    local_freeNavArea.depth = minFreeSpaceDepth;
+    local_freeNavArea.x = 0.5*local_freeNavArea.depth-ROPOD_TO_AX;
+    local_freeNavArea.y = 0.5*local_freeNavArea.width - distance_robot_to_wall + (TUBE_WIDTH_C - right_lane_space_left);
+    freeNavigationCenter = computeGlobalFreeArea(local_freeNavArea, rw_angle);
+    visualizeGlobalFreeArea(freeNavigationCenter, rw_angle, 101);
+
+
+    local_freeNavArea.width = left_lane_space_center_left + left_lane_space_center_right;
+    local_freeNavArea.depth = minFreeSpaceDepth;
+    local_freeNavArea.x = 0.5*local_freeNavArea.depth-ROPOD_TO_AX;
+    local_freeNavArea.y = 0.5*local_freeNavArea.width - distance_robot_to_wall + (1.5*TUBE_WIDTH_C - left_lane_space_center_right);
+    freeNavigationLeftLane_C = computeGlobalFreeArea(local_freeNavArea, rw_angle);
+    //visualizeGlobalFreeArea(freeNavigationLeftLane_C, rw_angle, 102);
+
+    local_freeNavArea.width = left_lane_space_left;
+    local_freeNavArea.depth = minFreeSpaceDepth;
+    local_freeNavArea.x = 0.5*local_freeNavArea.depth-ROPOD_TO_AX;
+    local_freeNavArea.y = 0.5*local_freeNavArea.width - distance_robot_to_wall + (2.0*TUBE_WIDTH_C - left_lane_space_left);
+    freeNavigationLeftLane_L = computeGlobalFreeArea(local_freeNavArea, rw_angle);
+    //visualizeGlobalFreeArea(freeNavigationLeftLane_L, rw_angle, 103);
+
+    if ( freeNavigationLeftLane_C.width >= freeNavigationLeftLane_L.width)
+        freeNavigationLeftLaneLeft = freeNavigationLeftLane_C;
+    else
+        freeNavigationLeftLaneLeft = freeNavigationLeftLane_L;
+
+    //visualizeGlobalFreeArea(freeNavigationLeftLaneLeft, rw_angle, 104);
+
+
+}
+
+
+
+void considerOvertaking()
+{
+    // Consider overtaking.
+    // TODO: Add freeNavigationLeftLaneLeft;
+    // TODO: This function might not be necessary
+    overtake_on_current_hallway = false;
+    if (u < ka_max-1) {
+        if(curr_area.type == "hallway"){
+            current_hallway = curr_area;
+            current_hallway_task = task1;
+            overtake_on_current_hallway = true;
+
         }
-
-
-
-
-        current_obstacle.rectangle.pose.position.x = obs_center_global.x;
-        current_obstacle.rectangle.pose.position.y = obs_center_global.y;
-        obs_theta = rw_angle;
     }
 }
+
+
+void overtakeStateMachine()
+{
+    // TODO: filter fastest obstacle in front of the robot
+    v_obs_sq = current_obstacle.rectangle.vel.x*current_obstacle.rectangle.vel.x+current_obstacle.rectangle.vel.y*current_obstacle.rectangle.vel.y;
+    if ((v_obs_sq < V_OBS_OVERTAKE_MAX*V_OBS_OVERTAKE_MAX) && overtake_on_current_hallway) {
+        rw_p_rear = getPointByID(current_hallway_task[0],pointlist);
+        rw_p_front = getPointByID(current_hallway_task[1],pointlist);
+        cur_obj = current_hallway;
+        areaIDs = cur_obj.getPointIDs();
+        ind = 0;
+        qmax = areaIDs.size();
+        for (int q = 0; q < qmax; ++q) {
+            if (areaIDs[q].compare(rw_p_rear.id) == 0) {
+                ind = q;
+            }
+        }
+        rotate(areaIDs.begin(), areaIDs.begin() + ind, areaIDs.end());
+        lw_p_rear = getPointByID(areaIDs[3],pointlist);
+        lw_p_front = getPointByID(areaIDs[2],pointlist);
+        // TODO: Add freeNavigationLeftLaneLeft;
+
+        if (freeNavigationRightLaneRight.width > TUBE_WIDTH_C) {
+            if (j == 1) ROS_INFO("No overtake necessary, passing on right should be possible");
+            shift_wall = 0;
+        } else if (freeNavigationRightLaneRight.width > 2*(SIZE_SIDE+OBS_AVOID_MARGIN)) {
+            // Same state, but change tube width so ropod will
+            // fit through space right
+            pred_tube_width[j] = freeNavigationRightLaneRight.width;
+            if (j == 1) ROS_INFO("No overtake necessary, but tube size scaled down");
+            shift_wall = 0;
+        } else if (freeNavigationCenter.width > 2*(SIZE_SIDE+OBS_AVOID_MARGIN)) {
+            if (j == 1) ROS_INFO("Can overtake on left side, there should be enough space there");
+            // Start overtake
+            if (freeNavigationCenter.width < 2*(SIZE_SIDE+ENV_TRNS_SIZE)) {
+                if (j == 1) ROS_INFO("Tight overtake");
+                pred_state[j] = TIGHT_OVERTAKE;
+            } else {
+                if (j == 1) ROS_INFO("Spacius overtake");
+                pred_state[j] = SPACIOUS_OVERTAKE;
+                // TODO: for now obstacle angle is aligned with wall (from bounding box) So only width is looked at
+
+            }
+            Point wall_pos(freeNavigationCenter.x, freeNavigationCenter.y);
+            double distAreatoWall = -distToLine(wall_pos, rw_p_rear, rw_p_front);
+            shift_wall = distAreatoWall - freeNavigationCenter.width/2;
+            pred_tube_width[j] = freeNavigationCenter.width;
+        } else {
+            if (j == 1) ROS_INFO("No overtake possible, stuck behind this obstacle");
+            shift_wall = 0;
+        }
+    }
+
+}
+
+
 
 /**
  * Check for collision
@@ -1666,7 +1746,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                 // Plan visualization
                 vis_plan.points.clear();
                 vis_plan.header.stamp = ros::Time::now();
-                vis_plan.id = 10*i+j;
+                vis_plan.id = 1000*i+j;
                 geometry_msgs::Point p;
                 p.x = pointlist[points_size-4].x;
                 p.y = pointlist[points_size-4].y;
@@ -1719,7 +1799,6 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
 
     std::clock_t start_loop;
 
-
     while(ros::ok() && !ropod_reached_target)
     {
         // Process scan data
@@ -1744,12 +1823,14 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
 
         // AMCL data (around 3Hz) - update to AMCL data if new AMCL pose received
         // otherwise make a guess
-        if (this_amcl_x == prev_amcl_x && this_amcl_y == prev_amcl_y && this_amcl_theta == prev_amcl_theta) {
+ /*       if (this_amcl_x == prev_amcl_x && this_amcl_y == prev_amcl_y && this_amcl_theta == prev_amcl_theta) {
             // No AMCL update, so estimate initial values for prediction
             ropod_x = pred_x_ropod[1];
             ropod_y = pred_y_ropod[1];
             ropod_theta = pred_plan_theta[1];
         } else {
+        */
+        //TODO: Change to time check! only predict durin 1/3 ec, otherwise reset to las AMCL!
             // Set latest values from AMCL to previous AMCL values for next iteration
             // And take AMCL values as initial for the prediction
             prev_amcl_x = this_amcl_x;
@@ -1758,7 +1839,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             ropod_x = this_amcl_x;
             ropod_y = this_amcl_y;
             ropod_theta = this_amcl_theta;
-        }
+      //  }
 
         //ROS_INFO("Ropod x: %f / Ropod y: %f / Theta: %f", ropod_x, ropod_y, ropod_theta);
         //ROS_INFO("xdot: %f / ydot: %f / thetadot %f", odom_xdot_ropod_global, odom_ydot_ropod_global, odom_thetadot_global);
@@ -1891,7 +1972,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                 /**
                  * Check wether an overtake should be considered at all
                  * */
-                createObstacleBoundingBox();
+                createFreeNavigationBoundingBox();
                 considerOvertaking();
 
                 /**
@@ -2007,12 +2088,13 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             cmd_vel.angular.z = 0.0;
             vel_pub.publish(cmd_vel);
         }
-
         if (prev_sim_task_counter == (ka_max-1) ) {
 
+            point_rear = getPointByID(task1[0],pointlist);
             point_front = getPointByID(task1[1],pointlist);
-            local_wallpoint_front = coordGlobalToRopod(point_front, pred_xy_ropod[1], pred_plan_theta[1]);
-            if(local_wallpoint_front.x < REACHEDTARGETTRESHOLD)
+            local_wallpoint_front = coordGlobalToRopod(point_front, pred_xy_ropod[0], pred_plan_theta[1]);
+            double distance_to_end_sqrd = distToEndSegmentSquared(pred_xy_ropod[0], point_rear, point_front);
+            if( local_wallpoint_front.x < REACHEDTARGETTRESHOLD && distance_to_end_sqrd < REACHEDTARGETTRESHOLD*REACHEDTARGETTRESHOLD)
             {
                 ropod_reached_target = true;
                 ROS_INFO("Ropod has reached its target, yay!");
@@ -2089,8 +2171,8 @@ int main(int argc, char** argv)
 
     ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
     ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, getAmclPoseCallback);
-    ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod_tue_2/odom", 100, getOdomVelCallback);
-    ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod_tue_2/debug_route_plan", 1, getDebugRoutePlanCallback);
+    ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, getOdomVelCallback);
+    ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod/debug_route_plan", 1, getDebugRoutePlanCallback);
 
     ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
@@ -2098,41 +2180,42 @@ int main(int argc, char** argv)
     // Visualize map nodes and robot
     ropodmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/ropodpoints", 1);
     mapmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/wmnodes", 100, true);
-    obsboxmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/obstackeBoundingBox", 10, true);
+    freeAreaOR_marker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/freeAreaOvertakeRight", 10, true);
+    freeAreaOL_marker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/freeAreaOvertakeLeft", 10, true);
     wallmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/right_side_wall", 10, true);
     tf_listener_ = new tf::TransformListener;
     // Subscribe to topic with non-associated laser points (for now all laser points)
     unsigned int bufferSize = 2;
     ros::Subscriber scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("scan", bufferSize, scanCallback);
 
-    //napoleon_planner = new NapoleonPlanner("/ropod/goto");
-    //napoleon_planner->start();
-    //while(nroshndl.ok())
-    //{
-        //ROS_INFO("Wait for goto action");
-        //while(ros::ok() && !napoleon_planner->getStatus())
-        //{
-            //ros::spinOnce();
-        //}
-        //std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner->getPlannerResult().areas;
-
-        //ROS_INFO("Got new route; following now");
-        //followRoute(planner_areas, vel_pub, rate);
-    //}
-
-
-    ROS_INFO("Wait for debug plan on topic");
-    while(ros::ok())
+    napoleon_planner = new NapoleonPlanner("/ropod/goto");
+    napoleon_planner->start();
+    while(nroshndl.ok())
     {
-        if(start_navigation)
+        ROS_INFO("Wait for goto action");
+        while(ros::ok() && !napoleon_planner->getStatus())
         {
-            break;
+            ros::spinOnce();
         }
-        ros::spinOnce();
+        std::vector<ropod_ros_msgs::Area> planner_areas = napoleon_planner->getPlannerResult().areas;
+
+        ROS_INFO("Got new route; following now");
+        followRoute(planner_areas, vel_pub, rate);
     }
-    std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
-    ROS_INFO("Got new route; following now");
-    followRoute(planner_areas, vel_pub, rate);
+
+
+    //ROS_INFO("Wait for debug plan on topic");
+    //while(ros::ok())
+    //{
+        //if(start_navigation)
+        //{
+            //break;
+        //}
+        //ros::spinOnce();
+    //}
+    //std::vector<ropod_ros_msgs::Area> planner_areas = debug_route_planner_result_.areas;
+    //ROS_INFO("Got new route; following now");
+    //followRoute(planner_areas, vel_pub, rate);
 
     // TODO: Make action serve and topic work non-blocking. For now I placed it here for not forgetting to change the laser topic as well
 

@@ -18,6 +18,9 @@ void printstringvec(vector<string> vec)
     }
     std::cout << std::endl;
 }
+Point getPoint(PointID point_with_id) {
+    return Point(point_with_id.x, point_with_id.y);
+}
 
 Point rotate_point(Point c, double angle, Point p)
 {
@@ -84,7 +87,7 @@ double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, doub
     // just in front of the ropod[0] or something in between[0, 1]
     if (tubewidth < 2 * (SIZE_SIDE + ENV_TCTW_SIZE + ENV_TRNS_SIZE + OBS_AVOID_MARGIN))
     {
-        cout << "Corridor too small, or transition and correction zone too big" << endl;
+        // cout << "Corridor too small, or transition and correction zone too big" << endl;
     }
 
     // Feelers in front of the ropod
@@ -284,6 +287,35 @@ double distToSegmentSquared(Point p, Point v, Point w) {
         double t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
         t = max(0.0, min(1.0, t));
         return dist2(p, Point(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y)));
+    }
+}
+
+double perpDistToSegment(Point p, PointID v, PointID w) {
+    // P point, v, w points of line segmens
+    Point v_noid(v.x,v.y);
+    Point w_noid(w.x,w.y);
+    return perpDistToSegment(p, v_noid, w_noid);
+}
+
+double perpDistToSegment(Point p, Point v, Point w) {
+    double l2 = dist2(v, w);
+    if (l2 == 0) {
+        return dist2(p, v);
+    } else {
+        double t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+        if( t<=0.0 || t>=1.0)
+        {
+            return 0.0;
+        }
+        else
+        {
+            double numerator =  (w.y-v.y)*p.x - (w.x-v.x)*p.y + w.x*v.y - w.y*v.x;
+            double distoseg = sqrt(dist2(p, Point(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y))));
+            if(numerator >= 0)
+                return distoseg;
+            else
+                return -distoseg;
+        }
     }
 }
 double distToEndSegmentSquared(Point p, PointID v, PointID w) {
@@ -765,6 +797,17 @@ vector<string> getCommonPoints(AreaQuadID A, AreaQuadID B) {
         }
     }
     return common;
+}
+
+bool isPointOnLeftSide(string p_rearID, string p_frontID, vector<PointID> pointlist, Point point, double max_dist) {
+
+    PointID rw_p_rear = getPointByID(p_rearID,pointlist);
+    PointID rw_p_front = getPointByID(p_frontID,pointlist);
+    double distance_point_to_line = -perpDistToSegment(point, rw_p_rear, rw_p_front);
+    if(distance_point_to_line > 0 && distance_point_to_line < max_dist)
+        return true;
+    else
+        return false;
 }
 
 PointID getPointByID(string wantedID, vector<PointID> pointlist) {

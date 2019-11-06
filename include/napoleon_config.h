@@ -32,8 +32,8 @@ static constexpr double SIZE_FRONT_ROPOD = ROPOD_LENGTH/2.0;  // How long ropod 
     static constexpr double ENV_TRNS_SIZE_CORNERING = 0.45; // d_trnsc Transition area size while cornering [m]
     static constexpr double V_CRUISING = 1.2;//1.4;           // Max velocity [m/s] while cruising
     static constexpr double V_INTER_TURNING = 0.5;//0.5;      // Max velocity [m/s] when taking a turn
-    static constexpr double V_INTER_ACC = 0.8;//0.7;          // Max velocity [m/s] when driving straight at intersection
-    static constexpr double V_INTER_DEC = 0.8;//0.3;          // Max velocity [m/s] when driving straight at intersection
+    static constexpr double V_INTER_ACC = V_INTER_TURNING;//0.7;          // Max velocity [m/s] when driving straight at intersection
+    static constexpr double V_INTER_DEC = V_INTER_TURNING;//0.3;          // Max velocity [m/s] when driving straight at intersection
     static constexpr double V_ENTRY = 0.5;//0.5;              // Max velocity [m/s] when at entry of intersection
     static constexpr double V_STEERSATURATION = 0.4;    // Velocity during steering saturation [m/s]
     static constexpr double V_OVERTAKE = 1.0;//0.5;           // Velocity during overtaking [m/s]
@@ -48,7 +48,7 @@ static constexpr double SIZE_FRONT_ROPOD = ROPOD_LENGTH/2.0;  // How long ropod 
     static constexpr double ROTATED_ENOUGH_TRES = M_PI/3;   // Stop turning when within x rad of the new corridor
 #else
     static constexpr double FEELER_SIZE = 2.0;          // d_f: 0.5 Size of feeler [m] - used to predict where ropod goes suppose it would go straight
-    static constexpr double FEELER_SIZE_STEERING = 3.0; // df_c: 0.3 Size of feeler when steering [m]
+    static constexpr double FEELER_SIZE_STEERING = 2.5; // df_c: 0.3 Size of feeler when steering [m]
     static constexpr double ENV_TCTW_SIZE = 0.05;       // d_cor 0.05 Too close too wall area size [m]
     static constexpr double ENV_TRNS_SIZE = 0.20;       // d_trns 0.2 Transition area size [m]
     static constexpr double CARROT_LENGTH = FEELER_SIZE+0.5;       // How far ahead point lies where ropod steers towards when too close to a wall [m]
@@ -57,23 +57,23 @@ static constexpr double SIZE_FRONT_ROPOD = ROPOD_LENGTH/2.0;  // How long ropod 
     static constexpr double ROPOD_TO_AX = 0;       // Length from rear axle to ropod center [m] (without load).
     static constexpr double SIZE_REAR = ROPOD_LENGTH/2; // How far vehicle extends behind rear axle (witho
     // Optimization / performance parameters
-    static constexpr double ENV_TRNS_SIZE_CORNERING = 0.45; // d_trnsc Transition area size while cornering [m]
+    static constexpr double ENV_TRNS_SIZE_CORNERING = 0.3; // d_trnsc Transition area size while cornering [m]
     static constexpr double V_CRUISING = 1.1;//1.4;           // Max velocity [m/s] while cruising
     static constexpr double V_INTER_TURNING = 0.6;//0.5;      // Max velocity [m/s] when taking a turn
-    static constexpr double V_INTER_ACC = V_CRUISING;//0.7;          // Max velocity [m/s] when driving straight at intersection
-    static constexpr double V_INTER_DEC = 0.6;//0.3;          // Max velocity [m/s] when driving straight at intersection
+    static constexpr double V_INTER_ACC = V_INTER_TURNING;//0.7;          // Max velocity [m/s] when driving straight at intersection
+    static constexpr double V_INTER_DEC = V_INTER_TURNING;//0.3;          // Max velocity [m/s] when driving straight at intersection
     static constexpr double V_ENTRY = 0.6;//0.5;              // Max velocity [m/s] when at entry of intersection
     static constexpr double V_STEERSATURATION = 0.4;          // Velocity during steering saturation [m/s]
     static constexpr double V_OVERTAKE = 0.8*V_CRUISING;//0.5;           // Velocity during overtaking [m/s]
     // Limits
-    static constexpr double DELTA_DOT_LIMIT = 0.3;   // Max steering rate per second [rad/s]
+    static constexpr double DELTA_DOT_LIMIT = 0.5;   // Max steering rate per second [rad/s]
     static constexpr double A_MAX = 0.7;                    // Maximum acceleration magnitude [m/s^2]
     // Obstacle
     static constexpr double V_OBS_OVERTAKE_MAX = 0.1;       // Max speed an obstacle can have to overtake is [m/s]
     static constexpr double MIN_DIST_TO_OVERTAKE = 2.5;     // Don't start earlier than x meters to overtake [m]
     // Performance based on position in environment
-    static constexpr double START_STEERING_EARLY = 0.1;     // Start steering earlier by x [m]
-    static constexpr double ROTATED_ENOUGH_TRES = 0.8*M_PI/4;   // Stop turning when within x rad of the new corridor
+    static constexpr double START_STEERING_EARLY = 0.0;     // Start steering earlier by x [m]
+    static constexpr double ROTATED_ENOUGH_TRES = 1.2*M_PI/4;   // Stop turning when within x rad of the new corridor
 #endif
 
 static constexpr double SIZE_FRONT_RAX = (ROPOD_TO_AX + SIZE_FRONT_ROPOD); // How far vehicle extends in front of rear axle
@@ -95,12 +95,12 @@ static constexpr double T_MAX_PRED = 20;            // Predict for n seconds max
 static constexpr double CUTOFF_FREQ = 1.0;          // Cutoff frequency for low pass filter to simulate steering delay [Hz]
 static const vector<double> V_SCALE_OPTIONS = {1.0, 0.67, 0.33, 0.0};  // Options to scale velocity with
 static constexpr double ENV_COR_WIDTH = 2.6;
-static constexpr double OBS_AVOID_MARGIN = 0.1;         // Margin between ropod and obstacles at full speed [m]
+static constexpr double OBS_AVOID_MARGIN = 0.05;         // Margin between ropod and obstacles at full speed [m]
 static constexpr double OBS_AVOID_MARGIN_FRONT = 0.15;         // Margin between ropod front and obstacles at full speed [m]
 static constexpr double DILATE_ROPOD_ALIGNING = 0.90;   // Dilation from center (so actually this value -size_side if measured from side of vehicle)
 // Fictional hallway width. Ropod will work with lanes of this/2 [m], starting from the wall.
 // No matter what the real hallway size is. This way it will stay close to the right wall, but not too agressively.
-static constexpr double TUBE_WIDTH_C = 2.0*(ENV_TCTW_SIZE+ENV_TRNS_SIZE+SIZE_SIDE+OBS_AVOID_MARGIN)+0.1; // Default tube width [m]
+static constexpr double TUBE_WIDTH_C = 2.0*(SIZE_SIDE+ENV_TCTW_SIZE + fmax(ENV_TRNS_SIZE,OBS_AVOID_MARGIN)); // Default tube width [m]
 static constexpr double REACHEDTARGETTRESHOLD = 2.0;  // When x [m] removed from center of last hallway, program finished
 
 // Performance based on position in environment
