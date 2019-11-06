@@ -45,29 +45,14 @@ int main(int argc, char** argv) {
     VisualizationRviz canvas(nroshndl);
     Communication comm(nroshndl);
 
-    bool startNavigation = false;
-    while(!startNavigation){
+    bool initialized = false;
+    while(!initialized){
         if(ros::ok()) {
             ros::spinOnce();
             if(comm.initialized) {
-                canvas.checkId();
-                canvas.resetId();
-                hmodel.update(1/F_loop, comm);
-                hmodel.show(canvas, Color(0, 0, 0), Thin);
-                hmodel.showCommunicationInput(canvas, Color(0, 0, 0), Thin, comm);
-                comm.obstacles.show(canvas, Color(255,0,0), Thick);
-
-                if(comm.newPlan()) {
-                    tubes.convertRoute(comm.route, hmodel, canvas);
-                    startNavigation = true;
-                }
-                if(testRoute){
-                    startNavigation = true;
-                }
-                tubes.showSides(canvas);
+                initialized = true;
             }
         }
-        hmodel.update(1/F_loop, comm);
         rate.sleep();
     }
 
@@ -75,8 +60,9 @@ int main(int argc, char** argv) {
     FollowStatus predictionStatus = Status_Ok;
     FollowStatus prevRealStatus = Status_Error;
     FollowStatus prevPredictionStatus = Status_Error;
+    bool startNavigation = false;
 
-    while(nroshndl.ok() && ros::ok()){
+    while(nroshndl.ok() && ros::ok() && comm.initialized){
 
         canvas.checkId();
         canvas.resetId();
@@ -138,8 +124,11 @@ int main(int argc, char** argv) {
             }
         }
         if(!startNavigation && comm.newPlan()) {
-            tubes.convertRoute(comm.route, hmodel, canvas);
-            startNavigation = true;
+            if(tubes.convertRoute(comm.route, hmodel, canvas)){
+                startNavigation = true;
+            }else{
+                cout << "Tube is larger than the defined area! [check if margins can be decreased or if the object fits through at all.]" << endl;
+            }
         }
 
         tubes.showSides(canvas);

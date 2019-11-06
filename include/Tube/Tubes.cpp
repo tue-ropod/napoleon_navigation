@@ -8,10 +8,10 @@ Tubes::Tubes(const Tube& tube){
     tubes.emplace_back(tube);
 }
 
-void Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model, Visualization &canvas) {
+bool Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model, Visualization &canvas) {
     std::vector<ropod_ros_msgs::Area> &areas = route.areas;
     tubes.clear();
-
+    bool fit = true;
     double extraSpace = 0.4;
     double wallOffset = 0.2;
     double corridorSpeed = 1;
@@ -42,11 +42,14 @@ void Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model
                 width2 = width2 > maxWidth ? maxWidth : width2;
 
                 if(area.type == "junction"){
+                    width = maxWidth;
+                    if(width > p2.distance(p3)){fit = false;}
                     Vector2D offsetPoint;
                     Vector2D point;
-                    Vector2D point2 = ((p1-p2).unit().transform(0,0,-M_PI_2))*(maxWidth/2 + wallOffset) + p2;
+                    Vector2D point2 = ((p1-p2).unit().transform(0,0,-M_PI_2))*(width/2 + wallOffset) + p2;
                     if(!firstTubePlaced){
-                        tubes.emplace_back(Tube(model.pose.toVector(), maxWidth, point2, maxWidth, junctionSpeed));
+                        if(width > p1.distance(p4)){fit = false;}
+                        tubes.emplace_back(Tube(model.pose.toVector(), width, point2, width, junctionSpeed));
                         firstTubePlaced = true;
                     }
                     else{
@@ -57,23 +60,26 @@ void Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model
                                 cout << "Junction > Straight" << endl;
                                 break;
                             case Corner_Left:
-                                offsetPoint = ((p2-p1).unit())*(maxWidth/2 + wallOffset) + p1;
-                                point = ((p1-offsetPoint).unit().transform(0,0,-M_PI_2))*(maxWidth/2 + wallOffset) + offsetPoint;
-                                addPoint(point, maxWidth, junctionSpeed);
+                                offsetPoint = ((p2-p1).unit())*(width/2 + wallOffset) + p1;
+                                point = ((p1-offsetPoint).unit().transform(0,0,-M_PI_2))*(width/2 + wallOffset) + offsetPoint;
+                                addPoint(point, width, junctionSpeed);
                                 cout << "Junction > Left" << endl;
                                 break;
                             case Corner_Right:
-                                offsetPoint = ((p1-p2).unit())*(maxWidth/2 + wallOffset) + p2;
-                                point = ((p2-offsetPoint).unit().transform(0,0,M_PI_2))*(maxWidth/2 + wallOffset) + offsetPoint;
-                                addPoint(point, maxWidth, junctionSpeed);
+                                offsetPoint = ((p1-p2).unit())*(width/2 + wallOffset) + p2;
+                                point = ((p2-offsetPoint).unit().transform(0,0,M_PI_2))*(width/2 + wallOffset) + offsetPoint;
+                                addPoint(point, width, junctionSpeed);
                                 cout << "Junction > Right" << endl;
                                 break;
                         }
                     }
                 }else{
+                    if(width > p2.distance(p3)){fit = false;}
                     Vector2D point1 = ((p2-p1).unit().transform(0,0,M_PI_2))*(width/2 + wallOffset) + p1;
                     Vector2D point2 = ((p1-p2).unit().transform(0,0,-M_PI_2))*(width/2 + wallOffset) + p2;
                     if(!firstTubePlaced){
+                        if(width > p1.distance(p4)){fit = false;}
+                        //tubes.emplace_back(Tube(point1, maxWidth, point2, width, corridorSpeed));
                         tubes.emplace_back(Tube(model.pose.toVector(), maxWidth, point2, width, corridorSpeed));
                         firstTubePlaced = true;
                     }
@@ -88,6 +94,7 @@ void Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model
         Vector2D point = (tubes[tubes.size()-1].p2 - tubes[tubes.size()-1].p1).unit()*0.1 + tubes[tubes.size()-1].p2;
 		addPoint(point, tubes[tubes.size()-1].width2, 0.3); //final point with speed 0
 	}
+    return fit;
 }
 
 vector<int> Tubes::getConnectedVertices(ropod_ros_msgs::RoutePlannerResult &route, int a, int s, bool &forward, bool &found){
@@ -517,6 +524,12 @@ void Tubes::showSides(Visualization &canvas) {
         canvas.point(getCornerPoint(i), Color(255,0,0), Thick);
         canvas.polygon(getCornerArea(i).vertices, Color(100,100,200), Thin);
     }
+}
+
+void Tubes::recover(){
+    //project object position on tubes.
+    //get closest tube.
+    //inset new tube.
 }
 
 
