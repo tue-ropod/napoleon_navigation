@@ -16,7 +16,7 @@ Communication::Communication(ros::NodeHandle nroshndl) {
     }
 }
 
-void Communication::getOdomVelCallback(const nav_msgs::Odometry::ConstPtr& odom_msg){
+void Communication::getOdomVelCallback(const nav_msgs::OdometryConstPtr &odom_msg){
     //ROS_INFO("Odometry received");
     double odom_xdot_ropod_global = abs(odom_msg->twist.twist.linear.x) < 1e-5 ? 0.0 : odom_msg->twist.twist.linear.x;
     double odom_ydot_ropod_global = abs(odom_msg->twist.twist.linear.y) < 1e-5 ? 0.0 : odom_msg->twist.twist.linear.y;
@@ -35,7 +35,7 @@ void Communication::getOdomVelCallback(const nav_msgs::Odometry::ConstPtr& odom_
     odometryUpdated = true;
 }
 
-void Communication::getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& pose_msg){
+void Communication::getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &pose_msg){
     if(updatePosition) {
         //ROS_INFO("Amcl pose received");
         //ROS_INFO("X: %f, Y: %f", pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y);
@@ -64,25 +64,35 @@ void Communication::getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceS
     }
 }
 
-void Communication::getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obstacles_msg) {
+void Communication::getObstaclesCallback(const ed_gui_server::objsPosVelConstPtr &obstacles_msg) {
     obstacles.obstacles.clear();
-    cout << "Obstacles: " << obstacles_msg->objects.size() << endl;
     for(auto & obstacle : obstacles_msg->objects){
         if(obstacle.rectangle.probability > obstacle.circle.probability) {
             double x = obstacle.rectangle.pose.position.x;
             double y = obstacle.rectangle.pose.position.y;
             double angle = obstacle.rectangle.yaw;
-            Pose2D pose = Pose2D(x, y, angle);
 
+            Pose2D pose = Pose2D(x, y, angle);
             Vector2D p1 = Vector2D(-obstacle.rectangle.width / 2, -obstacle.rectangle.depth / 2);
             Vector2D p2 = Vector2D(obstacle.rectangle.width / 2, -obstacle.rectangle.depth / 2);
             Vector2D p3 = Vector2D(obstacle.rectangle.width / 2, obstacle.rectangle.depth / 2);
             Vector2D p4 = Vector2D(-obstacle.rectangle.width / 2, obstacle.rectangle.depth / 2);
-            Polygon footprint = Polygon({p1, p2, p3, p4}, Closed);
+            Polygon shape = Polygon({p1, p2, p3, p4}, Closed);
 
-            Obstacle obs = Obstacle(footprint, pose, Dynamic);
+            Obstacle obs = Obstacle(shape, pose, Dynamic);
             obs.movement = Pose2D(obstacle.rectangle.vel.x, obstacle.rectangle.vel.y, 0);
+            obstacles.obstacles.emplace_back(obs);
+        }else{
+            double x = obstacle.circle.pose.position.x;
+            double y = obstacle.circle.pose.position.y;
+            double r = obstacle.circle.radius;
 
+            Pose2D pose = Pose2D(x,y,0);
+            Circle circle(Vector2D(0,0),r);
+            Polygon shape = circle.toPoints(8);
+
+            Obstacle obs = Obstacle(shape, pose, Dynamic);
+            obs.movement = Pose2D(obstacle.rectangle.vel.x, obstacle.rectangle.vel.y, 0);
             obstacles.obstacles.emplace_back(obs);
         }
     }
@@ -94,7 +104,7 @@ void Communication::setVel(geometry_msgs::Twist cmd_vel_msg){
     }
 }
 
-void Communication::getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr& routeData){
+void Communication::getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr &routeData){
     route = *routeData;
     ROS_INFO("new debug plan received");
     planUpdated = true;

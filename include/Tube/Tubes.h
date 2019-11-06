@@ -28,11 +28,6 @@ public:
     void avoidObstacles(unsigned int startIndex, unsigned int index, Obstacles& obstacles, Model& model, DrivingSide side, Visualization& canvas);
     void connectTubes(unsigned int index);
     void convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model, Visualization &canvas);
-    void visualizePlan(ropod_ros_msgs::RoutePlannerResult &route, Visualization &canvas);
-    vector<int> getConnectedVertices(ropod_ros_msgs::RoutePlannerResult &route, int a, int s, bool &forward, bool &found);
-    vector<int> getOrderedVertices(ropod_ros_msgs::RoutePlannerResult &route, int a, int s);
-    Corner getJunctionDirection(ropod_ros_msgs::RoutePlannerResult &route, int a, int s);
-    void visualizeRightWall(ropod_ros_msgs::RoutePlannerResult &route, Visualization &canvas);
     int tubeContainingPoint(Vector2D& point, int initialSearchPoint = 0);
     int tubeCornerContainingPoint(Vector2D& point, int initialSearchPoint = 0);
     Corner getCornerSide(unsigned int index);
@@ -41,6 +36,13 @@ public:
     void showOriginalTubes(Visualization& canvas);
     void showTubes(Visualization& canvas);
     void showSides(Visualization& canvas);
+    void visualizePlan(ropod_ros_msgs::RoutePlannerResult &route, Visualization &canvas);
+    void visualizeRightWall(ropod_ros_msgs::RoutePlannerResult &route, Visualization &canvas);
+
+private:
+    vector<int> getConnectedVertices(ropod_ros_msgs::RoutePlannerResult &route, int a, int s, bool &forward, bool &found);
+    vector<int> getOrderedVertices(ropod_ros_msgs::RoutePlannerResult &route, int a, int s);
+    Corner getJunctionDirection(ropod_ros_msgs::RoutePlannerResult &route, int a, int s);
 
 };
 

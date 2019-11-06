@@ -89,46 +89,53 @@ int main(int argc, char** argv) {
 
         if(startNavigation){
             HolonomicModel hmodelCopy = hmodel;
-            predictionStatus = hmodelCopy.predict(10, 4, 0.3, 1/F_prediction, hmodel, tubes, canvas); //nScaling | predictionTime | minDistance
-            hmodel.copySettings(hmodelCopy);
+            predictionStatus = hmodelCopy.predict(10, 4, 0.3, 1/F_prediction, hmodel, tubes, comm.obstacles, canvas); //nScaling | predictionTime | minDistance
 
             //status = Status_Ok;
 
-            if(predictionStatus == Status_Ok || predictionStatus == Status_Done) {
+            if(predictionStatus == Status_Ok || predictionStatus == Status_Done || predictionStatus == Status_ShortPredictionDistance || predictionStatus == Status_OutsideTube) {
+                hmodel.copySettings(hmodelCopy);
                 realStatus = hmodel.follow(tubes, canvas, true);
-                //tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, comm.obstacles, hmodel, DrivingSide_Right, canvas);
+                //tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, obstacles, hmodel, DrivingSide_Right, canvas);
                 if(realStatus != Status_Ok) {hmodel.brake();}
-            }else{
+            }
+            else if(predictionStatus == Status_ObstacleCollision){
+                hmodel.input(Pose2D(0,0,0),Frame_World);
+            }
+            else{
                 hmodel.brake();
             }
 
             if(realStatus != prevRealStatus) {
                 switch (realStatus) {
                     case Status_Ok: {cout << "Status Ok" << endl;break;}
-                    case Status_ToClose: {cout << "Status To Close" << endl;break;}
-                    case Status_Stuck: {cout << "Status Stuck" << endl;break;}
-                    case Status_Error: {cout << "Status Error" << endl;break;}
-                    case Status_Collision: {cout << "Status Collision" << endl;break;}
-                    case Status_Done: {cout << "Status Done" << endl;break;}
+                    case Status_ShortPredictionDistance: {cout << "Status short prediction distance" << endl;break;}
+                    case Status_Stuck: {cout << "Status stuck" << endl;break;}
+                    case Status_Error: {cout << "Status error" << endl;break;}
+                    case Status_ObstacleCollision: {cout << "Status obstacle collision" << endl;break;}
+                    case Status_OutsideTube: {cout << "Status outside tube" << endl;break;}
+                    case Status_Done: {cout << "Status done" << endl;break;}
                 }
                 prevRealStatus = realStatus;
             }
             if(prevPredictionStatus != predictionStatus){
                 switch (predictionStatus){
-                    case Status_Ok: {cout << "prediction Status Ok" << endl;break;}
-                    case Status_ToClose: {cout << "Prediction status To Close" << endl; break;}
-                    case Status_Stuck: {cout << "Prediction status Stuck" << endl; break;}
-                    case Status_Error: {cout << "Prediction status Error" << endl; break;}
-                    case Status_Collision: {cout << "Prediction status Collision" << endl; break;}
-                    case Status_Done: {cout << "Prediction status Done" << endl;break;}
+                    case Status_Ok: {cout << "prediction Status ok" << endl;break;}
+                    case Status_ShortPredictionDistance: {cout << "Prediction short prediction distance" << endl; break;}
+                    case Status_Stuck: {cout << "Prediction status stuck" << endl; break;}
+                    case Status_Error: {cout << "Prediction status error" << endl; break;}
+                    case Status_ObstacleCollision: {cout << "Prediction status obstacle collision" << endl; break;}
+                    case Status_OutsideTube: {cout << "Prediction status outside tube" << endl;break;}
+                    case Status_Done: {cout << "Prediction status done" << endl;break;}
                 }
                 prevPredictionStatus = predictionStatus;
             }
-        }
 
-        if(realStatus == Status_Done){
-            hmodel.brake();
-            startNavigation = false;
+
+            if(realStatus == Status_Done) {
+                hmodel.brake();
+                startNavigation = false;
+            }
         }
         if(!startNavigation && comm.newPlan()) {
             tubes.convertRoute(comm.route, hmodel, canvas);

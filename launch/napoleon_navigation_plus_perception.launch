@@ -72,8 +72,7 @@
     </node>
 
     % Launch ED
-<!--    <node pkg="ed" type="ed" name="ed" args="$(find ropod_navigation_test)/config/brsu-config-ED.yaml"> </node>-->
-    <!-- <node pkg="ed" type="ed" name="ed" > </node> -->
+    <node pkg="ed" type="ed" name="ed" args="$(find ropod_navigation_test)/config/model-example-ropod-napoleon-navigation-ED.yaml"> </node>
 
     <node name="napoleon_navigation" pkg="napoleon_navigation" type="napoleon_navigation" output="screen">
 

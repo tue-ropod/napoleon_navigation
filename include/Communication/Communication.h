@@ -41,10 +41,10 @@ public:
     bool newPosition();
     bool newOdometry();
     bool newPlan();
-    void getOdomVelCallback(const nav_msgs::Odometry::ConstPtr &odom_msg);
-    void getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &pose_msg);
-    void getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr& routeData);
-    void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obstacles_msg);
+    void getOdomVelCallback(const nav_msgs::OdometryConstPtr &odom_msg);
+    void getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &pose_msg);
+    void getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr &routeData);
+    void getObstaclesCallback(const ed_gui_server::objsPosVelConstPtr &obstacles_msg);
     void setVel(geometry_msgs::Twist cmd_vel_msg);
 
 };

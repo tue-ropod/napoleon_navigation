@@ -23,7 +23,6 @@ void BicycleModel::input(Vector2D velocity_, Frame frame) {
 }
 
 void BicycleModel::update() {
-    scaleFootprint(footprintMultiplier+abs(velocity.x), footprintMultiplier+abs(velocity.y));
 
     double delta = velocity.angle();
     double vx = velocity.length()*cos(delta)*cos(constrainedWheel.a);
@@ -50,10 +49,6 @@ void BicycleModel::update() {
 
 void BicycleModel::show(Visualization& canvas, Color c, int drawstyle) {
     canvas.polygon(footprint.vertices, Color(255,0,0), Thin);
-    double sx = footprintscalex, sy = footprintscaley;
-    scaleFootprint(1,1);
-    canvas.polygon(footprint.vertices, c, drawstyle);
-    scaleFootprint(sx,sy);
 
     canvas.point(constrainedWheel, c, Thick);
 

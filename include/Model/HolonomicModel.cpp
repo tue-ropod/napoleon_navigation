@@ -42,6 +42,7 @@ Pose2D HolonomicModel::translateInput(Vector2D position, Pose2D v_p) {
 void HolonomicModel::updatePrediction(double dt) {
     if(applyBrake){
         inputVelocity = Pose2D(0,0,0);
+        applyBrake = false;
     }else{
         calculateInputVelocity(dt);
     }
@@ -57,7 +58,6 @@ void HolonomicModel::updateModel(double dt) {
 }
 
 FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool debug){
-    input(Pose2D(0,0,0), Frame_Robot); //Stops automatically if it cannot follow the tubes
     FollowStatus status = Status_Error; //Pre set status to error
 
     if(!tubes.tubes.empty() && !dilatedFootprint.vertices.empty()){
@@ -66,9 +66,8 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
 
         vector<Vector2D> boundingBox = dilatedFootprint.boundingBoxRotated(pose.a);
         vector<Vector2D> frontBoundingBox = {boundingBox[1], boundingBox[2]};
-        vector<Vector2D> midBoundingBox = {(boundingBox[1]+boundingBox[0])/2, (boundingBox[2]+boundingBox[3])/2};
         vector<Line> sidesBoundingBox = {Line(boundingBox[0],boundingBox[1]), Line(boundingBox[3],boundingBox[2])};
-
+        //vector<Vector2D> midBoundingBox = {(boundingBox[1]+boundingBox[0])/2, (boundingBox[2]+boundingBox[3])/2};
         //vector<Vector2D> frontFootprint = {footprint.vertices[2], footprint.vertices[3]};
         //vector<Line> sidesFootprint = {Line(footprint.vertices[0],footprint.vertices[1]),Line(footprint.vertices[5],footprint.vertices[4])};
 
@@ -80,7 +79,7 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
                 currentTubeIndex = ti;
                 Vector2D pointVelocity;
                 int ci = tubes.tubeCornerContainingPoint(vertex, currentTubeIndex);
-                if(ci != -1){ //Ropod in corner
+                if(ci != -1){ //footprint point in corner
                     Vector2D r = tubes.getCornerPoint(ci) - vertex;
                     switch(tubes.getCornerSide(ci)){
                         case Corner_Left:
@@ -126,110 +125,121 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
                 sideIndex.emplace_back(i);
             }
 
-            double border = 0.1;
+            double border = 0.2;
             double collisionDistance = 0;
             int nRepulsion = 0;
             int nCollision = 0;
             Pose2D repulsionInput, collisionInput;
-            for(auto &sideBB : sidesBoundingBox) {
-                bool leftSide = true;
-                for (int s = 0; s < currentSides.size(); s++) {
-                    Line &side = currentSides[s];
-                    int currentTubeIndex = sideIndex[s];
-                    Line testLine = sideBB.shortestLineTo(side);
-                    Vector2D point = testLine.p1;
-                    Vector2D pointVelocity;
-                    Vector2D currentTubeVelocity = tubes.tubes[currentTubeIndex].velocity;
-                    int Tp = tubes.tubeContainingPoint(point, currentTubeIndex);
-                    //int Cp = tubes.tubeCornerContainingPoint(point, currentTubeIndex);
 
-                    if (testLine.length() == 0) { // Intersection > Collision
-                        Line collisionLine;
-                        bool valid = false;
-                        int p1_inside = tubes.tubeContainingPoint(sideBB.p1, currentTubeIndex);
-                        int p2_inside = tubes.tubeContainingPoint(sideBB.p2, currentTubeIndex);
-                        if(p1_inside == -1){
-                            if(leftSide){collisionLine = Line(sideBB.p1, tubes.tubes[currentTubeIndex].leftSide.lineProjectionPoint(sideBB.p1));}
-                            else{collisionLine = Line(sideBB.p1, tubes.tubes[currentTubeIndex].rightSide.lineProjectionPoint(sideBB.p1));}
-                            collisionDistance += collisionLine.length();
-                            valid = true;
-                        }else if(p2_inside == -1){
-                            if(leftSide){collisionLine = Line(sideBB.p2, tubes.tubes[currentTubeIndex].leftSide.lineProjectionPoint(sideBB.p2));}
-                            else{collisionLine = Line(sideBB.p2, tubes.tubes[currentTubeIndex].rightSide.lineProjectionPoint(sideBB.p2));}
-                            collisionDistance += collisionLine.length();
-                            valid = true;
-                        }else{
-                            Vector2D cornerPoint = tubes.getCornerPoint(p1_inside); //p1 is the back in both cases
-                            if(cornerPoint.valid()){
-                                collisionLine = Line(sideBB.lineProjectionPoint(cornerPoint), cornerPoint);
-                                collisionDistance += collisionLine.length()/2; //add half because this is valid 2 times
-                                valid = true;
+            for(auto &vertex : boundingBox){
+                int Tp = tubes.tubeContainingPoint(vertex, currentTubeIndex);
+                int Cp = tubes.tubeCornerContainingPoint(vertex, currentTubeIndex);
+
+                if(Tp != -1){ //inside tube
+                    vector<Line> tubeSides;
+                    tubeSides.emplace_back(tubes.tubes[Tp].leftSide);
+                    tubeSides.emplace_back(tubes.tubes[Tp].rightSide);
+                    for(auto &tubeSide : tubeSides){
+                        Line testLine = Line(vertex, tubeSide.lineProjectionPointConstrained(vertex));
+                        if(testLine.length() <= border){
+                            double p = (border - testLine.length())/border; //1 when collision 0 when at the border
+                            Vector2D sideDirection = (testLine.p1 - testLine.p2).unit(); //create perpendicular vector to side
+                            Vector2D pointVelocity;
+                            if(Cp == -1){//vertex not in corner
+                                //create perpendicular velocity vector
+                                pointVelocity = sideDirection * velocityInput.length() * p;
+
+                            }else{//vertex in corner
+                                //combine perpendicular side vector with tube velocity
+                                if (debug) { canvas.point(vertex, Color(0, 255, 255), Thick); }
+                                Vector2D tubeVelocityDirection = tubes.tubes[Tp].velocity.unit();
+                                pointVelocity = (sideDirection*p + tubeVelocityDirection*(1-p)) * velocityInput.length();
                             }
+                            //add velocity vector to repulsion vectors
+                            repulsionInput = repulsionInput + translateInput(vertex, Pose2D(pointVelocity, 0));
+                            nRepulsion++;
+                            if (debug) { canvas.arrow(vertex, vertex+pointVelocity, Color(255, 0, 255), Thin); }
                         }
-                        if(valid){
-                            point = collisionLine.p1;
-                            pointVelocity = (collisionLine.p2 - collisionLine.p1).unit() * maxSpeed * speedScale; // Not multiplied with tube velocity
-                            collisionInput = collisionInput + translateInput(point, Pose2D(pointVelocity, 0));
-                            nCollision++;
-                            if (debug) { canvas.point(point, Color(255, 0, 0), Thin); }
-                            if (debug) { canvas.arrow(point, point+pointVelocity, Color(255, 0, 0), Thin); }
-                        }
-//                        pointVelocity = (side.p2 - testLine.p1).unit();
-//                        if (leftSide) { pointVelocity.transformThis(0, 0, -M_PI_2); } //leftside
-//                        if (!leftSide) { pointVelocity.transformThis(0, 0, M_PI_2); } //rightside
-//                        pointVelocity = pointVelocity.unit() * maxSpeed * speedScale * currentTubeVelocity.length();
-
-                    }else if(Tp == -1){ //Fully outside > Collision
-                        collisionDistance += testLine.length();
-                        pointVelocity = (testLine.p2 - testLine.p1).unit() * maxSpeed * speedScale; // Not multiplied with tube velocity
-                        collisionInput = collisionInput + translateInput(point, Pose2D(pointVelocity, 0));
-                        nCollision++;
-                        if (debug) { canvas.arrow(point, point+pointVelocity, Color(255, 0, 255), Thin); }
-
-                    }else if (testLine.length() <= border) { //Inside > repulsion
-//                        if(Cp != -1){
-//                            Vector2D r = (tubes.getCornerPoint(Cp) - point);
-//                            switch(tubes.getCornerSide(Cp)){
-//                                case Corner_Left:
-//                                    r.transformThis(0,0,-M_PI_2);
-//                                    break;
-//                                case Corner_Right:
-//                                    r.transformThis(0,0,M_PI_2);
-//                                    break;
-//                                case Corner_None:
-//                                    break;
-//                            }
-//                            double tubeWidth = tubes.tubes[Cp].width2;
-//                            currentTubeVelocity = (r/tubeWidth) * maxSpeed * speedScale * currentTubeVelocity.length();
-//                        }
-                        double p = (border - testLine.length())/border; //1 when collision 0 when at the border
-                        double p2 = p*p;
-                        Vector2D repellantVelocity = (testLine.p1 - testLine.p2).unit() * maxSpeed * speedScale; // Not multiplied with tube velocity
-                        pointVelocity = ((repellantVelocity*p2 + currentTubeVelocity*(1-p2)))*p;
-                        repulsionInput = repulsionInput + translateInput(point, Pose2D(pointVelocity, 0));
-                        nRepulsion++;
-                        if (debug) { canvas.arrow(point, point+pointVelocity, Color(0, 255, 0), Thin); }
                     }
-                    leftSide = !leftSide;
+                }else{ //outside tube
+                    //calculate closest tube side
+                    Line closestLine;
+                    bool found = false;
+                    for(auto &tubeSide : currentSides){
+                        Line testLine = Line(vertex, tubeSide.lineProjectionPointConstrained(vertex));
+                        if(testLine.length() < closestLine.length() || !found){
+                            closestLine = testLine;
+                            found = true;
+                        }
+                    }
+                    Vector2D sideDirection = (closestLine.p2 - closestLine.p1).unit(); //create perpendicular vector to closest side
+                    Vector2D pointVelocity = sideDirection * velocityInput.length(); //create velocity vector
+                    //add velocity vector to collision vectors
+                    collisionInput = collisionInput + translateInput(vertex, Pose2D(pointVelocity, 0));
+                    nCollision++;
+                    collisionDistance += closestLine.length();
+                    if (debug) { canvas.arrow(vertex, vertex+pointVelocity, Color(255, 0, 0), Thin); }
+                }
+            }
+
+            for(auto &sideBB : sidesBoundingBox){
+                Line closestLine;
+                bool found = false;
+                for(int ti = minTubeIndex; ti <= maxTubeIndex; ti++){
+                    Vector2D cornerPoint = tubes.getCornerPoint(ti);
+                    if(cornerPoint.valid()){
+                        Line testLine = Line(cornerPoint, sideBB.lineProjectionPointConstrained(cornerPoint));
+                        if(testLine.length() < closestLine.length() || !found){
+                            closestLine = testLine;
+                            found = true;
+                        }
+                    }
+                }
+                if(found){
+                    int Tp = tubes.tubeContainingPoint(closestLine.p2, currentTubeIndex);
+                    if(Tp != -1){ //inside tube
+                        if(closestLine.length() <= border){
+                            double p = (border - closestLine.length())/border; //1 when collision 0 when at the border
+                            Vector2D direction = (closestLine.p2 - closestLine.p1).unit(); //create perpendicular vector to side
+                            Vector2D pointVelocity = direction * velocityInput.length() * p;
+                            //add velocity vector to repulsion vectors
+                            repulsionInput = repulsionInput + translateInput(closestLine.p2, Pose2D(pointVelocity, 0));
+                            nRepulsion++;
+                            if (debug) { canvas.arrow(closestLine.p2, closestLine.p2+pointVelocity, Color(255, 0, 255), Thin); }
+                        }
+                    }else{ //ouside tube
+                        Vector2D direction = (closestLine.p1 - closestLine.p2).unit(); //create perpendicular vector to side
+                        Vector2D pointVelocity = direction * velocityInput.length();
+                        collisionInput = collisionInput + translateInput(closestLine.p2, Pose2D(pointVelocity, 0));
+                        nCollision++;
+                        collisionDistance += closestLine.length();
+                        if (debug) { canvas.arrow(closestLine.p2, closestLine.p2+pointVelocity, Color(255, 0, 0), Thin); }
+                    }
                 }
             }
 
             if(nRepulsion > 0){repulsionInput = repulsionInput/double(nRepulsion);}
             if(nCollision > 0){collisionInput = collisionInput/double(nCollision);}
-            Pose2D correctionInput = (repulsionInput + collisionInput)/2;
-            Pose2D totalInput = velocityInput + (correctionInput + predictionBiasVelocity)/2;
+            Pose2D currentCorrectionInput = (repulsionInput + collisionInput)/2;
+            Pose2D correctionInput = currentCorrectionInput*0.8 + predictionBiasVelocity*0.2;
+            Pose2D totalInput = velocityInput + correctionInput;
             predictionBiasVelocity = correctionInput;
             input(totalInput, Frame_World);
 
-            if(collisionDistance > footprintClearance){ // TODO calculate collision distance
-                status = Status_Collision;
+            double directionDifference = (totalInput.toVector().angle() - velocityInput.toVector().angle());
+            smallestAngle(directionDifference);
+
+            if(collisionDistance > footprintClearance){
+                status = Status_OutsideTube;
             }else if(tubes.tubes[tubes.tubes.size()-1].connectedShape.polygonContainsPoint(pose)){
                 status = Status_Done;
-            }else if(totalInput.length()<0.01 && abs(totalInput.a) < 0.01){ //TODO Determine when stuck
+            }else if(abs(directionDifference) > M_PI_2){ //TODO determine when stuck
                 status = Status_Stuck;
             }else{
                 status = Status_Ok;
             }
+        }else{ //Not in tube
+            status = Status_OutsideTube;
         }
     }
     return status;
