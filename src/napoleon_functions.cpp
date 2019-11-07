@@ -18,6 +18,9 @@ void printstringvec(vector<string> vec)
     }
     std::cout << std::endl;
 }
+Point getPoint(PointID point_with_id) {
+    return Point(point_with_id.x, point_with_id.y);
+}
 
 Point rotate_point(Point c, double angle, Point p)
 {
@@ -61,12 +64,12 @@ Point coordGlobalToRopod(Point gp, Point rc, double ra)
     return P;
 }
 
-double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, double tubewidth)
+double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, double tubewidth, double carrot_length, double feeler_size)
 {
     // Function to determine steering action while cruising
     // ROPOD_LENGTH the length of the ropod[m]
     // SIZE_SIDE is the distance from the center to the side of the vehicle[m]
-    // FEELER_SIZE is the length of the feeler, extending in front of the ropod
+    // feeler_size is the length of the feeler, extending in front of the ropod
     // and triggering behavior changes - positioned above tr(top right) and tl[m]
     // local_wallpoint_front: point on right wall is a point that is to the
     // right of the ropod, can be any point(x, y) format[m]
@@ -76,20 +79,20 @@ double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, doub
     // tubewidth is the tube width [m]
     // ENV_TCTW_SIZE is the distance when the ropod is too close to the wall[m]
     // ENV_TRNS_SIZE is the size of the transition area(starting from tctw)[m]
-    // CARROT_LENGTH is how aggressive the ropod steers to the middle, it is
+    // carrot_length is how aggressive the ropod steers to the middle, it is
     // the scale for the vector that points forward from the middle of the road,
     // the bigger this value, the less aggressive the steering action[m]
     // fimdf: feelers in motion direction fraction, this determines whether
     // the feelers are pointed in the same direction as the wheels[1] or
     // just in front of the ropod[0] or something in between[0, 1]
-    if (tubewidth < 2 * (SIZE_SIDE + ENV_TCTW_SIZE + ENV_TRNS_SIZE))
+    if (tubewidth < 2 * (SIZE_SIDE + ENV_TCTW_SIZE + ENV_TRNS_SIZE + OBS_AVOID_MARGIN))
     {
-        cout << "Corridor too small, or transition and correction zone too big" << endl;
+        // cout << "Corridor too small, or transition and correction zone too big" << endl;
     }
 
     // Feelers in front of the ropod
-    Point local_fl(ROPOD_LENGTH / 2 + FEELER_SIZE, SIZE_SIDE);
-    Point local_fr(ROPOD_LENGTH / 2 + FEELER_SIZE, -SIZE_SIDE);
+    Point local_fl(ROPOD_LENGTH / 2 + feeler_size, SIZE_SIDE);
+    Point local_fr(ROPOD_LENGTH / 2 + feeler_size, -SIZE_SIDE);
     Point origin(0,0);
 
     double local_wall_angle = atan2(local_wallpoint_front.y - local_wallpoint_rear.y, local_wallpoint_front.x - local_wallpoint_rear.x);
@@ -113,7 +116,7 @@ double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, doub
 
     double to_middle_size = tubewidth/2 - dist_ropod_center_to_rightwall;                   // Y Distance from ropod center to middle of road @ env at theta = 0
     double to_middle_vec[2] = { to_middle_size * -sin(local_wall_angle), to_middle_size * cos(local_wall_angle) };  // Vector from ropod center to middle of road
-    double to_front_vec[2] = { CARROT_LENGTH * cos(local_wall_angle), CARROT_LENGTH*sin(local_wall_angle) };    // Vector from middle of road to a point further on the road
+    double to_front_vec[2] = { carrot_length * cos(local_wall_angle), carrot_length*sin(local_wall_angle) };    // Vector from middle of road to a point further on the road
     double steer_vec[2] = { to_front_vec[0] + to_middle_vec[0], to_front_vec[1] + to_middle_vec[1] };               // Together, these vectors form the steering vector
 
     // Phi_0 can be used when we are comfortably within the middle of the road
@@ -164,7 +167,7 @@ double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, doub
     return phi;
 }
 
-double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_front, Point local_wallpoint_rear) {
+double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_front, Point local_wallpoint_rear, double carrot_length, double feeler_size) {
     // Function to determine steering action while rotating around a point
     // aka taking a turn
     // dir_cw: direction 0 = CCW, 1 = CW rotation
@@ -176,8 +179,8 @@ double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_fro
     double dist = 0, phi = 0, to_middle_size = 0;
 
     double phi_0 = steerAroundPoint(local_pivot, dir_cw);
-    Point local_fl(FEELER_SIZE*cos(phi_0),FEELER_SIZE*sin(phi_0));
-    Point local_fr(FEELER_SIZE*cos(phi_0),FEELER_SIZE*sin(phi_0));
+    Point local_fl(feeler_size*cos(phi_0),feeler_size*sin(phi_0));
+    Point local_fr(feeler_size*cos(phi_0),feeler_size*sin(phi_0));
     local_fl = local_fl.add(local_lt);
     local_fr = local_fr.add(local_rt);
 
@@ -203,7 +206,7 @@ double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_fro
         // to_middle_size = tubewidth/2-dist_ropod_center_to_wall;
     }
     Point to_middle_vec(to_middle_size*-sin(local_wall_angle),to_middle_size*cos(local_wall_angle));
-    Point to_front_vec(CARROT_LENGTH*cos(local_wall_angle), CARROT_LENGTH*sin(local_wall_angle));  // Vector from middle of road to a point further on the road
+    Point to_front_vec(carrot_length*cos(local_wall_angle), carrot_length*sin(local_wall_angle));  // Vector from middle of road to a point further on the road
     Point steer_vec(to_front_vec.x + to_middle_vec.x, to_front_vec.y + to_middle_vec.y);
     //steer_vec = steer_vec.add(to_middle_vec); // Together, these vectors form the steering vector
 
@@ -284,6 +287,35 @@ double distToSegmentSquared(Point p, Point v, Point w) {
         double t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
         t = max(0.0, min(1.0, t));
         return dist2(p, Point(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y)));
+    }
+}
+
+double perpDistToSegment(Point p, PointID v, PointID w) {
+    // P point, v, w points of line segmens
+    Point v_noid(v.x,v.y);
+    Point w_noid(w.x,w.y);
+    return perpDistToSegment(p, v_noid, w_noid);
+}
+
+double perpDistToSegment(Point p, Point v, Point w) {
+    double l2 = dist2(v, w);
+    if (l2 == 0) {
+        return dist2(p, v);
+    } else {
+        double t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+        if( t<=0.0 || t>=1.0)
+        {
+            return 0.0;
+        }
+        else
+        {
+            double numerator =  (w.y-v.y)*p.x - (w.x-v.x)*p.y + w.x*v.y - w.y*v.x;
+            double distoseg = sqrt(dist2(p, Point(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y))));
+            if(numerator >= 0)
+                return distoseg;
+            else
+                return -distoseg;
+        }
     }
 }
 double distToEndSegmentSquared(Point p, PointID v, PointID w) {
@@ -767,6 +799,17 @@ vector<string> getCommonPoints(AreaQuadID A, AreaQuadID B) {
     return common;
 }
 
+bool isPointOnLeftSide(string p_rearID, string p_frontID, vector<PointID> pointlist, Point point, double max_dist) {
+
+    PointID rw_p_rear = getPointByID(p_rearID,pointlist);
+    PointID rw_p_front = getPointByID(p_frontID,pointlist);
+    double distance_point_to_line = -perpDistToSegment(point, rw_p_rear, rw_p_front);
+    if(distance_point_to_line > 0 && distance_point_to_line < max_dist)
+        return true;
+    else
+        return false;
+}
+
 PointID getPointByID(string wantedID, vector<PointID> pointlist) {
     int listlength = pointlist.size();
     for (int i = 0; i < listlength; ++i) {
@@ -954,7 +997,7 @@ vector<string> getWalls(int id_OBJ1, int id_OBJ2, int id_OBJ3, vector<AreaQuadID
     return wallsABC;
 }
 
-double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist) {
+double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist, double carrot_length, double feeler_size_steering) {
     // NOT IN LOCAL COORDINATES (YET)
     // Function to determine steering action while rotating around a point
     // aka taking a turn, this time with a sharp angle.
@@ -983,8 +1026,8 @@ double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std
              y_rearax+(D_AX+SIZE_FRONT_ROPOD)*sin(ropod_angle)+SIZE_SIDE*sin(ropod_angle-M_PI/2));
     Point lt(x_rearax+(D_AX+SIZE_FRONT_ROPOD)*cos(ropod_angle)+SIZE_SIDE*cos(ropod_angle+M_PI/2),
              y_rearax+(D_AX+SIZE_FRONT_ROPOD)*sin(ropod_angle)+SIZE_SIDE*sin(ropod_angle+M_PI/2));
-    Point fr(FEELER_SIZE_STEERING*cos(ropod_angle+phi_0),FEELER_SIZE_STEERING*sin(ropod_angle+phi_0));
-    Point fl(FEELER_SIZE_STEERING*cos(ropod_angle+phi_0),FEELER_SIZE_STEERING*sin(ropod_angle+phi_0));
+    Point fr(feeler_size_steering*cos(ropod_angle+phi_0),feeler_size_steering*sin(ropod_angle+phi_0));
+    Point fl(feeler_size_steering*cos(ropod_angle+phi_0),feeler_size_steering*sin(ropod_angle+phi_0));
     fr = fr.add(rt); fl = fl.add(lt);
 
     Point obj3_wall_to_fl = rotate_point(obj3wall_p0_idless, -obj3wall_angle, fl);
@@ -1020,8 +1063,8 @@ double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std
             obj3_wall_to_ropod = obj3_wall_to_ropod.sub(obj3wall_p0_idless);
             to_middle_vec.x = (-FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*-sin(obj3wall_angle);
             to_middle_vec.y = (-FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*cos(obj3wall_angle);
-            to_front_vec.x = CARROT_LENGTH*cos(obj3wall_angle);
-            to_front_vec.y = CARROT_LENGTH*sin(obj3wall_angle);
+            to_front_vec.x = carrot_length*cos(obj3wall_angle);
+            to_front_vec.y = carrot_length*sin(obj3wall_angle);
             frac_in_trans = 1;
         } else if (obj2_wall_to_feeler > -ENV_TCTW_SIZE) {
             //disp('tctw obj2');
@@ -1029,8 +1072,8 @@ double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std
             obj2_wall_to_ropod = obj2_wall_to_ropod.sub(obj2wall_p0_idless);
             to_middle_vec.x = (-FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*-sin(obj2wall_angle);
             to_middle_vec.y = (-FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*cos(obj2wall_angle);
-            to_front_vec.x = CARROT_LENGTH*cos(obj2wall_angle);
-            to_front_vec.y = CARROT_LENGTH*sin(obj2wall_angle);
+            to_front_vec.x = carrot_length*cos(obj2wall_angle);
+            to_front_vec.y = carrot_length*sin(obj2wall_angle);
             frac_in_trans = 1;
         } else if (obj3_wall_to_feeler > -(ENV_TCTW_SIZE+ENV_TRNS_SIZE_CORNERING)) {
             //disp('trans obj3');
@@ -1038,8 +1081,8 @@ double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std
             obj3_wall_to_ropod = obj3_wall_to_ropod.sub(obj3wall_p0_idless);
             to_middle_vec.x = (-FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*-sin(obj3wall_angle);
             to_middle_vec.y = (-FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*cos(obj3wall_angle);
-            to_front_vec.x = CARROT_LENGTH*cos(obj3wall_angle);
-            to_front_vec.y = CARROT_LENGTH*sin(obj3wall_angle);
+            to_front_vec.x = carrot_length*cos(obj3wall_angle);
+            to_front_vec.y = carrot_length*sin(obj3wall_angle);
             frac_in_trans = 1-(-obj3_wall_to_feeler-ENV_TCTW_SIZE)/ENV_TRNS_SIZE_CORNERING;
         } else if (obj2_wall_to_feeler > -(ENV_TCTW_SIZE+ENV_TRNS_SIZE_CORNERING)) {
             //disp('trans obj2');
@@ -1047,8 +1090,8 @@ double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std
             obj2_wall_to_ropod = obj2_wall_to_ropod.sub(obj2wall_p0_idless);
             to_middle_vec.x = (-FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*-sin(obj2wall_angle);
             to_middle_vec.y = (-FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*cos(obj2wall_angle);
-            to_front_vec.x = CARROT_LENGTH*cos(obj2wall_angle);
-            to_front_vec.y = CARROT_LENGTH*sin(obj2wall_angle);
+            to_front_vec.x = carrot_length*cos(obj2wall_angle);
+            to_front_vec.y = carrot_length*sin(obj2wall_angle);
             frac_in_trans = 1-(-obj2_wall_to_feeler-ENV_TCTW_SIZE)/ENV_TRNS_SIZE_CORNERING;
         } else {
             //disp('normal cornering');
@@ -1056,8 +1099,8 @@ double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std
             obj3_wall_to_ropod = obj3_wall_to_ropod.sub(obj3wall_p0_idless);
             to_middle_vec.x = (-FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*-sin(obj3wall_angle);
             to_middle_vec.y = (-FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*cos(obj3wall_angle);
-            to_front_vec.x = CARROT_LENGTH*cos(obj3wall_angle);
-            to_front_vec.y = CARROT_LENGTH*sin(obj3wall_angle);
+            to_front_vec.x = carrot_length*cos(obj3wall_angle);
+            to_front_vec.y = carrot_length*sin(obj3wall_angle);
             frac_in_trans = 0;
         }
     } else {
@@ -1067,8 +1110,8 @@ double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std
             obj3_wall_to_ropod = obj3_wall_to_ropod.sub(obj3wall_p0_idless);
             to_middle_vec.x = (FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*-sin(obj3wall_angle);
             to_middle_vec.y = (FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*cos(obj3wall_angle);
-            to_front_vec.x = CARROT_LENGTH*cos(obj3wall_angle);
-            to_front_vec.y = CARROT_LENGTH*sin(obj3wall_angle);
+            to_front_vec.x = carrot_length*cos(obj3wall_angle);
+            to_front_vec.y = carrot_length*sin(obj3wall_angle);
             frac_in_trans = 1;
         } else if (obj2_wall_to_feeler < ENV_TCTW_SIZE) {
             //disp('tctw obj2');
@@ -1076,8 +1119,8 @@ double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std
             obj2_wall_to_ropod = obj2_wall_to_ropod.sub(obj2wall_p0_idless);
             to_middle_vec.x = (FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*-sin(obj2wall_angle);
             to_middle_vec.y = (FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*cos(obj2wall_angle);
-            to_front_vec.x = CARROT_LENGTH*cos(obj2wall_angle);
-            to_front_vec.y = CARROT_LENGTH*sin(obj2wall_angle);
+            to_front_vec.x = carrot_length*cos(obj2wall_angle);
+            to_front_vec.y = carrot_length*sin(obj2wall_angle);
             frac_in_trans = 1;
         } else if (obj3_wall_to_feeler < (ENV_TCTW_SIZE+ENV_TRNS_SIZE_CORNERING)) {
             //disp('trans obj3');
@@ -1085,8 +1128,8 @@ double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std
             obj3_wall_to_ropod = obj3_wall_to_ropod.sub(obj3wall_p0_idless);
             to_middle_vec.x = (FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*-sin(obj3wall_angle);
             to_middle_vec.y = (FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*cos(obj3wall_angle);
-            to_front_vec.x = CARROT_LENGTH*cos(obj3wall_angle);
-            to_front_vec.y = CARROT_LENGTH*sin(obj3wall_angle);
+            to_front_vec.x = carrot_length*cos(obj3wall_angle);
+            to_front_vec.y = carrot_length*sin(obj3wall_angle);
             frac_in_trans = 1-(obj3_wall_to_feeler-ENV_TCTW_SIZE)/ENV_TRNS_SIZE_CORNERING;
         } else if (obj2_wall_to_feeler < (ENV_TCTW_SIZE+ENV_TRNS_SIZE_CORNERING)) {
             //disp('trans obj2');
@@ -1094,8 +1137,8 @@ double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std
             obj2_wall_to_ropod = obj2_wall_to_ropod.sub(obj2wall_p0_idless);
             to_middle_vec.x = (FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*-sin(obj2wall_angle);
             to_middle_vec.y = (FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*cos(obj2wall_angle);
-            to_front_vec.x = CARROT_LENGTH*cos(obj2wall_angle);
-            to_front_vec.y = CARROT_LENGTH*sin(obj2wall_angle);
+            to_front_vec.x = carrot_length*cos(obj2wall_angle);
+            to_front_vec.y = carrot_length*sin(obj2wall_angle);
             frac_in_trans = 1-(obj2_wall_to_feeler-ENV_TCTW_SIZE)/ENV_TRNS_SIZE_CORNERING;
         } else {
             //disp('normal cornering');
@@ -1103,8 +1146,8 @@ double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std
             obj3_wall_to_ropod = obj3_wall_to_ropod.sub(obj3wall_p0_idless);
             to_middle_vec.x = (-FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*-sin(obj3wall_angle);
             to_middle_vec.y = (-FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*cos(obj3wall_angle);
-            to_front_vec.x = CARROT_LENGTH*cos(obj3wall_angle);
-            to_front_vec.y = CARROT_LENGTH*sin(obj3wall_angle);
+            to_front_vec.x = carrot_length*cos(obj3wall_angle);
+            to_front_vec.y = carrot_length*sin(obj3wall_angle);
             frac_in_trans = 0;
         }
     }
