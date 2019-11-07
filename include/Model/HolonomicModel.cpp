@@ -58,7 +58,7 @@ void HolonomicModel::updateModel(double dt) {
 }
 
 FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool debug){
-    FollowStatus status = Status_Error; //Pre set status to error
+    status = Status_Error; //Pre set status to error
 
     if(!tubes.tubes.empty() && !dilatedFootprint.vertices.empty()){
         bool inTube = false;
@@ -230,7 +230,7 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
             smallestAngle(directionDifference);
 
             if(collisionDistance > footprintClearance){
-                status = Status_OutsideTube;
+                status = Status_TubeCollision;
             }else if(tubes.tubes[tubes.tubes.size()-1].connectedShape.polygonContainsPoint(pose)){
                 status = Status_Done;
             }else if(abs(directionDifference) > M_PI_2){ //TODO determine when stuck
@@ -239,7 +239,11 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
                 status = Status_Ok;
             }
         }else{ //Not in tube
-            status = Status_OutsideTube;
+            if((prevStatus == Status_OutsideTube && velocity.length() < 0.01) || prevStatus == Status_Recovering){
+                status = Status_Recovering;
+            }else{
+                status = Status_OutsideTube;
+            }
         }
     }
     return status;

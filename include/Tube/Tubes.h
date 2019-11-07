@@ -25,20 +25,24 @@ public:
     Tubes(const Tube& tube);
     void addPoint(Vector2D p, double width, double speed, int index = -1);
     void removePoint(unsigned int index);
-    void avoidObstacles(unsigned int startIndex, unsigned int index, Obstacles& obstacles, Model& model, DrivingSide side, Visualization& canvas);
     void connectTubes(unsigned int index);
-    bool convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model, Visualization &canvas);
+
+    void recover(Model &model);
+    void avoidObstacles(unsigned int startIndex, unsigned int index, Obstacles& obstacles, Model& model, DrivingSide side, Visualization& canvas);
+
     int tubeContainingPoint(Vector2D& point, int initialSearchPoint = 0);
     int tubeCornerContainingPoint(Vector2D& point, int initialSearchPoint = 0);
     Corner getCornerSide(unsigned int index);
     Vector2D getCornerPoint(unsigned int index);
     Polygon getCornerArea(unsigned int index);
+
+    bool convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model, Visualization &canvas);
+
     void showOriginalTubes(Visualization& canvas);
     void showTubes(Visualization& canvas);
     void showSides(Visualization& canvas);
     void visualizePlan(ropod_ros_msgs::RoutePlannerResult &route, Visualization &canvas);
     void visualizeRightWall(ropod_ros_msgs::RoutePlannerResult &route, Visualization &canvas);
-    void recover();
 
 private:
     vector<int> getConnectedVertices(ropod_ros_msgs::RoutePlannerResult &route, int a, int s, bool &forward, bool &found);
