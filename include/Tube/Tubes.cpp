@@ -13,7 +13,7 @@ bool Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model
     tubes.clear();
     bool fit = true;
     double extraSpace = 0.4;
-    double wallOffset = 0.2;
+    double wallOffset = 0.1;
     double corridorSpeed = 1;
     double junctionSpeed = 0.5;
     DrivingSide drivingSide = DrivingSide_Right; //TODO change tube generation based on driving side now only right side is supported
