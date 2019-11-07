@@ -13,9 +13,9 @@ bool Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model
     tubes.clear();
     bool fit = true;
     double extraSpace = 0.4;
-    double wallOffset = 0.1;
+    double wallOffset = 0.2;
     double corridorSpeed = 1;
-    double junctionSpeed = 0.5;
+    double junctionSpeed = 0.7;
     DrivingSide drivingSide = DrivingSide_Right; //TODO change tube generation based on driving side now only right side is supported
 
     bool firstTubePlaced = false;
@@ -36,10 +36,6 @@ bool Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model
                 double minWidth = model.width()+extraSpace;
                 double maxWidth = model.turnWidth()+extraSpace;
                 double width = minWidth;
-                double width1 = p1.distance(p4) > minWidth ? p1.distance(p4) : minWidth;
-                width1 = width1 > maxWidth ? maxWidth : width1;
-                double width2 = p2.distance(p3) > minWidth ? p2.distance(p3) : minWidth;
-                width2 = width2 > maxWidth ? maxWidth : width2;
 
                 if(area.type == "junction"){
                     width = maxWidth;
@@ -56,7 +52,7 @@ bool Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model
                         Corner corner = getJunctionDirection(route, a, s);
                         switch (corner){
                             case Corner_None:
-                                addPoint(point2, width2, junctionSpeed);
+                                addPoint(point2, width/2, junctionSpeed);
                                 cout << "Junction > Straight" << endl;
                                 break;
                             case Corner_Left:

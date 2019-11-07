@@ -8,11 +8,13 @@ Communication::Communication(ros::NodeHandle nroshndl) {
     if(!updatePosition){initializedPosition = true;}
     if(communicate) {
         vel_pub = nroshndl.advertise<geometry_msgs::Twist>("/remap/cmd_vel", 1);
-        amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, &Communication::getAmclPoseCallback, this);
-        odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/remap/odom", 100, &Communication::getOdomVelCallback, this);
-        obstacles_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, &Communication::getObstaclesCallback, this);
+        amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 1, &Communication::getAmclPoseCallback, this);
+        odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/remap/odom", 1, &Communication::getOdomVelCallback, this);
+        obstacles_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 1, &Communication::getObstaclesCallback, this);
         //ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
         ropod_debug_plan_sub = nroshndl.subscribe<ropod_ros_msgs::RoutePlannerResult>("/ropod/debug_route_plan", 1, &Communication::getDebugRoutePlanCallback, this);
+        scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("/remap/scan", 1, &Communication::getLaserScanCallback, this);
+        tf_listener_ = new tf::TransformListener;
     }
 }
 
@@ -108,6 +110,78 @@ void Communication::getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlanner
     route = *routeData;
     ROS_INFO("new debug plan received");
     planUpdated = true;
+}
+
+void Communication::getLaserScanCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
+    scan_buffer.push(msg);
+    bool newData = false;
+    while(!scan_buffer.empty()){
+        scan = scan_buffer.front();
+        // - - - - - - - - - - - - - - - - - -
+        // Determine absolute laser pose based on TF
+        try{
+            tf::StampedTransform t_sensor_pose;
+            tf_listener_->lookupTransform("map", scan->header.frame_id, scan->header.stamp, t_sensor_pose);
+            scan_buffer.pop();
+
+            tf::Quaternion q = t_sensor_pose.getRotation(); //( t_sensor_pose.getRotation().x, t_sensor_pose.getRotation().y, t_sensor_pose.getRotation().z, t_sensor_pose.getRotation().w );
+            tf::Matrix3x3 matrix ( q );
+            double rollSensor, pitchSensor, yawSensor;
+            matrix.getRPY ( rollSensor, pitchSensor, yawSensor );
+
+            double scan_size =  scan->ranges.size();
+            laserPoints.clear();
+            for(unsigned int iScan = 0; iScan < scan_size; iScan ++){
+                double angle = yawSensor + scan->angle_min + scan->angle_increment*iScan;
+                double x = t_sensor_pose.getOrigin().getX() + scan->ranges[iScan]*cos( angle );
+                double y = t_sensor_pose.getOrigin().getY() + scan->ranges[iScan]*sin( angle );
+                laserPoints.emplace_back(Vector2D(x,y));
+            }
+            newData = true;
+        }
+        catch(tf::ExtrapolationException& ex){
+            //ROS_WARN_STREAM_DELAYED_THROTTLE(10, "ED Laserplugin tracking: " << ex.what());
+            try{
+                // Now we have to check if the error was an interpolation or extrapolation error
+                // (i.e., the scan is too old or too new, respectively)
+                tf::StampedTransform latest_transform;
+                tf_listener_->lookupTransform("map", scan->header.frame_id, ros::Time(0), latest_transform);
+
+                if (scan_buffer.front()->header.stamp > latest_transform.stamp_){
+                    // Scan is too new
+                    break;
+                }
+                else{
+                    // Otherwise it has to be too old (pop it because we cannot use it anymore)
+                    scan_buffer.pop();
+                }
+            }
+            catch(tf::TransformException& exc){
+                scan_buffer.pop();
+            }
+        }
+        catch(tf::TransformException& exc){
+            //ROS_ERROR_STREAM_DELAYED_THROTTLE(10, "ED Laserplugin tracking: " << exc.what());
+            scan_buffer.pop();
+        }
+    }
+    if(!laserPoints.empty() && newData){
+        obstacles.obstacles.clear();
+        int counter = 0;
+        Vector2D p1, p2;
+        for(int i = 0; i < laserPoints.size()-1; i++){
+            if(counter == 0){p1 = laserPoints[i];}
+            if((laserPoints[i]-laserPoints[i+1]).length() < 0.1 && counter <= 20){
+                counter++;
+                p2 = laserPoints[i+1];
+            }else{
+                if(counter >= 5){
+                    obstacles.obstacles.emplace_back(Obstacle(Polygon({p1, p2}, Open), Pose2D((p1+p2)/2, 0), Static));
+                }
+                counter = 0;
+            }
+        }
+    }
 }
 
 void Communication::checkInitialized(){

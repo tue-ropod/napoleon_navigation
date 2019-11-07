@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
         rate.sleep();
     }
 
-    FollowStatus realStatus;
+    FollowStatus realStatus = Status_Error;
     FollowStatus predictionStatus;
     bool startNavigation = false;
     HolonomicModel hmodelCopy = hmodel;
