@@ -100,14 +100,14 @@ void Model::update(double dt, Communication &comm) {
             poseInitialized = true;
             pose = comm.measuredPose;
         }else{
-            pose = pose * 0.2 + comm.measuredPose * 0.8;
+            pose = pose * 0.1 + comm.measuredPose * 0.9;
             //pose = comm.measuredPose;
         }
     }
     if(comm.newOdometry()){
         Pose2D measuredVelocity = comm.measuredVelocity;
         measuredVelocity.transformThis(0,0,pose.a);
-        velocity = velocity*0.8 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a)*0.2;
+        velocity = velocity * 0.7 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a) * 0.3;
     }
 
     if(applyBrake){
@@ -134,7 +134,7 @@ void Model::brake(){
 }
 
 FollowStatus Model::predict(int nScalings, double predictionTime, double minPredictionDistance, double dt, Model &origionalModel, Tubes &tubes, Obstacles &obstacles, Visualization &canvas) {
-    FollowStatus status = Status_Error;
+    status = Status_Error;
     double brakeMargin = 1;
     changeSpeedScale(speedScale*1.01);
     //changeSpeedScale(1);

@@ -42,7 +42,7 @@ public:
     Pose2D pose, velocity, inputVelocity, desiredVelocity, predictionBiasVelocity = Pose2D(0,0,0);
     bool applyBrake = false;
     bool poseInitialized = false;
-    FollowStatus status = Status_Error, prevStatus = Status_Error;
+    FollowStatus status = Status_Ok, prevStatus = Status_Error;
     double speedScale = 1;
 
     Model(Pose2D pose_, Polygon footprint_, double maxSpeed_, double maxAcceleration_, double wheelDistanceToMiddle_);
