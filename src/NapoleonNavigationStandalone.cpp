@@ -25,7 +25,7 @@ int main() {
 
     Polygon footprint({Vec(0,0), Vec(2,0), Vec(2, 0.2), Vec(2.3,0.2), Vec(2.3,0.8), Vec(2,0.8), Vec(2,1), Vec(0,1)}, Closed, true, Pose2D(1,0.5,0));
     //Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.6), Vec(0,0.6)}, Closed, true, Pose2D(0.325,0.3,0));
-    HolonomicModel hmodel(Pose2D(-3.4,-4,M_PI_2), footprint, 3, 0.8, 1);
+    HolonomicModel hmodel(Pose2D(-5,-4,M_PI_2), footprint, 3, 0.8, 1);
 
     Obstacles obstacles;
     //obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1.5,1,0)));
@@ -50,8 +50,8 @@ int main() {
 
     FollowStatus realStatus = Status_Ok;
     FollowStatus predictionStatus = Status_Ok;
-    FollowStatus prevRealStatus = Status_Error;
-    FollowStatus prevPredictionStatus = Status_Error;
+    HolonomicModel hmodelCopy = hmodel;
+
 
     while(realStatus != Status_Done){
         canvas.setorigin(Pose2D(hmodel.pose.x, hmodel.pose.y, 0)-canvas.getWindowMidOffset());
@@ -61,23 +61,17 @@ int main() {
         canvas.arrow(Vec(0,0),Vec(1,0),Color(0,0,0),Thin);
         canvas.arrow(Vec(0,0),Vec(0,1),Color(0,0,0),Thin);
 
+        if(realStatus == Status_Recovering){
+            tubes.recover(hmodel);
+        }
 
-//        Vector2D p1 = hmodel.dilatedFootprint.boundingBoxRotated(hmodel.pose.a)[1];
-//        Pose2D v1 = Pose2D(-0.5, 0, 0);
-//        Pose2D i1 = hmodel.translateInput(p1, v1);
-//        canvas.arrow(p1, p1+v1, Color(0,0,255),Thin);
-//        hmodel.input(i1, Frame_World);
-
-        //obstacles[0].movement = Pose2D(0.2*cos((M_PI*2.0*r.elapsedTime)/(1000*5)), 0.3*cos((M_PI*2.0*r.elapsedTime)/(1000*7)), 0.01);
-
-        HolonomicModel hmodelCopy = hmodel;
         predictionStatus = hmodelCopy.predict(10, 4, 1, 1/F_planner, hmodel, tubes, obstacles, canvas); //nScaling | predictionTime | minDistance
 
-        if(predictionStatus == Status_Ok || predictionStatus == Status_Done || predictionStatus == Status_ShortPredictionDistance || predictionStatus == Status_OutsideTube) {
+        if(predictionStatus == Status_Ok || predictionStatus == Status_Done || predictionStatus == Status_ShortPredictionDistance || predictionStatus == Status_TubeCollision || predictionStatus == Status_Recovering) {
             hmodel.copySettings(hmodelCopy);
             realStatus = hmodel.follow(tubes, canvas, true);
             //tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, obstacles, hmodel, DrivingSide_Right, canvas);
-            if(realStatus != Status_Ok) {hmodel.brake();}
+            if(realStatus != Status_Ok && realStatus != Status_TubeCollision) {hmodel.brake();}
         }
         else if(predictionStatus == Status_ObstacleCollision){
             hmodel.input(Pose2D(0,0,0),Frame_World);
@@ -86,38 +80,14 @@ int main() {
             hmodel.brake();
         }
 
-        if(realStatus != prevRealStatus) {
-            switch (realStatus) {
-                case Status_Ok: {cout << "Status Ok" << endl;break;}
-                case Status_ShortPredictionDistance: {cout << "Status short prediction distance" << endl;break;}
-                case Status_Stuck: {cout << "Status stuck" << endl;break;}
-                case Status_Error: {cout << "Status error" << endl;break;}
-                case Status_ObstacleCollision: {cout << "Status obstacle collision" << endl;break;}
-                case Status_OutsideTube: {cout << "Status outside tube" << endl;break;}
-                case Status_Done: {cout << "Status done" << endl;break;}
-            }
-            prevRealStatus = realStatus;
-        }
-        if(prevPredictionStatus != predictionStatus){
-            switch (predictionStatus){
-                case Status_Ok: {cout << "prediction Status ok" << endl;break;}
-                case Status_ShortPredictionDistance: {cout << "Prediction short prediction distance" << endl; break;}
-                case Status_Stuck: {cout << "Prediction status stuck" << endl; break;}
-                case Status_Error: {cout << "Prediction status error" << endl; break;}
-                case Status_ObstacleCollision: {cout << "Prediction status obstacle collision" << endl; break;}
-                case Status_OutsideTube: {cout << "Prediction status outside tube" << endl;break;}
-                case Status_Done: {cout << "Prediction status done" << endl;break;}
-            }
-            prevPredictionStatus = predictionStatus;
-        }
-
+        hmodelCopy.showStatus("Prediction model");
+        hmodel.showStatus("Model");
         tubes.showSides(canvas);
         hmodel.show(canvas, Color(0,0,0), Thin);
         obstacles.show(canvas, Color(100,100,100), Filled);
 
         canvas.visualize();
 
-        //obstacles[0].update();
         hmodel.updatePrediction(r.periodSeconds);
 
         r.update();

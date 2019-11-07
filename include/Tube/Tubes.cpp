@@ -241,28 +241,25 @@ void Tubes::visualizeRightWall(ropod_ros_msgs::RoutePlannerResult &route, Visual
 
 void Tubes::addPoint(Vector2D p, double width, double speed, int index){
     if(!tubes.empty()) {
-        double angle = M_PI;
-        if(index > 0 && index < tubes.size()){
-            //TODO more than 90 degree turns add point (or find a different way to combine the sides of the tubes)
-        }
-        if(angle < M_PI_2){
+        double angle = 0; //TODO more than 90 degree turns add point (or find a different way to combine the sides of the tubes)
+        if(angle > M_PI_2){
             Vector2D newP = p;
             newP = newP; //TODO determine newP
             addPoint(newP, width, speed, index);
             addPoint(p, width, speed, index+1);
         }else{
-            if (index < 0) {
+            if (index < 0) { // add tube at the end [default if no index is given]
                 Tube &lastTube = tubes[tubes.size() - 1];
                 Tube tube(lastTube.p2, lastTube.width2, p, width, speed);
                 tubes.emplace_back(tube);
                 connectTubes(tubes.size() - 2);
-            } else if (index > 0 && index < tubes.size()) {
+            } else if (index >= 0 && index < tubes.size()) { // insert point
                 Tube &r = tubes[index];
                 r.buildTube(r.p1, r.width1, p, width, speed);
                 Tube n = tubes[index + 1];
                 Tube tube(p, width, n.p1, n.width1, speed);
                 tubes.insert(tubes.begin() + index + 1, tube);
-                connectTubes(index - 1);
+                if(index > 0) {connectTubes(index - 1);}
                 connectTubes(index);
                 connectTubes(index + 1);
             }
@@ -526,9 +523,29 @@ void Tubes::showSides(Visualization &canvas) {
     }
 }
 
-void Tubes::recover(){
-    //project object position on tubes.
+void Tubes::recover(Model &model){
     //get closest tube.
+    Line closestTube;
+    int index = -1;
+    Vector2D objectPosition = model.pose.toVector();
+    for(int i = 0; i < tubes.size(); i++){
+        Tube &tube = tubes[i];
+        Line tubeLine = Line(tube.p1, tube.p2);
+        Line dist = Line(objectPosition, tubeLine.lineProjectionPointConstrained(objectPosition));
+        if(dist.length() < closestTube.length() || index == -1){
+            closestTube = dist;
+            index = i;
+        }
+    }
+    if(index != -1){
+        cout << "Recover > ajust tube [FIX WHEN EXISTING TUBE POINT IS TOO CLOSE]" << endl;
+        vector<Vector2D> boundingBox = model.footprint.boundingBoxRotated(model.pose.a);
+        Vector2D frontPoint = (boundingBox[1]+boundingBox[2])/2;
+        Vector2D backPoint = (boundingBox[0]+boundingBox[3])/2;
+        addPoint(backPoint, model.turnWidth()+0.4, tubes[index].velocity.length(), index);
+        addPoint(frontPoint, model.turnWidth()+0.4, tubes[index].velocity.length(), index+1);
+
+    }
     //inset new tube.
 }
 

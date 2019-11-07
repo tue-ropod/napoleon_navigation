@@ -14,8 +14,6 @@ Model::Model(Pose2D pose_, Polygon footprint_, double maxSpeed_, double maxAccel
     maxAcceleration = maxAcceleration_;
     maxRotationalSpeed = maxSpeed / wheelDistanceToMiddle_;
     maxRotationalAcceleration = maxAcceleration / wheelDistanceToMiddle_;
-    currentTubeIndex = 0;
-    speedScale = 1;
 }
 
 bool Model::collision(Obstacles& obstacles){
@@ -102,9 +100,7 @@ void Model::update(double dt, Communication &comm) {
             poseInitialized = true;
             pose = comm.measuredPose;
         }else{
-            Pose2D diff = comm.measuredPose - pose;
-            diff.constrainThis(0.1, M_PI/16);
-            pose = pose + diff;
+            pose = pose * 0.2 + comm.measuredPose * 0.8;
             //pose = comm.measuredPose;
         }
     }
@@ -171,7 +167,7 @@ FollowStatus Model::predict(int nScalings, double predictionTime, double minPred
         if (distance < minPredictionDistance && status == Status_Ok) {
             status = Status_ShortPredictionDistance;
         }
-        if (status == Status_OutsideTube || status == Status_Stuck) {
+        if (status == Status_TubeCollision || status == Status_Stuck) {
             changeSpeedScale(speedScale*0.8);
         } else { break; }
     }
@@ -192,6 +188,22 @@ void Model::showCommunicationInput(Visualization& canvas, Color c, int drawstyle
     canvas.arrow(pos, pos+comm.measuredVelocity.toVector().transform(0,0,mPose.a), Color(0,0,255), drawstyle);
 }
 
+void Model::showStatus(string modelName) {
+    if(status != prevStatus) {
+        switch (status) {
+            case Status_Ok: {cout << modelName + " status: Ok" << endl;break;}
+            case Status_ShortPredictionDistance: {cout << modelName + " status: short prediction distance" << endl;break;}
+            case Status_Stuck: {cout << modelName + " status: stuck" << endl;break;}
+            case Status_Error: {cout << modelName + " status: error" << endl;break;}
+            case Status_ObstacleCollision: {cout << modelName + " status: obstacle collision" << endl;break;}
+            case Status_TubeCollision: {cout << modelName + " status: tube collision" << endl;break;}
+            case Status_OutsideTube: {cout << modelName + " status: outside tube" << endl;break;}
+            case Status_Recovering: {cout << modelName + " status: recovering" << endl;break;}
+            case Status_Done: {cout << modelName + " status: done" << endl;break;}
+        }
+        prevStatus = status;
+    }
+}
 
 ////////////////////////////////////Virtual functions///////////////////////////////////////////////////////////////////
 

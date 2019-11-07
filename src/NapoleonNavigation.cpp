@@ -58,9 +58,8 @@ int main(int argc, char** argv) {
 
     FollowStatus realStatus = Status_Ok;
     FollowStatus predictionStatus = Status_Ok;
-    FollowStatus prevRealStatus = Status_Error;
-    FollowStatus prevPredictionStatus = Status_Error;
     bool startNavigation = false;
+    HolonomicModel hmodelCopy = hmodel;
 
     while(nroshndl.ok() && ros::ok() && comm.initialized){
 
@@ -74,16 +73,17 @@ int main(int argc, char** argv) {
         canvas.arrow(Vec(0,0),Vec(0,1),Color(0,0,0),Thin);
 
         if(startNavigation){
-            HolonomicModel hmodelCopy = hmodel;
-            predictionStatus = hmodelCopy.predict(10, 4, 0.3, 1/F_prediction, hmodel, tubes, comm.obstacles, canvas); //nScaling | predictionTime | minDistance
+            if(realStatus == Status_Recovering){
+                tubes.recover(hmodel);
+            }
 
-            //status = Status_Ok;
+            predictionStatus = hmodelCopy.predict(10, 4, 1, 1/F_prediction, hmodel, tubes, comm.obstacles, canvas); //nScaling | predictionTime | minDistance
 
-            if(predictionStatus == Status_Ok || predictionStatus == Status_Done || predictionStatus == Status_ShortPredictionDistance || predictionStatus == Status_OutsideTube) {
+            if(predictionStatus == Status_Ok || predictionStatus == Status_Done || predictionStatus == Status_ShortPredictionDistance || predictionStatus == Status_TubeCollision || predictionStatus == Status_Recovering) {
                 hmodel.copySettings(hmodelCopy);
                 realStatus = hmodel.follow(tubes, canvas, true);
                 //tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, obstacles, hmodel, DrivingSide_Right, canvas);
-                if(realStatus != Status_Ok) {hmodel.brake();}
+                if(realStatus != Status_Ok && realStatus != Status_TubeCollision) {hmodel.brake();}
             }
             else if(predictionStatus == Status_ObstacleCollision){
                 hmodel.input(Pose2D(0,0,0),Frame_World);
@@ -91,32 +91,6 @@ int main(int argc, char** argv) {
             else{
                 hmodel.brake();
             }
-
-            if(realStatus != prevRealStatus) {
-                switch (realStatus) {
-                    case Status_Ok: {cout << "Status Ok" << endl;break;}
-                    case Status_ShortPredictionDistance: {cout << "Status short prediction distance" << endl;break;}
-                    case Status_Stuck: {cout << "Status stuck" << endl;break;}
-                    case Status_Error: {cout << "Status error" << endl;break;}
-                    case Status_ObstacleCollision: {cout << "Status obstacle collision" << endl;break;}
-                    case Status_OutsideTube: {cout << "Status outside tube" << endl;break;}
-                    case Status_Done: {cout << "Status done" << endl;break;}
-                }
-                prevRealStatus = realStatus;
-            }
-            if(prevPredictionStatus != predictionStatus){
-                switch (predictionStatus){
-                    case Status_Ok: {cout << "prediction Status ok" << endl;break;}
-                    case Status_ShortPredictionDistance: {cout << "Prediction short prediction distance" << endl; break;}
-                    case Status_Stuck: {cout << "Prediction status stuck" << endl; break;}
-                    case Status_Error: {cout << "Prediction status error" << endl; break;}
-                    case Status_ObstacleCollision: {cout << "Prediction status obstacle collision" << endl; break;}
-                    case Status_OutsideTube: {cout << "Prediction status outside tube" << endl;break;}
-                    case Status_Done: {cout << "Prediction status done" << endl;break;}
-                }
-                prevPredictionStatus = predictionStatus;
-            }
-
 
             if(realStatus == Status_Done) {
                 hmodel.brake();
@@ -131,6 +105,8 @@ int main(int argc, char** argv) {
             }
         }
 
+        hmodelCopy.showStatus("Prediction model");
+        hmodel.showStatus("Model");
         tubes.showSides(canvas);
         hmodel.show(canvas, Color(0,0,0), Thin);
         hmodel.showCommunicationInput(canvas, Color(0,255,50), Thin, comm);
