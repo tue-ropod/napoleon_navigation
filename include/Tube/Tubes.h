@@ -10,6 +10,7 @@
 #include "Tube.h"
 #include "iostream"
 #include <ropod_ros_msgs/RoutePlannerAction.h>
+#include <Communication/Communication.h>
 
 
 class Model;
@@ -36,7 +37,7 @@ public:
     Vector2D getCornerPoint(unsigned int index);
     Polygon getCornerArea(unsigned int index);
 
-    bool convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model, Visualization &canvas);
+    bool convertRoute(Communication &comm, Model &model, Visualization &canvas);
 
     void showOriginalTubes(Visualization& canvas);
     void showTubes(Visualization& canvas);

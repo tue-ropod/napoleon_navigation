@@ -89,6 +89,7 @@ SET(napoleon_includes
         include/Definitions/Pose2D.h
         include/Definitions/Line.h
         include/Definitions/Circle.h
+        include/Definitions/Ellipse.h
         include/LoopRate/LoopRate.h
         include/Visualization/VisualizationRviz.cpp
         include/Visualization/VisualizationRviz.h

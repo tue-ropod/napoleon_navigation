@@ -26,17 +26,6 @@ double F_prediction = 10;
 int main(int argc, char** argv) {
     cout << "Main loop started" << endl;
 
-    //Polygon footprint({Vec(0,0), Vec(2,0), Vec(2, 0.2), Vec(2.3,0.2), Vec(2.3,0.8), Vec(2,0.8), Vec(2,1), Vec(0,1)}, Closed, true, Pose2D(1,0.5,0));
-    Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.65), Vec(0,0.65)}, Closed, true, Pose2D(0.325,0.325,0));
-    HolonomicModel hmodel(Pose2D(0,0,M_PI_2), footprint, 1, 0.7, 0.25);
-
-    Tubes tubes;
-//    Tubes tubes(Tube(Vec(0,0), 1, Vec(-3,5), 1, 1));
-//    tubes.addPoint(Vec(3,5), 1, 1);
-//    tubes.addPoint(Vec(3,0.5), 1, 1);
-//    tubes.addPoint(Vec(3,0), 1, 1);
-    bool testRoute = false;
-
     ros::init(argc, argv, "route_navigation");
 
     ros::NodeHandle nroshndl("~");
@@ -44,6 +33,10 @@ int main(int argc, char** argv) {
 
     VisualizationRviz canvas(nroshndl);
     Communication comm(nroshndl);
+
+    Tubes tubes;
+    Polygon footprint(comm.footprint_param, Closed);
+    HolonomicModel hmodel(Pose2D(0,0,0), footprint, comm.maxSpeed_param, comm.maxAcceleration_param, comm.wheelDistanceMiddle_param);
 
     bool initialized = false;
     while(!initialized){
@@ -76,10 +69,19 @@ int main(int argc, char** argv) {
             if(realStatus == Status_Recovering){
                 //tubes.recover(hmodel);
             }
+            if(realStatus == Status_WrongWay){
+                //rotate model
+            }
 
             predictionStatus = hmodelCopy.predict(10, 4, 1, 1/F_prediction, hmodel, tubes, comm.obstacles, canvas); //nScaling | predictionTime | minDistance
 
-            if(predictionStatus == Status_Ok || predictionStatus == Status_Done || predictionStatus == Status_ShortPredictionDistance || predictionStatus == Status_TubeCollision || predictionStatus == Status_Recovering) {
+            if( predictionStatus == Status_Ok ||
+                predictionStatus == Status_Done ||
+                predictionStatus == Status_ShortPredictionDistance ||
+                predictionStatus == Status_TubeCollision ||
+                predictionStatus == Status_Recovering ||
+                predictionStatus == Status_WrongWay                   ){
+
                 hmodel.copySettings(hmodelCopy);
                 realStatus = hmodel.follow(tubes, canvas, true);
                 //tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, obstacles, hmodel, DrivingSide_Right, canvas);
@@ -98,12 +100,14 @@ int main(int argc, char** argv) {
             }
         }
         if(!startNavigation && comm.newPlan()) {
-            if(tubes.convertRoute(comm.route, hmodel, canvas)){
+            if(tubes.convertRoute(comm, hmodel, canvas)){
                 startNavigation = true;
             }else{
                 cout << "Tube is larger than the defined area! [check if margins can be decreased or if the object fits through at all.]" << endl;
             }
         }
+
+        if(hmodel.collision(comm.obstacles)){hmodel.brake();}
 
         hmodelCopy.showStatus("Prediction model");
         hmodel.showStatus("Model");

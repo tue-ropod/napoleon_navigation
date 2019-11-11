@@ -24,7 +24,7 @@
 class Tubes;
 
 enum Frame {Frame_Robot, Frame_World};
-enum FollowStatus {Status_Ok, Status_ObstacleCollision, Status_TubeCollision, Status_Stuck, Status_Error, Status_Done, Status_ShortPredictionDistance, Status_OutsideTube, Status_Recovering};
+enum FollowStatus {Status_Ok, Status_ObstacleCollision, Status_TubeCollision, Status_Stuck, Status_Error, Status_Done, Status_ShortPredictionDistance, Status_OutsideTube, Status_Recovering, Status_WrongWay};
 
 class Model {
 protected:
@@ -39,7 +39,8 @@ public:
 
     Polygon footprint;
     Polygon dilatedFootprint;
-    Pose2D pose, velocity, inputVelocity, desiredVelocity, predictionBiasVelocity = Pose2D(0,0,0);
+    Pose2D pose = Pose2D(0,0,0), velocity = Pose2D(0,0,0);
+    Pose2D inputVelocity = Pose2D(0,0,0), desiredVelocity = Pose2D(0,0,0), predictionBiasVelocity = Pose2D(0,0,0);
     bool applyBrake = false;
     bool poseInitialized = false;
     FollowStatus status = Status_Ok, prevStatus = Status_Error;
@@ -50,7 +51,6 @@ public:
     void dilateFootprint(double offset);
     void update(double dt, Communication &comm);
     void brake();
-    void calculateInputVelocity(double dt);
     void changeSpeedScale(double x);
     void copySettings(Model &modelCopy);
     void copyState(Model &modelCopy);
@@ -60,7 +60,7 @@ public:
     double brakeDistance();
     FollowStatus predict(int nScalings, double predictionTime, double minPredictionDistance, double dt, Model &origionalModel, Tubes &tubes, Obstacles &obstacles, Visualization &canvas);
     void showCommunicationInput(Visualization& canvas, Color c, int drawstyle, Communication &comm);
-    void showStatus(string modelName);
+    void showStatus(const string& modelName);
 
     virtual void show(Visualization& canvas, Color c, int drawstyle);
     virtual FollowStatus follow(Tubes& tubes, Visualization& canvas, bool debug);

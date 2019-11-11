@@ -44,7 +44,10 @@ void HolonomicModel::updatePrediction(double dt) {
         inputVelocity = Pose2D(0,0,0);
         applyBrake = false;
     }else{
-        calculateInputVelocity(dt);
+        Pose2D desiredAcceleration = (desiredVelocity - velocity)/dt;
+        desiredAcceleration.constrainThis(maxAcceleration, maxRotationalAcceleration);
+        inputVelocity = velocity + desiredAcceleration * dt;
+        inputVelocity.constrainThis(maxSpeed, maxRotationalSpeed);
     }
     velocity = inputVelocity;
     updateModel(dt);
@@ -61,7 +64,6 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
     status = Status_Error; //Pre set status to error
 
     if(!tubes.tubes.empty() && !dilatedFootprint.vertices.empty()){
-        bool inTube = false;
         Pose2D velocityInput;
 
         vector<Vector2D> boundingBox = dilatedFootprint.boundingBoxRotated(pose.a);
@@ -99,14 +101,14 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
                 nVelocityVector++;
                 velocityInput = velocityInput + translateInput(vertex, Pose2D(pointVelocity, 0));
                 if(debug){canvas.arrow(vertex, vertex+pointVelocity, Color(0,0,255), Thin);}
-                inTube = true;
             }
         }
 
         velocityInput = velocityInput/double(nVelocityVector);
 
-        if( inTube ) {
+        if( tubes.tubeContainingPoint(pose, currentTubeIndex) != -1 ) { //Middle of object inside tube
 
+            //Calculate the minimum and maximum tube index which the footprint of the object occupies
             int minTubeIndex = -1, maxTubeIndex = -1;
             for(auto & vertex : boundingBox){
                 int ti = tubes.tubeContainingPoint(vertex, currentTubeIndex);
@@ -116,6 +118,7 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
                 }
             }
 
+            //create a vector of the current sides of the occupied tubes
             vector<Line> currentSides;
             vector<int> sideIndex;
             for(int i = minTubeIndex; i <= maxTubeIndex; i++){ //Add tube sides to current sides that will be evaluated (mind the ordering left > right)
@@ -226,19 +229,23 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
             predictionBiasVelocity = correctionInput;
             input(totalInput, Frame_World);
 
-            double directionDifference = (totalInput.toVector().angle() - velocityInput.toVector().angle());
-            smallestAngle(directionDifference);
+            double inputDirectionDifference = (totalInput.toVector().angle() - velocityInput.toVector().angle());
+            smallestAngle(inputDirectionDifference);
+            double directiondifference = (pose.a - velocityInput.toVector().angle());
+            smallestAngle(directiondifference);
 
             if(collisionDistance > footprintClearance){
                 status = Status_TubeCollision;
             }else if(tubes.tubes[tubes.tubes.size()-1].connectedShape.polygonContainsPoint(pose)){
                 status = Status_Done;
-            }else if(abs(directionDifference) > M_PI_2){ //TODO determine when stuck
+            }else if(abs(inputDirectionDifference) > M_PI_2){
                 status = Status_Stuck;
+            }else if(abs(directiondifference) > 2*M_PI/3){
+                status = Status_WrongWay;
             }else{
                 status = Status_Ok;
             }
-        }else{ //Not in tube
+        }else{ //Middle not in tube
             if((prevStatus == Status_OutsideTube && velocity.length() < 0.01) || prevStatus == Status_Recovering){
                 status = Status_Recovering;
             }else{

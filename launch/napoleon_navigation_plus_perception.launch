@@ -76,19 +76,29 @@
 
     <node name="napoleon_navigation" pkg="napoleon_navigation" type="napoleon_navigation" output="screen">
 
-        <rosparam file="$(find ropod_navigation_test)/config/parameters/costmap_common_params.yaml" command="load" ns="local_costmap" />
-        <rosparam file="$(find ropod_navigation_test)/config/parameters/footprint_ropod.yaml" command="load" ns="local_costmap" />
-        <rosparam file="$(find ropod_navigation_test)/config/parameters/local_costmap_params.yaml"  command="load"/>
-        <rosparam file="$(find ropod_navigation_test)/config/parameters/teb_local_planner_params_ropod.yaml" command="load" />
-        <param name="default_ropod_navigation_param_file" value ="$(find napoleon_navigation)/config/footprint_local_planner_params_ropod.yaml"/>
-        <param name="default_ropod_load_navigation_param_file" value ="$(find napoleon_navigation)/config/footprint_local_planner_params_ropod_load.yaml"/>
+<!--        <rosparam file="$(find ropod_navigation_test)/config/parameters/costmap_common_params.yaml" command="load" ns="local_costmap" />-->
+<!--        <rosparam file="$(find ropod_navigation_test)/config/parameters/footprint_ropod.yaml" command="load" ns="local_costmap" />-->
+<!--        <rosparam file="$(find ropod_navigation_test)/config/parameters/local_costmap_params.yaml"  command="load"/>-->
+<!--        <rosparam file="$(find ropod_navigation_test)/config/parameters/teb_local_planner_params_ropod.yaml" command="load" />-->
 
-        <!-- In Gazebo: -->
-<!--         <remap from="/napoleon_navigation/remap/cmd_vel" to="/load/cmd_vel"/>-->
-        <!-- On ropod: -->
-        <remap from="/remap/cmd_vel" to="/$(arg robotName)/cmd_vel"/>
-        <remap from="/remap/odom" to="/$(arg robotName)/odom"/>
-        <remap from="/remap/scan" to="/$(arg robotName)/$(arg laser1_name)/scan"/>
+<!--        <rosparam param="footprint_param" >[ 0,0, 2,0, 2,0.2, 2.3,0.2, 2.3,0.8, 2,0.8, 2,1, 0,1 ]</rosparam>-->
+<!--        <rosparam param="wheelDistanceMiddle_param" > 1 </rosparam>-->
+        <rosparam param="footprint_param" >[ 0,0, 0.65,0, 0.65,0.65, 0,0.65 ]</rosparam>
+        <rosparam param="wheelDistanceMiddle_param" > 0.3 </rosparam>
+
+        <rosparam param="maxSpeed_param" > 1.4 </rosparam>
+        <rosparam param="maxAcceleration_param" > 0.7 </rosparam>
+
+        <rosparam param="tubeWallOffset_param" > 0.2 </rosparam>
+        <rosparam param="tubeExtraSpace_param" > 0.4 </rosparam>
+
+        <remap from="/navigation/cmd_vel" to="/$(arg robotName)/cmd_vel"/>
+        <remap from="/navigation/odom" to="/$(arg robotName)/odom"/>
+        <remap from="/navigation/scan" to="/$(arg robotName)/$(arg laser1_name)/scan"/>
+
+        <param name="odom_frame_id" value="$(arg robotName)/odom"/>
+        <param name="base_frame_id" value="$(arg robotName)/base_link"/>
+        <param name="global_frame_id" value="/map"/>
 
     </node>
 

@@ -6,6 +6,7 @@
 #define NAVIGATION_VECTOR2D_H
 
 #include <cmath>
+#include <iostream>
 
 using namespace std;
 
@@ -60,6 +61,12 @@ struct Vector2D{
     }
     bool operator== (const Vector2D& other)const{
         return (x == other.x && y == other.y);
+    }
+    bool operator> (const Vector2D& other)const{
+        return (x > other.x && y > other.y);
+    }
+    bool operator< (const Vector2D& other)const{
+        return (x < other.x && y < other.y);
     }
     double distance(const Vector2D &other)const{
         return sqrt(pow((x-other.x),2) + pow((y-other.y),2));
@@ -119,6 +126,7 @@ struct Vector2D{
         v.y = y * y_;
         return v;
     }
+
     void constrainThis(double x_, double y_){
         this->x = abs(this->x) > abs(x_) ? (this->x/abs(this->x)) * abs(x_) : this->x;
         this->y = abs(this->y) > abs(y_) ? (this->y/abs(this->y)) * abs(y_) : this->y;
@@ -132,6 +140,10 @@ struct Vector2D{
     }
     bool valid()const{
         return !(isnan(x) || isnan(y) || isinf(x) || isinf(y));
+    }
+
+    void print(const string &name){
+        cout << name << " > x:" << this->x << " y:" << this->y << endl;
     }
 };
 

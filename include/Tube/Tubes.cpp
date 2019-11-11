@@ -8,12 +8,13 @@ Tubes::Tubes(const Tube& tube){
     tubes.emplace_back(tube);
 }
 
-bool Tubes::convertRoute(ropod_ros_msgs::RoutePlannerResult &route, Model &model, Visualization &canvas) {
+bool Tubes::convertRoute(Communication &comm, Model &model, Visualization &canvas) {
+    ropod_ros_msgs::RoutePlannerResult &route = comm.route;
     std::vector<ropod_ros_msgs::Area> &areas = route.areas;
     tubes.clear();
     bool fit = true;
-    double extraSpace = 0.4;
-    double wallOffset = 0.2;
+    double extraSpace = comm.tubeExtraSpace_param;
+    double wallOffset = comm.tubeWallOffset_param;
     double corridorSpeed = 1;
     double junctionSpeed = 0.7;
     DrivingSide drivingSide = DrivingSide_Right; //TODO change tube generation based on driving side now only right side is supported

@@ -5,65 +5,129 @@
 #include "Communication.h"
 
 Communication::Communication(ros::NodeHandle nroshndl) {
-    if(!updatePosition){initializedPosition = true;}
-    if(communicate) {
-        vel_pub = nroshndl.advertise<geometry_msgs::Twist>("/remap/cmd_vel", 1);
-        amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 1, &Communication::getAmclPoseCallback, this);
-        odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/remap/odom", 1, &Communication::getOdomVelCallback, this);
-        obstacles_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 1, &Communication::getObstaclesCallback, this);
-        //ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
-        ropod_debug_plan_sub = nroshndl.subscribe<ropod_ros_msgs::RoutePlannerResult>("/ropod/debug_route_plan", 1, &Communication::getDebugRoutePlanCallback, this);
-        scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("/remap/scan", 1, &Communication::getLaserScanCallback, this);
-        tf_listener_ = new tf::TransformListener;
-    }
+    vel_pub = nroshndl.advertise<geometry_msgs::Twist>("/navigation/cmd_vel", 1);
+    //amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 1, &Communication::getAmclCallback, this);
+    odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/navigation/odom", 1, &Communication::getOdomCallback, this);
+    obstacles_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 1, &Communication::getObstaclesCallback, this);
+    //ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
+    ropod_debug_plan_sub = nroshndl.subscribe<ropod_ros_msgs::RoutePlannerResult>("/ropod/debug_route_plan", 1, &Communication::getDebugRoutePlanCallback, this);
+    scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("/navigation/scan", 1, &Communication::getLaserScanCallback, this);
+
+    nroshndl.getParam("/napoleon_navigation/global_frame_id", globalFrame);
+    nroshndl.getParam("/napoleon_navigation/base_frame_id", baseFrame);
+    nroshndl.getParam("/napoleon_navigation/odom_frame_id", odomFrame);
+
+    vector<double> footprint;
+    nroshndl.getParam("/napoleon_navigation/footprint_param", footprint);
+    for(int i = 0; i < footprint.size()/2; i++){footprint_param.emplace_back(Vector2D(footprint[i*2],footprint[i*2+1]));}
+    cout << "Footprint:" << endl;
+    for(Vector2D &v : footprint_param){cout << " - " << v.x << " " << v.y << endl;}
+    nroshndl.getParam("/napoleon_navigation/maxSpeed_param", maxSpeed_param);
+    cout << "Max speed: " << maxSpeed_param << endl;
+    nroshndl.getParam("/napoleon_navigation/maxAcceleration_param", maxAcceleration_param);
+    cout << "Max Acceleration: " << maxAcceleration_param << endl;
+    nroshndl.getParam("/napoleon_navigation/wheelDistanceMiddle_param", wheelDistanceMiddle_param);
+    cout << "Wheel distance middle: " << wheelDistanceMiddle_param << endl;
+    nroshndl.getParam("/napoleon_navigation/tubeWallOffset_param", tubeWallOffset_param);
+    cout << "Tube wall offset: " << tubeWallOffset_param << endl;
+    nroshndl.getParam("/napoleon_navigation/tubeExtraSpace_param", tubeExtraSpace_param);
+    cout << "Tube Extra space: " << tubeExtraSpace_param << endl;
+
 }
 
-void Communication::getOdomVelCallback(const nav_msgs::OdometryConstPtr &odom_msg){
-    //ROS_INFO("Odometry received");
-    double odom_xdot_ropod_global = abs(odom_msg->twist.twist.linear.x) < 1e-5 ? 0.0 : odom_msg->twist.twist.linear.x;
-    double odom_ydot_ropod_global = abs(odom_msg->twist.twist.linear.y) < 1e-5 ? 0.0 : odom_msg->twist.twist.linear.y;
-    double odom_thetadot_global = abs(odom_msg->twist.twist.angular.z) < 1e-5 ? 0.0 : odom_msg->twist.twist.angular.z;
-    //double odom_phi_local = atan2(odom_ydot_ropod_global, odom_xdot_ropod_global);
-    //double odom_vropod_global = sqrt(odom_xdot_ropod_global*odom_xdot_ropod_global+odom_ydot_ropod_global*odom_ydot_ropod_global);
+void Communication::getOdomCallback(const nav_msgs::OdometryConstPtr &odom_msg){
 
-    measuredVelocity = Pose2D(odom_xdot_ropod_global, odom_ydot_ropod_global, odom_thetadot_global);
+    bool validPose = false;
+    tf::StampedTransform poseTransform;
+    try {
+        tf_listener.lookupTransform(globalFrame, baseFrame, ros::Time(0), poseTransform);
+        tf::Quaternion q = poseTransform.getRotation();
+        tf::Matrix3x3 matrix ( q );
+        double roll, pitch, yaw;
+        matrix.getRPY ( roll, pitch, yaw );
+        measuredPose = Pose2D(poseTransform.getOrigin().x(), poseTransform.getOrigin().y(), yaw);
+        validPose = true;
+    } catch(tf::TransformException &exception) {
+        if(initializedOdometry) {ROS_ERROR("%s", exception.what());}
+    }
 
-    if(!initializedOdometry){
-        cout << "Initial Odom: " << measuredVelocity.x << " " << measuredVelocity.y << " " << measuredVelocity.a << endl;
+//    geometry_msgs::PoseWithCovariance pose = odom_msg->pose;
+//    double a = pose.covariance[0];
+//    double b = pose.covariance[1];
+//    double c = pose.covariance[6];
+//    double d = pose.covariance[7];
+//
+//    double D = a*d-b*c;
+//    double T = a+d;
+//
+//    //eigenvalues X Y
+//    double L1 = T/2 + sqrt((T*T)/4-D);
+//    double L2 = T/2 - sqrt((T*T)/4-D);
+//
+//    //eigenvectors X Y
+//    Vector2D E1, E2;
+//    if(abs(c) > 0.001){
+//        E1 = Vector2D(L1-d, c);
+//        E2 = Vector2D(L2-d, c);
+//    }else if(abs(b) > 0.001){
+//        E1 = Vector2D(b, L1-a);
+//        E2 = Vector2D(b, L2-a);
+//    }else if(abs(b) <= 0.001 && abs(c) <= 0.001){
+//        E1 = Vector2D(1, 0);
+//        E2 = Vector2D(0, 1);
+//    }
+//
+//    E1.unitThis();
+//    E2.unitThis();
+//
+//    poseUncertainty = Ellipse(measuredPose.toVector(), sqrt(L1), sqrt(L2), E1.angle());
+
+//    bool validTwist = false;
+//    geometry_msgs::Twist odomTwist;
+//    try{
+//        tf_listener.lookupTwist(baseFrame, odomFrame, ros::Time(0), ros::Duration(1), odomTwist);
+//        measuredVelocity = Pose2D(odomTwist.linear.x, odomTwist.linear.y, odomTwist.angular.z);
+//        validTwist = true;
+//    } catch (tf::TransformException &exception){
+//        if(initializedOdometry) {ROS_ERROR("%s", exception.what());}
+//    }
+
+    geometry_msgs::Twist twist_msg = odom_msg->twist.twist;
+    if(measuredVelocityList.size() >= velocityAverageSamples){measuredVelocityList.pop_front();}
+    measuredVelocityList.emplace_back(Pose2D(twist_msg.linear.x, twist_msg.linear.y, twist_msg.angular.z));
+    Pose2D addedVelocities;
+    for(Pose2D &v : measuredVelocityList){
+        addedVelocities = addedVelocities + v;
+    }
+    measuredVelocity = addedVelocities / measuredVelocityList.size();
+
+    if(!initializedOdometry && validPose){
+        cout << "Initial twist: " << measuredVelocity.x << " " << measuredVelocity.y << " " << measuredVelocity.a << endl;
+        cout << "Initial pose: " << measuredPose.x << " " << measuredPose.y << " " << measuredPose.a << endl;
+        //cout << "Uncertainty: " << a << " " << b << " " << c << " " << d << endl;
         initializedOdometry = true;
         checkInitialized();
     }
-
     odometryUpdated = true;
 }
 
-void Communication::getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &pose_msg){
-    if(updatePosition) {
-        //ROS_INFO("Amcl pose received");
-        //ROS_INFO("X: %f, Y: %f", pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y);
-        double this_amcl_x = pose_msg->pose.pose.position.x;
-        double this_amcl_y = pose_msg->pose.pose.position.y;
-        double quaternion_x = pose_msg->pose.pose.orientation.x;
-        double quaternion_y = pose_msg->pose.pose.orientation.y;
-        double quaternion_z = pose_msg->pose.pose.orientation.z;
-        double quaternion_w = pose_msg->pose.pose.orientation.w;
+void Communication::getAmclCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &pose_msg){
+    geometry_msgs::Quaternion q_msg = pose_msg->pose.pose.orientation;
+    geometry_msgs::Point p_msg = pose_msg->pose.pose.position;
+    tf::Quaternion q;
+    tf::quaternionMsgToTF(q_msg, q);
+    tf::Matrix3x3 matrix ( q );
+    double roll, pitch, yaw;
+    matrix.getRPY ( roll, pitch, yaw );
 
-        // yaw (z-axis rotation)
-        double siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
-        double cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
-        double this_amcl_theta = atan2(siny_cosp, cosy_cosp);
+    measuredPoseAmcl = Pose2D(p_msg.x, p_msg.y, yaw);
 
-        measuredPose = Pose2D(this_amcl_x, this_amcl_y, this_amcl_theta);
-        //cout << "Pose: " << pose.x << " " << pose.y << " " << pose.a << endl;
-
-        if (!initializedPosition) {
-            cout << "Initial pose: " << measuredPose.x << " " << measuredPose.y << " " << measuredPose.a << endl;
-            initializedPosition = true;
-            checkInitialized();
-        }
-
-        positionUpdated = true;
+    if (!initializedPositionAmcl) {
+        cout << "Initial pose Amcl: " << measuredPoseAmcl.x << " " << measuredPoseAmcl.y << " " << measuredPoseAmcl.a << endl;
+        initializedPositionAmcl = true;
+        checkInitialized();
     }
+    positionAmclUpdated = true;
 }
 
 void Communication::getObstaclesCallback(const ed_gui_server::objsPosVelConstPtr &obstacles_msg) {
@@ -101,9 +165,7 @@ void Communication::getObstaclesCallback(const ed_gui_server::objsPosVelConstPtr
 }
 
 void Communication::setVel(geometry_msgs::Twist cmd_vel_msg){
-    if(communicate) {
-        vel_pub.publish(cmd_vel_msg);
-    }
+    vel_pub.publish(cmd_vel_msg);
 }
 
 void Communication::getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr &routeData){
@@ -112,60 +174,38 @@ void Communication::getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlanner
     planUpdated = true;
 }
 
-void Communication::getLaserScanCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
-    scan_buffer.push(msg);
-    bool newData = false;
-    while(!scan_buffer.empty()){
-        scan = scan_buffer.front();
-        // - - - - - - - - - - - - - - - - - -
-        // Determine absolute laser pose based on TF
-        try{
-            tf::StampedTransform t_sensor_pose;
-            tf_listener_->lookupTransform("map", scan->header.frame_id, scan->header.stamp, t_sensor_pose);
-            scan_buffer.pop();
+void Communication::getLaserScanCallback(const sensor_msgs::LaserScan::ConstPtr& scan_msg){
+    bool valid = false;
+    try{// Determine absolute laser pose based on TF
+        tf::StampedTransform t_sensor_pose;
+        tf_listener.lookupTransform(globalFrame, scan_msg->header.frame_id, scan_msg->header.stamp, t_sensor_pose);
 
-            tf::Quaternion q = t_sensor_pose.getRotation(); //( t_sensor_pose.getRotation().x, t_sensor_pose.getRotation().y, t_sensor_pose.getRotation().z, t_sensor_pose.getRotation().w );
-            tf::Matrix3x3 matrix ( q );
-            double rollSensor, pitchSensor, yawSensor;
-            matrix.getRPY ( rollSensor, pitchSensor, yawSensor );
+        tf::Quaternion q = t_sensor_pose.getRotation();
+        tf::Matrix3x3 matrix ( q );
+        double rollSensor, pitchSensor, yawSensor;
+        matrix.getRPY ( rollSensor, pitchSensor, yawSensor );
 
-            double scan_size =  scan->ranges.size();
-            laserPoints.clear();
-            for(unsigned int iScan = 0; iScan < scan_size; iScan ++){
-                double angle = yawSensor + scan->angle_min + scan->angle_increment*iScan;
-                double x = t_sensor_pose.getOrigin().getX() + scan->ranges[iScan]*cos( angle );
-                double y = t_sensor_pose.getOrigin().getY() + scan->ranges[iScan]*sin( angle );
-                laserPoints.emplace_back(Vector2D(x,y));
-            }
-            newData = true;
+        double scan_size =  scan_msg->ranges.size();
+        laserPoints.clear();
+        for(unsigned int iScan = 0; iScan < scan_size; iScan ++){
+            double angle = yawSensor + scan_msg->angle_min + scan_msg->angle_increment*iScan;
+            double x = t_sensor_pose.getOrigin().x() + scan_msg->ranges[iScan]*cos( angle );
+            double y = t_sensor_pose.getOrigin().y() + scan_msg->ranges[iScan]*sin( angle );
+            laserPoints.emplace_back(Vector2D(x,y));
         }
-        catch(tf::ExtrapolationException& ex){
-            //ROS_WARN_STREAM_DELAYED_THROTTLE(10, "ED Laserplugin tracking: " << ex.what());
-            try{
-                // Now we have to check if the error was an interpolation or extrapolation error
-                // (i.e., the scan is too old or too new, respectively)
-                tf::StampedTransform latest_transform;
-                tf_listener_->lookupTransform("map", scan->header.frame_id, ros::Time(0), latest_transform);
-
-                if (scan_buffer.front()->header.stamp > latest_transform.stamp_){
-                    // Scan is too new
-                    break;
-                }
-                else{
-                    // Otherwise it has to be too old (pop it because we cannot use it anymore)
-                    scan_buffer.pop();
-                }
-            }
-            catch(tf::TransformException& exc){
-                scan_buffer.pop();
-            }
-        }
-        catch(tf::TransformException& exc){
-            //ROS_ERROR_STREAM_DELAYED_THROTTLE(10, "ED Laserplugin tracking: " << exc.what());
-            scan_buffer.pop();
-        }
+        valid = true;
     }
-    if(!laserPoints.empty() && newData){
+    catch(tf::ConnectivityException& exc){
+        //ROS_WARN("ConnectivityException LaserScan > %s", exc.what());
+    }
+    catch(tf::ExtrapolationException& exc){
+        //ROS_WARN("ExtrapolationException LaserScan > %s", exc.what());
+    }
+    catch(tf::TransformException& exc){
+        //ROS_WARN("TransformException LaserScan > %s", exc.what());
+    }
+
+    if(!laserPoints.empty() && valid){
         obstacles.obstacles.clear();
         int counter = 0;
         Vector2D p1, p2;
@@ -181,16 +221,21 @@ void Communication::getLaserScanCallback(const sensor_msgs::LaserScan::ConstPtr&
                 counter = 0;
             }
         }
+        if(!initializedScan){
+            initializedScan = true;
+            cout << "Scan initialized" << endl;
+            checkInitialized();
+        }
     }
 }
 
 void Communication::checkInitialized(){
-    initialized = initializedOdometry && initializedPosition;
+    initialized = initializedOdometry && initializedScan;
 }
 
-bool Communication::newPosition(){
-    bool temp = positionUpdated;
-    positionUpdated = false;
+bool Communication::newAmclPosition(){
+    bool temp = positionAmclUpdated;
+    positionAmclUpdated = false;
     return temp;
 }
 

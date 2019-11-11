@@ -6,6 +6,7 @@
 #define NAVIGATION_POSE2D_H
 
 #include "Vector2D.h"
+#include <iostream>
 
 class Pose2D : public Vector2D {
 public:
@@ -51,6 +52,12 @@ public:
         p.a = this->a / s;
         return p;
     }
+    bool operator> (const Pose2D& other)const{
+        return (this->x > other.x && this->y > other.y && this->a > other.a);
+    }
+    bool operator< (const Pose2D& other)const{
+        return (this->x < other.x && this->y < other.y && this->a < other.a);
+    }
     Vector2D toVector()const{
         return {x,y};
     }
@@ -66,6 +73,9 @@ public:
             this->y = newV.y;
         }
         this->a = abs(this->a) > abs(a_) ? (this->a/abs(this->a)) * abs(a_) : this->a;
+    }
+    void print(const string &name){
+        cout << name << " > x:" << this->x << " y:" << this->y << " a:" << this->a << endl;
     }
 //    void constrainAngle_Zero_TwoPi(){
 //        a = fmod(a, M_PI*2);

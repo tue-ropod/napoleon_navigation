@@ -25,7 +25,7 @@ int main() {
 
     Polygon footprint({Vec(0,0), Vec(2,0), Vec(2, 0.2), Vec(2.3,0.2), Vec(2.3,0.8), Vec(2,0.8), Vec(2,1), Vec(0,1)}, Closed, true, Pose2D(1,0.5,0));
     //Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.6), Vec(0,0.6)}, Closed, true, Pose2D(0.325,0.3,0));
-    HolonomicModel hmodel(Pose2D(-5,-4,M_PI_2), footprint, 3, 0.8, 1);
+    HolonomicModel hmodel(Pose2D(-3.5,-4,M_PI_2), footprint, 3, 0.8, 1);
 
     Obstacles obstacles;
     //obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1.5,1,0)));
@@ -62,10 +62,10 @@ int main() {
         canvas.arrow(Vec(0,0),Vec(0,1),Color(0,0,0),Thin);
 
         if(realStatus == Status_Recovering){
-            tubes.recover(hmodel);
+            //tubes.recover(hmodel);
         }
 
-        predictionStatus = hmodelCopy.predict(10, 4, 1, 1/F_planner, hmodel, tubes, obstacles, canvas); //nScaling | predictionTime | minDistance
+        predictionStatus = hmodelCopy.predict(10, 2, 1, 1/F_planner, hmodel, tubes, obstacles, canvas); //nScaling | predictionTime | minDistance
 
         if(predictionStatus == Status_Ok || predictionStatus == Status_Done || predictionStatus == Status_ShortPredictionDistance || predictionStatus == Status_TubeCollision || predictionStatus == Status_Recovering) {
             hmodel.copySettings(hmodelCopy);

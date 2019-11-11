@@ -73,41 +73,20 @@ void Model::copyState(Model &modelCopy) {
     dilatedFootprint.transformto(pose);
 }
 
-void Model::calculateInputVelocity(double dt){
-    Pose2D acc = (desiredVelocity - velocity)/dt;
-    if(acc.length() > maxAcceleration){
-        Vector2D scaledAcc = acc.unit()*maxAcceleration;
-        acc.x = scaledAcc.x;
-        acc.y = scaledAcc.y;
-    }
-    if(abs(acc.a) > maxRotationalAcceleration){
-        acc.a = (acc.a/abs(acc.a))*maxRotationalAcceleration;
-    }
-    inputVelocity = velocity + acc * dt;
-    if(inputVelocity.length() > maxSpeed){
-        Vector2D scaledVel = inputVelocity.unit()*maxSpeed;
-        inputVelocity.x = scaledVel.x;
-        inputVelocity.y = scaledVel.y;
-    }
-    if(abs(inputVelocity.a) > maxRotationalSpeed){
-        inputVelocity.a = (inputVelocity.a/abs(inputVelocity.a))*maxRotationalSpeed;
-    }
-}
-
 void Model::update(double dt, Communication &comm) {
-    if(comm.newPosition()){
+    if(comm.newOdometry()){
         if(!poseInitialized){
             poseInitialized = true;
             pose = comm.measuredPose;
+            Pose2D measuredVelocity = comm.measuredVelocity;
+            measuredVelocity.transformThis(0,0,pose.a);
+            velocity = Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a);
         }else{
-            pose = pose * 0.1 + comm.measuredPose * 0.9;
-            //pose = comm.measuredPose;
+            pose = comm.measuredPose;
+            Pose2D measuredVelocity = comm.measuredVelocity;
+            measuredVelocity.transformThis(0,0,pose.a);
+            velocity = velocity * 0.9 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a) * 0.1;
         }
-    }
-    if(comm.newOdometry()){
-        Pose2D measuredVelocity = comm.measuredVelocity;
-        measuredVelocity.transformThis(0,0,pose.a);
-        velocity = velocity * 0.7 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a) * 0.3;
     }
 
     if(applyBrake){
@@ -115,7 +94,10 @@ void Model::update(double dt, Communication &comm) {
         input(inputVelocity, Frame_World); //ensure that the input is set to zero
         applyBrake = false;
     }else {
-        calculateInputVelocity(dt);
+        Pose2D desiredAcceleration = (desiredVelocity - velocity)/dt;
+        desiredAcceleration.constrainThis(maxAcceleration, maxRotationalAcceleration);
+        inputVelocity = velocity + desiredAcceleration * dt;
+        inputVelocity.constrainThis(maxSpeed, maxRotationalSpeed);
     }
     velocity = inputVelocity;
     updateModel(dt);
@@ -136,6 +118,7 @@ void Model::brake(){
 FollowStatus Model::predict(int nScalings, double predictionTime, double minPredictionDistance, double dt, Model &origionalModel, Tubes &tubes, Obstacles &obstacles, Visualization &canvas) {
     status = Status_Error;
     double brakeMargin = 1;
+    double minSpeedScale = 0.1;
     changeSpeedScale(speedScale*1.01);
     //changeSpeedScale(1);
 
@@ -167,7 +150,7 @@ FollowStatus Model::predict(int nScalings, double predictionTime, double minPred
         if (distance < minPredictionDistance && status == Status_Ok) {
             status = Status_ShortPredictionDistance;
         }
-        if (status == Status_TubeCollision || status == Status_Stuck) {
+        if ((status == Status_TubeCollision || status == Status_Stuck) && speedScale > minSpeedScale) {
             changeSpeedScale(speedScale*0.8);
         } else { break; }
     }
@@ -188,7 +171,7 @@ void Model::showCommunicationInput(Visualization& canvas, Color c, int drawstyle
     canvas.arrow(pos, pos+comm.measuredVelocity.toVector().transform(0,0,mPose.a), Color(0,0,255), drawstyle);
 }
 
-void Model::showStatus(string modelName) {
+void Model::showStatus(const string& modelName) {
     if(status != prevStatus) {
         switch (status) {
             case Status_Ok: {cout << modelName + " status: Ok" << endl;break;}
@@ -199,6 +182,7 @@ void Model::showStatus(string modelName) {
             case Status_TubeCollision: {cout << modelName + " status: tube collision" << endl;break;}
             case Status_OutsideTube: {cout << modelName + " status: outside tube" << endl;break;}
             case Status_Recovering: {cout << modelName + " status: recovering" << endl;break;}
+            case Status_WrongWay: {cout << modelName + " status: wrong way" << endl;break;}
             case Status_Done: {cout << modelName + " status: done" << endl;break;}
         }
         prevStatus = status;

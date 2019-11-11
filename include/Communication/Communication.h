@@ -9,51 +9,58 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Pose.h>
+#include "Eigen/Core"
+#include "Eigen/Geometry"
 #include <nav_msgs/Odometry.h>
 #include <ropod_ros_msgs/RoutePlannerAction.h>
 #include <Definitions/Pose2D.h>
+#include <Definitions/Ellipse.h>
 #include <ed_gui_server/objPosVel.h>
 #include <ed_gui_server/objsPosVel.h>
 #include <Obstacles/Obstacles.h>
 #include <tf/tf.h>
 #include <tf/transform_datatypes.h>
 #include <tf/transform_listener.h>
-#include <queue>
 #include <sensor_msgs/LaserScan.h>
+#include <list>
 
 class Communication {
 public:
-
+    ros::Publisher vel_pub;
     ros::Subscriber obstacles_sub;
     ros::Subscriber odom_sub;
     ros::Subscriber amcl_pose_sub;
     ros::Subscriber ropod_debug_plan_sub;
-    ros::Publisher vel_pub;
     ros::Subscriber scan_sub;
 
-    sensor_msgs::LaserScan::ConstPtr scan;
-    std::queue<sensor_msgs::LaserScan::ConstPtr> scan_buffer;
-    tf::TransformListener *tf_listener_;
+    string baseFrame, odomFrame, globalFrame;
+    tf::TransformListener tf_listener;
+
+    bool planUpdated = false, positionAmclUpdated = false, odometryUpdated = false;
+    bool initializedPositionAmcl = false, initializedOdometry = false, initializedScan = false, initialized = false;
+
     ropod_ros_msgs::RoutePlannerResult route;
-    Pose2D measuredPose, measuredVelocity;
+    Pose2D measuredPose, measuredVelocity, measuredPoseAmcl;
+    Ellipse poseUncertainty;
+    list<Pose2D> measuredVelocityList;
+    int velocityAverageSamples = 10;
     vector<Vector2D> laserPoints;
     Obstacles obstacles;
-    bool planUpdated = false;
-    bool positionUpdated = false;
-    bool odometryUpdated = false;
-    bool initializedPosition = false, initializedOdometry = false, initialized = false;
-
-    bool updatePosition = true;
-    bool communicate = true;
+    vector<Vector2D> footprint_param;
+    double maxSpeed_param = 0;
+    double maxAcceleration_param = 0;
+    double wheelDistanceMiddle_param = 0;
+    double tubeWallOffset_param = 0;
+    double tubeExtraSpace_param = 0;
 
     Communication(ros::NodeHandle nroshndl);
 
     void checkInitialized();
-    bool newPosition();
+    bool newAmclPosition();
     bool newOdometry();
     bool newPlan();
-    void getOdomVelCallback(const nav_msgs::OdometryConstPtr &odom_msg);
-    void getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &pose_msg);
+    void getOdomCallback(const nav_msgs::OdometryConstPtr &odom_msg);
+    void getAmclCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &pose_msg);
     void getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr &routeData);
     void getObstaclesCallback(const ed_gui_server::objsPosVelConstPtr &obstacles_msg);
     void getLaserScanCallback(const sensor_msgs::LaserScan::ConstPtr& msg);
