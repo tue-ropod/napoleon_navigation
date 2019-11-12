@@ -1298,7 +1298,7 @@ void createFreeNavigationBoundingBox()
         || ( next_area.type == "hallway" && isPointOnLeftSide(task2[0], task2[1], pointlist, laser_point, 2.0*TUBE_WIDTH_C) )
         || ( next_second_area.type == "hallway" ) && isPointOnLeftSide(task3[0], task3[1], pointlist, laser_point, 2.0*TUBE_WIDTH_C) )
         {
-            if(distance_point_to_line > 0 && distance_point_to_line < 2.0*TUBE_WIDTH_C && local_robot_wall_laser_point.x > (-ROPOD_TO_AX)  && local_robot_wall_laser_point.x < minFreeSpaceDepth)
+            if(distance_point_to_line > 0 && distance_point_to_line < 2.0*TUBE_WIDTH_C && local_robot_wall_laser_point.x > (-ROPOD_TO_AX)  && local_robot_wall_laser_point.x < minFreeSpaceDepth-ROPOD_TO_AX)
             {
                 // Process right lane
                 if(distance_point_to_line < TUBE_WIDTH_C)
