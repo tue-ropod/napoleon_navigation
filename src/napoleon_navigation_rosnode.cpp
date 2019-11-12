@@ -947,11 +947,11 @@ void computeSteeringAndVelocity()
             if (update_state_points) {
                 point_rear = getPointByID(task1[0],pointlist);
                 point_front = getPointByID(task1[1],pointlist);
-                //if(j==1 && u == ka_max-1) ROS_INFO("Cruising Point rear: %s, Point front: %s", point_rear.id.c_str(), point_front.id.c_str());
-                glob_wallpoint_front.x = point_front.x;
-                glob_wallpoint_front.y = point_front.y;
-                glob_wallpoint_rear.x = point_rear.x;
-                glob_wallpoint_rear.y = point_rear.y;
+                wallang = atan2(point_front.y-point_rear.y,point_front.x-point_rear.x);
+                glob_wallpoint_front.x = point_front.x+shift_wall*cos(wallang+M_PI/2);
+                glob_wallpoint_front.y = point_front.y+shift_wall*sin(wallang+M_PI/2);
+                glob_wallpoint_rear.x = point_rear.x+shift_wall*cos(wallang+M_PI/2);
+                glob_wallpoint_rear.y = point_rear.y+shift_wall*sin(wallang+M_PI/2);
             }
             v_des = V_CRUISING;
         } else if (pred_state[j] == GOING_STRAIGHT_ON_INTERSECTION) { // Straight on inter
@@ -1429,15 +1429,17 @@ void overtakeStateMachine()
         lw_p_front = getPointByID(areaIDs[2],pointlist);
         // TODO: Add freeNavigationLeftLaneLeft;
 
-        if (freeNavigationRightLaneRight.width > TUBE_WIDTH_C) {
+        if (freeNavigationRightLaneRight.width >= TUBE_WIDTH_C) {
             if (j == 1) ROS_INFO("No overtake necessary, passing on right should be possible");
             shift_wall = 0;
         } else if (freeNavigationRightLaneRight.width > 2*(SIZE_SIDE+OBS_AVOID_MARGIN)) {
             // Same state, but change tube width so ropod will
             // fit through space right
+            Point wall_pos(freeNavigationRightLaneRight.x, freeNavigationRightLaneRight.y);
+            double distAreatoWall = -distToLine(wall_pos, rw_p_rear, rw_p_front);
+            shift_wall = distAreatoWall - freeNavigationRightLaneRight.width/2;
             pred_tube_width[j] = freeNavigationRightLaneRight.width;
             if (j == 1) ROS_INFO("No overtake necessary, but tube size scaled down");
-            shift_wall = 0;
         } else if (freeNavigationCenter.width > 2*(SIZE_SIDE+OBS_AVOID_MARGIN)) {
             if (j == 1) ROS_INFO("Can overtake on left side, there should be enough space there");
             // Start overtake
