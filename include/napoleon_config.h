@@ -66,7 +66,7 @@ static constexpr double SIZE_FRONT_ROPOD = ROPOD_LENGTH/2.0;  // How long ropod 
     static constexpr double V_STEERSATURATION = 0.4;          // Velocity during steering saturation [m/s]
     static constexpr double V_OVERTAKE = 0.8*V_CRUISING;//0.5;           // Velocity during overtaking [m/s]
     // Limits
-    static constexpr double DELTA_DOT_LIMIT = 0.5;   // Max steering rate per second [rad/s]
+    static constexpr double DELTA_DOT_LIMIT = 0.3;   // Max steering rate per second [rad/s]
     static constexpr double A_MAX = 0.7;                    // Maximum acceleration magnitude [m/s^2]
     // Obstacle
     static constexpr double V_OBS_OVERTAKE_MAX = 0.1;       // Max speed an obstacle can have to overtake is [m/s]
@@ -95,7 +95,7 @@ static constexpr double T_MAX_PRED = 20;            // Predict for n seconds max
 static constexpr double CUTOFF_FREQ = 1.0;          // Cutoff frequency for low pass filter to simulate steering delay [Hz]
 static const vector<double> V_SCALE_OPTIONS = {1.0, 0.67, 0.33, 0.0};  // Options to scale velocity with
 static constexpr double ENV_COR_WIDTH = 2.6;
-static constexpr double OBS_AVOID_MARGIN = 0.05;         // Margin between ropod and obstacles at full speed [m]
+static constexpr double OBS_AVOID_MARGIN = 0.1;         // Margin between ropod and obstacles at full speed [m]
 static constexpr double OBS_AVOID_MARGIN_FRONT = 0.15;         // Margin between ropod front and obstacles at full speed [m]
 static constexpr double DILATE_ROPOD_ALIGNING = 0.90;   // Dilation from center (so actually this value -size_side if measured from side of vehicle)
 // Fictional hallway width. Ropod will work with lanes of this/2 [m], starting from the wall.

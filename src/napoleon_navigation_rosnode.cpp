@@ -1292,7 +1292,7 @@ void createFreeNavigationBoundingBox()
     {
         Point laser_point(laser_meas_points[iScan].x, laser_meas_points[iScan].y);
         Point local_robot_wall_laser_point = coordGlobalToRopod(laser_point, pred_xy_ropod[j-1], rw_angle);
-        distance_point_to_line = -perpDistToSegment(laser_point, rw_p_rear, rw_p_front);
+        distance_point_to_line = -distToLine(laser_point, rw_p_rear, rw_p_front);
         // consider only points within defined areas
         if ( curr_area.type == "hallway"
         || ( next_area.type == "hallway" && isPointOnLeftSide(task2[0], task2[1], pointlist, laser_point, 2.0*TUBE_WIDTH_C) )
@@ -1452,7 +1452,7 @@ void overtakeStateMachine()
             }
             Point wall_pos(freeNavigationCenter.x, freeNavigationCenter.y);
             double distAreatoWall = -distToLine(wall_pos, rw_p_rear, rw_p_front);
-            shift_wall = distAreatoWall - freeNavigationCenter.width/2;
+            shift_wall = distAreatoWall - freeNavigationCenter.width/2 + OBS_AVOID_MARGIN;
             pred_tube_width[j] = freeNavigationCenter.width;
         } else {
             if (j == 1) ROS_INFO("No overtake possible, stuck behind this obstacle");
