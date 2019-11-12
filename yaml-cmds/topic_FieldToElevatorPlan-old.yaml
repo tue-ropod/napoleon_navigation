@@ -23,22 +23,22 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
               w: 0.0
           geometry: 
             vertices: 
-            -
-              x: -4.03468
-              y: 2.06282
-              id: 0
-            -
-              x: 1.08553
-              y: 1.03872
-              id: 2
-            -
-              x: 1.18805
-              y: 2.40462
-              id: 3
-            -
-              x: -2.95648
-              y: 3.67278
-              id: 1
+              -
+                x: -2.23141
+                y: 1.32531
+                id: 0
+              -
+                x: 1.92195
+                y: 0.799481
+                id: 2
+              -
+                x: 2.25611
+                y: 2.41123
+                id: 3
+              -
+                x: -1.82992
+                y: 3.3041
+                id: 1
           right: 
             point1: 
               x: 0
@@ -61,70 +61,8 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
             x: 0.0
             y: 0.0
             id: 0
-    -
-      id: '1'
-      name: 'H2'
-      type: 'corridor'
-      floor_number: 0
-      sub_areas:
-        -
-          name: 'H2_1'
-          id: '0'
-          floor_number: 0
-          type: ''
-          capacity: 0
-          waypoint_pose:
-            position:
-              x: 0.0
-              y: 0.0
-              z: 0.0
-            orientation:
-              x: 0.0
-              y: 0.0
-              z: 0.0
-              w: 0.0
-          geometry:
-            vertices:
-            -
-              x: 1.08553
-              y: 1.03872
-              id: 2
-            -
-              x: 2.07501
-              y: 1.00905
-              id: 4
-            -
-              x: 2.32288
-              y: 2.39988
-              id: 5
-            -
-              x: 1.18805
-              y: 2.40462
-              id: 3
-          right:
-            point1:
-              x: 0
-              y: 0
-              id: 0
-            point2:
-              x: 0
-              y: 0
-              id: 0
-          left:
-            point1:
-              x: 0
-              y: 0
-              id: 0
-            point2:
-              x: 0
-              y: 0
-              id: 0
-          turn_point:
-            x: 0.0
-            y: 0.0
-            id: 0
     - 
-      id: '2'
+      id: '1'
       name: 'J1'
       type: 'junction'
       floor_number: 0
@@ -147,22 +85,84 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
               w: 0.0
           geometry: 
             vertices: 
-            -
-              x: 2.07501
-              y: 1.00905
-              id: 4
-            -
-              x: 4.02614
-              y: -0.0364788
-              id: 8
-            -
-              x: 4.6896
-              y: 2.14467
-              id: 9
-            -
-              x: 2.32288
-              y: 2.39988
-              id: 5
+              -
+                x: 1.92195
+                y: 0.799481
+                id: 2
+              -
+                x: 4.20596
+                y: -0.0657012
+                id: 6
+              -
+                x: 4.71307
+                y: 2.09019
+                id: 7
+              -
+                x: 2.25611
+                y: 2.41123
+                id: 3
+          right: 
+            point1: 
+              x: 0
+              y: 0
+              id: 0
+            point2: 
+              x: 0
+              y: 0
+              id: 0
+          left: 
+            point1: 
+              x: 0
+              y: 0
+              id: 0
+            point2: 
+              x: 0
+              y: 0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '2'
+      name: 'H2'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: 'H2_1'
+          id: '0'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              -
+                x: 4.71307
+                y: 2.09019
+                id: 7
+              -
+                x: 5.70505
+                y: 7.06909
+                id: 8
+              -
+                x: 3.56271
+                y: 7.38183
+                id: 4
+              -
+                x: 2.25611
+                y: 2.41123
+                id: 3
           right: 
             point1: 
               x: 0
@@ -187,12 +187,12 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
             id: 0
     - 
       id: '3'
-      name: 'H3'
-      type: 'corridor'
+      name: 'J2'
+      type: 'junction'
       floor_number: 0
       sub_areas: 
         - 
-          name: 'H3_1'
+          name: 'J2_1'
           id: '0'
           floor_number: 0
           type: ''
@@ -209,22 +209,22 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
               w: 0.0
           geometry: 
             vertices: 
-            -
-              x: 4.6896
-              y: 2.14467
-              id: 9
-            -
-              x: 5.78415
-              y: 7.04684
-              id: 10
-            -
-              x: 3.58557
-              y: 7.49914
-              id: 6
-            -
-              x: 2.32288
-              y: 2.39988
-              id: 5
+              -
+                x: 5.70505
+                y: 7.06909
+                id: 8
+              -
+                x: 6.18012
+                y: 8.75905
+                id: 9
+              -
+                x: 4.12461
+                y: 9.17959
+                id: 5
+              -
+                x: 3.56271
+                y: 7.38183
+                id: 4
           right: 
             point1: 
               x: 0
@@ -249,74 +249,12 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
             id: 0
     - 
       id: '4'
-      name: 'J2'
-      type: 'junction'
-      floor_number: 0
-      sub_areas: 
-        - 
-          name: 'J2_1'
-          id: '0'
-          floor_number: 0
-          type: ''
-          capacity: 0
-          waypoint_pose: 
-            position: 
-              x: 0.0
-              y: 0.0
-              z: 0.0
-            orientation: 
-              x: 0.0
-              y: 0.0
-              z: 0.0
-              w: 0.0
-          geometry: 
-            vertices: 
-            -
-              x: 5.78415
-              y: 7.04684
-              id: 10
-            -
-              x: 6.33073
-              y: 8.77797
-              id: 11
-            -
-              x: 4.09992
-              y: 9.10928
-              id: 7
-            -
-              x: 3.58557
-              y: 7.49914
-              id: 6
-          right: 
-            point1: 
-              x: 0
-              y: 0
-              id: 0
-            point2: 
-              x: 0
-              y: 0
-              id: 0
-          left: 
-            point1: 
-              x: 0
-              y: 0
-              id: 0
-            point2: 
-              x: 0
-              y: 0
-              id: 0
-          turn_point: 
-            x: 0.0
-            y: 0.0
-            id: 0
-    - 
-      id: '5'
-      name: 'H4'
+      name: 'H3'
       type: 'corridor'
       floor_number: 0
       sub_areas: 
         - 
-          name: 'H4_1'
+          name: 'H3_1'
           id: '0'
           floor_number: 0
           type: ''
@@ -333,22 +271,22 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
               w: 0.0
           geometry: 
             vertices: 
-            -
-              x: 5.78415
-              y: 7.04684
-              id: 10
-            -
-              x: 8.18187
-              y: 6.44676
-              id: 12
-            -
-              x: 8.50618
-              y: 8.31244
-              id: 13
-            -
-              x: 6.33073
-              y: 8.77797
-              id: 11
+              -
+                x: 5.70505
+                y: 7.06909
+                id: 8
+              -
+                x: 8.15324
+                y: 6.47654
+                id: 10
+              -
+                x: 8.55128
+                y: 8.27555
+                id: 11
+              -
+                x: 6.18012
+                y: 8.75905
+                id: 9
           right: 
             point1: 
               x: 0
@@ -372,13 +310,13 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
             y: 0.0
             id: 0
     -
-      id: '6'
-      name: 'H5'
+      id: '5'
+      name: 'H4'
       type: 'corridor'
       floor_number: 0
       sub_areas:
         -
-          name: 'H5_1'
+          name: 'H4_1'
           id: '0'
           floor_number: 0
           type: ''
@@ -395,22 +333,22 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
               w: 0.0
           geometry:
             vertices:
-            -
-              x: 8.18187
-              y: 6.44676
-              id: 12
-            -
-              x: 10.4762
-              y: 5.42977
-              id: 14
-            -
-              x: 10.8152
-              y: 7.74322
-              id: 15
-            -
-              x: 8.50618
-              y: 8.31244
-              id: 13
+              -
+                x: 8.15324
+                y: 6.47654
+                id: 10
+              -
+                x: 10.5113
+                y: 5.48447
+                id: 12
+              -
+                x: 10.7912
+                y: 7.73316
+                id: 13
+              -
+                x: 8.55128
+                y: 8.27555
+                id: 11
           right:
             point1:
               x: 0
@@ -432,5 +370,4 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
           turn_point:
             x: 0.0
             y: 0.0
-            id: 0
-"
+            id: 0"

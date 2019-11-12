@@ -46,13 +46,19 @@ public:
     int velocityAverageSamples = 10;
     vector<Vector2D> laserPoints;
     Obstacles obstacles;
+
     vector<Vector2D> footprint_param;
+    Pose2D footprintMiddlePose_param;
     double maxSpeed_param = 0;
     double maxAcceleration_param = 0;
     double wheelDistanceMiddle_param = 0;
     double tubeWallOffset_param = 0;
     double tubeExtraSpace_param = 0;
+    int nTries_param = 0;
+    double predictionTime_param = 0;
+    double minPredictionDistance_param = 0;
 
+    Communication() = default;
     Communication(ros::NodeHandle nroshndl);
 
     void checkInitialized();

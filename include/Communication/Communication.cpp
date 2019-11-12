@@ -6,12 +6,18 @@
 
 Communication::Communication(ros::NodeHandle nroshndl) {
     vel_pub = nroshndl.advertise<geometry_msgs::Twist>("/navigation/cmd_vel", 1);
-    //amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 1, &Communication::getAmclCallback, this);
+    amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 1,
+                                                                                 &Communication::getAmclCallback,
+                                                                                 this);
     odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/navigation/odom", 1, &Communication::getOdomCallback, this);
-    obstacles_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 1, &Communication::getObstaclesCallback, this);
+    obstacles_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 1,
+                                                                  &Communication::getObstaclesCallback, this);
     //ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
-    ropod_debug_plan_sub = nroshndl.subscribe<ropod_ros_msgs::RoutePlannerResult>("/ropod/debug_route_plan", 1, &Communication::getDebugRoutePlanCallback, this);
-    scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("/navigation/scan", 1, &Communication::getLaserScanCallback, this);
+    ropod_debug_plan_sub = nroshndl.subscribe<ropod_ros_msgs::RoutePlannerResult>("/ropod/debug_route_plan", 1,
+                                                                                  &Communication::getDebugRoutePlanCallback,
+                                                                                  this);
+    scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("/navigation/scan", 1,
+                                                          &Communication::getLaserScanCallback, this);
 
     nroshndl.getParam("/napoleon_navigation/global_frame_id", globalFrame);
     nroshndl.getParam("/napoleon_navigation/base_frame_id", baseFrame);
@@ -19,9 +25,15 @@ Communication::Communication(ros::NodeHandle nroshndl) {
 
     vector<double> footprint;
     nroshndl.getParam("/napoleon_navigation/footprint_param", footprint);
-    for(int i = 0; i < footprint.size()/2; i++){footprint_param.emplace_back(Vector2D(footprint[i*2],footprint[i*2+1]));}
+    for (int i = 0; i < footprint.size() / 2; i++) {
+        footprint_param.emplace_back(Vector2D(footprint[i * 2], footprint[i * 2 + 1]));
+    }
     cout << "Footprint:" << endl;
-    for(Vector2D &v : footprint_param){cout << " - " << v.x << " " << v.y << endl;}
+    for (Vector2D &v : footprint_param) { v.print(" -"); }
+    vector<double> footprintMiddlePose;
+    nroshndl.getParam("/napoleon_navigation/footprintMiddlePose_param", footprintMiddlePose);
+    footprintMiddlePose_param = Pose2D(footprintMiddlePose[0], footprintMiddlePose[1], footprintMiddlePose[2]);
+    footprintMiddlePose_param.print("Footprint middle pose:");
     nroshndl.getParam("/napoleon_navigation/maxSpeed_param", maxSpeed_param);
     cout << "Max speed: " << maxSpeed_param << endl;
     nroshndl.getParam("/napoleon_navigation/maxAcceleration_param", maxAcceleration_param);
@@ -32,7 +44,12 @@ Communication::Communication(ros::NodeHandle nroshndl) {
     cout << "Tube wall offset: " << tubeWallOffset_param << endl;
     nroshndl.getParam("/napoleon_navigation/tubeExtraSpace_param", tubeExtraSpace_param);
     cout << "Tube Extra space: " << tubeExtraSpace_param << endl;
-
+    nroshndl.getParam("/napoleon_navigation/nTries_param", nTries_param);
+    cout << "Number of prediction tries: " << nTries_param << endl;
+    nroshndl.getParam("/napoleon_navigation/predictionTime_param", predictionTime_param);
+    cout << "Prediction time: " << predictionTime_param << endl;
+    nroshndl.getParam("/napoleon_navigation/minPredictionDistance_param", minPredictionDistance_param);
+    cout << "Minimal prediction distance: " << minPredictionDistance_param << endl;
 }
 
 void Communication::getOdomCallback(const nav_msgs::OdometryConstPtr &odom_msg){
@@ -50,37 +67,6 @@ void Communication::getOdomCallback(const nav_msgs::OdometryConstPtr &odom_msg){
     } catch(tf::TransformException &exception) {
         if(initializedOdometry) {ROS_ERROR("%s", exception.what());}
     }
-
-//    geometry_msgs::PoseWithCovariance pose = odom_msg->pose;
-//    double a = pose.covariance[0];
-//    double b = pose.covariance[1];
-//    double c = pose.covariance[6];
-//    double d = pose.covariance[7];
-//
-//    double D = a*d-b*c;
-//    double T = a+d;
-//
-//    //eigenvalues X Y
-//    double L1 = T/2 + sqrt((T*T)/4-D);
-//    double L2 = T/2 - sqrt((T*T)/4-D);
-//
-//    //eigenvectors X Y
-//    Vector2D E1, E2;
-//    if(abs(c) > 0.001){
-//        E1 = Vector2D(L1-d, c);
-//        E2 = Vector2D(L2-d, c);
-//    }else if(abs(b) > 0.001){
-//        E1 = Vector2D(b, L1-a);
-//        E2 = Vector2D(b, L2-a);
-//    }else if(abs(b) <= 0.001 && abs(c) <= 0.001){
-//        E1 = Vector2D(1, 0);
-//        E2 = Vector2D(0, 1);
-//    }
-//
-//    E1.unitThis();
-//    E2.unitThis();
-//
-//    poseUncertainty = Ellipse(measuredPose.toVector(), sqrt(L1), sqrt(L2), E1.angle());
 
 //    bool validTwist = false;
 //    geometry_msgs::Twist odomTwist;
@@ -102,8 +88,8 @@ void Communication::getOdomCallback(const nav_msgs::OdometryConstPtr &odom_msg){
     measuredVelocity = addedVelocities / measuredVelocityList.size();
 
     if(!initializedOdometry && validPose){
-        cout << "Initial twist: " << measuredVelocity.x << " " << measuredVelocity.y << " " << measuredVelocity.a << endl;
-        cout << "Initial pose: " << measuredPose.x << " " << measuredPose.y << " " << measuredPose.a << endl;
+        measuredVelocity.print("Initial velocity:");
+        measuredPose.print("Initial Pose:");
         //cout << "Uncertainty: " << a << " " << b << " " << c << " " << d << endl;
         initializedOdometry = true;
         checkInitialized();
@@ -112,6 +98,7 @@ void Communication::getOdomCallback(const nav_msgs::OdometryConstPtr &odom_msg){
 }
 
 void Communication::getAmclCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &pose_msg){
+
     geometry_msgs::Quaternion q_msg = pose_msg->pose.pose.orientation;
     geometry_msgs::Point p_msg = pose_msg->pose.pose.position;
     tf::Quaternion q;
@@ -119,8 +106,38 @@ void Communication::getAmclCallback(const geometry_msgs::PoseWithCovarianceStamp
     tf::Matrix3x3 matrix ( q );
     double roll, pitch, yaw;
     matrix.getRPY ( roll, pitch, yaw );
-
     measuredPoseAmcl = Pose2D(p_msg.x, p_msg.y, yaw);
+
+    geometry_msgs::PoseWithCovariance pose = pose_msg->pose;
+    double a = pose.covariance[0];
+    double b = pose.covariance[1];
+    double c = pose.covariance[6];
+    double d = pose.covariance[7];
+
+    double D = a*d-b*c;
+    double T = a+d;
+
+    //eigenvalues X Y
+    double L1 = T/2 + sqrt((T*T)/4-D);
+    double L2 = T/2 - sqrt((T*T)/4-D);
+
+    //eigenvectors X Y
+    Vector2D E1, E2;
+    if(abs(c) > 0.001){
+        E1 = Vector2D(L1-d, c);
+        E2 = Vector2D(L2-d, c);
+    }else if(abs(b) > 0.001){
+        E1 = Vector2D(b, L1-a);
+        E2 = Vector2D(b, L2-a);
+    }else if(abs(b) <= 0.001 && abs(c) <= 0.001){
+        E1 = Vector2D(1, 0);
+        E2 = Vector2D(0, 1);
+    }
+
+    E1.unitThis();
+    E2.unitThis();
+
+    poseUncertainty = Ellipse(measuredPoseAmcl.toVector(), sqrt(L1), sqrt(L2), E1.angle());
 
     if (!initializedPositionAmcl) {
         cout << "Initial pose Amcl: " << measuredPoseAmcl.x << " " << measuredPoseAmcl.y << " " << measuredPoseAmcl.a << endl;

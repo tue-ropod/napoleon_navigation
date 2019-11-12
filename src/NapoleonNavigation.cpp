@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
     Communication comm(nroshndl);
 
     Tubes tubes;
-    Polygon footprint(comm.footprint_param, Closed);
+    Polygon footprint(comm.footprint_param, Closed, true, comm.footprintMiddlePose_param);
     HolonomicModel hmodel(Pose2D(0,0,0), footprint, comm.maxSpeed_param, comm.maxAcceleration_param, comm.wheelDistanceMiddle_param);
 
     bool initialized = false;
@@ -59,11 +59,13 @@ int main(int argc, char** argv) {
         canvas.checkId();
         canvas.resetId();
 
-        //tubes.visualizePlan(comm.route, canvas);
+        tubes.visualizePlan(comm.route, canvas);
         tubes.visualizeRightWall(comm.route, canvas);
 
         canvas.arrow(Vec(0,0),Vec(1,0),Color(0,0,0),Thin);
         canvas.arrow(Vec(0,0),Vec(0,1),Color(0,0,0),Thin);
+
+        canvas.polygon(comm.poseUncertainty.toPoints(10), Color(100,100,100), Thin);
 
         if(startNavigation){
             if(realStatus == Status_Recovering){
@@ -73,22 +75,20 @@ int main(int argc, char** argv) {
                 //rotate model
             }
 
-            predictionStatus = hmodelCopy.predict(10, 4, 1, 1/F_prediction, hmodel, tubes, comm.obstacles, canvas); //nScaling | predictionTime | minDistance
+            predictionStatus = hmodelCopy.predict(1/F_prediction, hmodel, tubes, comm, canvas); //nScaling | predictionTime | minDistance
 
             if( predictionStatus == Status_Ok ||
                 predictionStatus == Status_Done ||
                 predictionStatus == Status_ShortPredictionDistance ||
                 predictionStatus == Status_TubeCollision ||
                 predictionStatus == Status_Recovering ||
-                predictionStatus == Status_WrongWay                   ){
+                predictionStatus == Status_WrongWay ||
+                predictionStatus == Status_ObstacleCollision            ){
 
                 hmodel.copySettings(hmodelCopy);
-                realStatus = hmodel.follow(tubes, canvas, true);
+                realStatus = hmodel.follow(tubes, comm, canvas, true);
                 //tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, obstacles, hmodel, DrivingSide_Right, canvas);
-                if(realStatus != Status_Ok && realStatus != Status_TubeCollision) {hmodel.brake();}
-            }
-            else if(predictionStatus == Status_ObstacleCollision){
-                hmodel.input(Pose2D(0,0,0),Frame_World);
+//                if(realStatus != Status_Ok && realStatus != Status_TubeCollision) {hmodel.brake();}
             }
             else{
                 hmodel.brake();
@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
             }
         }
 
-        if(hmodel.collision(comm.obstacles)){hmodel.brake();}
+        hmodel.checkCollision(comm.obstacles);
 
         hmodelCopy.showStatus("Prediction model");
         hmodel.showStatus("Model");

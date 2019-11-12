@@ -25,6 +25,7 @@ public:
 
     Polygon(vector<Vector2D> vertices_, Type type_ = Closed, bool manualmiddle = false, Pose2D middle_ = Pose2D()){
         vertices = std::move(vertices_);
+        type = type_;
         if(manualmiddle) {
             middle = middle_;
         }else{
@@ -35,7 +36,6 @@ public:
             m = m/vertices.size();
             middle = Pose2D(m, 0);
         }
-        type = type_;
     }
 
     vector<Line> getSides(){

@@ -48,6 +48,16 @@ void HolonomicModel::updatePrediction(double dt) {
         desiredAcceleration.constrainThis(maxAcceleration, maxRotationalAcceleration);
         inputVelocity = velocity + desiredAcceleration * dt;
         inputVelocity.constrainThis(maxSpeed, maxRotationalSpeed);
+        for(auto & movement : limitedMovements){
+            switch(movement){
+                case Movement_Left: if(inputVelocity.y < 0){inputVelocity.y = 0;} break;
+                case Movement_Right: if(inputVelocity.y > 0){inputVelocity.y = 0;} break;
+                case Movement_Forward: if(inputVelocity.x > 0){inputVelocity.x = 0;} break;
+                case Movement_Backward: if(inputVelocity.x < 0){inputVelocity.x = 0;} break;
+                case Movement_RotateLeft: break;
+                case Movement_RotateRight: break;
+            }
+        }
     }
     velocity = inputVelocity;
     updateModel(dt);
@@ -60,7 +70,7 @@ void HolonomicModel::updateModel(double dt) {
     dilatedFootprint.transformto(pose);
 }
 
-FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool debug){
+FollowStatus HolonomicModel::follow(Tubes& tubes, Communication& comm, Visualization& canvas, bool debug){
     status = Status_Error; //Pre set status to error
 
     if(!tubes.tubes.empty() && !dilatedFootprint.vertices.empty()){
@@ -128,7 +138,7 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
                 sideIndex.emplace_back(i);
             }
 
-            double border = 0.2;
+            double border = comm.tubeExtraSpace_param/2;
             double collisionDistance = 0;
             int nRepulsion = 0;
             int nCollision = 0;
@@ -223,7 +233,7 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Visualization& canvas, bool de
 
             if(nRepulsion > 0){repulsionInput = repulsionInput/double(nRepulsion);}
             if(nCollision > 0){collisionInput = collisionInput/double(nCollision);}
-            Pose2D currentCorrectionInput = (repulsionInput + collisionInput)/2;
+            Pose2D currentCorrectionInput = (repulsionInput + collisionInput * 2)/2;
             Pose2D correctionInput = currentCorrectionInput*0.8 + predictionBiasVelocity*0.2;
             Pose2D totalInput = velocityInput + correctionInput;
             predictionBiasVelocity = correctionInput;

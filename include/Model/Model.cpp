@@ -16,14 +16,29 @@ Model::Model(Pose2D pose_, Polygon footprint_, double maxSpeed_, double maxAccel
     maxRotationalAcceleration = maxAcceleration / wheelDistanceToMiddle_;
 }
 
-bool Model::collision(Obstacles& obstacles){
+bool Model::checkCollision(Obstacles& obstacles){
+    bool collision = false;
+    vector<Vector2D> boundingBox = dilatedFootprint.boundingBoxRotated(pose.a);
+    Polygon left = Polygon({boundingBox[0], boundingBox[1], pose.toVector()},Closed);
+    Polygon right = Polygon({boundingBox[2], boundingBox[3], pose.toVector()},Closed);
+    Polygon front = Polygon({boundingBox[1], boundingBox[2], pose.toVector()},Closed);
+    Polygon back = Polygon({boundingBox[0], boundingBox[3], pose.toVector()},Closed);
+    bool leftcheck = false, rightcheck = false, frontcheck = false, backcheck = false;
+    limitedMovements.clear();
     for(auto &obstacle : obstacles.obstacles){
         //sequence only check sides collisions of a polygon if the middle is not inside.
         if((dilatedFootprint.polygonContainsPoint(obstacle.footprint.middle) || dilatedFootprint.polygonPolygonCollision(obstacle.footprint))){
-            return true;
+            //check which side of the bounding box has collision and then add that side to the limited movements
+            if(!leftcheck && obstacle.footprint.polygonPolygonCollision(left)){limitedMovements.emplace_back(Movement_Left); leftcheck = true;}
+            else if(!rightcheck && obstacle.footprint.polygonPolygonCollision(right)){limitedMovements.emplace_back(Movement_Right); rightcheck = true;}
+            else if(!frontcheck && obstacle.footprint.polygonPolygonCollision(front)){limitedMovements.emplace_back(Movement_Forward); frontcheck = true;}
+            else if(!backcheck && obstacle.footprint.polygonPolygonCollision(back)){limitedMovements.emplace_back(Movement_Backward); backcheck = true;}
+            else {break;}
+            status = Status_ObstacleCollision;
+            collision = true;
         }
     }
-    return false;
+    return collision;
 }
 
 double Model::width(){
@@ -74,33 +89,20 @@ void Model::copyState(Model &modelCopy) {
 }
 
 void Model::update(double dt, Communication &comm) {
-    if(comm.newOdometry()){
-        if(!poseInitialized){
-            poseInitialized = true;
-            pose = comm.measuredPose;
-            Pose2D measuredVelocity = comm.measuredVelocity;
-            measuredVelocity.transformThis(0,0,pose.a);
-            velocity = Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a);
-        }else{
-            pose = comm.measuredPose;
-            Pose2D measuredVelocity = comm.measuredVelocity;
-            measuredVelocity.transformThis(0,0,pose.a);
-            velocity = velocity * 0.9 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a) * 0.1;
-        }
+    if(!poseInitialized){
+        poseInitialized = true;
+        pose = comm.measuredPose;
+        Pose2D measuredVelocity = comm.measuredVelocity;
+        measuredVelocity.transformThis(0,0,pose.a);
+        velocity = Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a);
+    }else{
+        pose = comm.measuredPose;
+        Pose2D measuredVelocity = comm.measuredVelocity;
+        measuredVelocity.transformThis(0,0,pose.a);
+        velocity = velocity * 0.9 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a) * 0.1;
     }
 
-    if(applyBrake){
-        inputVelocity = Pose2D(0,0,0);
-        input(inputVelocity, Frame_World); //ensure that the input is set to zero
-        applyBrake = false;
-    }else {
-        Pose2D desiredAcceleration = (desiredVelocity - velocity)/dt;
-        desiredAcceleration.constrainThis(maxAcceleration, maxRotationalAcceleration);
-        inputVelocity = velocity + desiredAcceleration * dt;
-        inputVelocity.constrainThis(maxSpeed, maxRotationalSpeed);
-    }
-    velocity = inputVelocity;
-    updateModel(dt);
+    updatePrediction(dt);
 
     Pose2D vel = inputVelocity;
     vel.transformThis(0, 0, -pose.a);
@@ -115,31 +117,29 @@ void Model::brake(){
     applyBrake = true;
 }
 
-FollowStatus Model::predict(int nScalings, double predictionTime, double minPredictionDistance, double dt, Model &origionalModel, Tubes &tubes, Obstacles &obstacles, Visualization &canvas) {
+FollowStatus Model::predict(double dt, Model &origionalModel, Tubes &tubes, Communication &comm, Visualization &canvas) {
     status = Status_Error;
     double brakeMargin = 1;
-    double minSpeedScale = 0.1;
+    double minSpeedScale = 0.2;
     changeSpeedScale(speedScale*1.01);
     //changeSpeedScale(1);
 
-    for(int s = 0; s < nScalings; s++) {
+    for(int s = 0; s < comm.nTries_param; s++) {
         copyState(origionalModel);
         Vector2D prevPos = pose.toVector();
         double distance = 0;
-        double N = ceil(predictionTime / dt);
+        double N = ceil(comm.predictionTime_param / dt);
         Pose2D finalPredictionBias;
-        int nLengthsAhead = 1;
+        int nLengthsAhead = 0;
         for (int p = 0; p < N; p++) {
-            status = follow(tubes, canvas, false);
+            status = follow(tubes, comm, canvas, false);
             updatePrediction(dt);
             distance += prevPos.distance(pose.toVector());
             prevPos = pose.toVector();
             finalPredictionBias = finalPredictionBias + predictionBiasVelocity * ((N-p)/N);
             if(int(floor(distance / origionalModel.length())) == nLengthsAhead && distance <= brakeDistance()+brakeMargin+origionalModel.length()){
                 show(canvas, Color(255,255,255), Thin);
-                if(collision(obstacles)){
-                    status = Status_ObstacleCollision;
-                }
+                checkCollision(comm.obstacles);
                 nLengthsAhead++;
             }
             if (status != Status_Ok) { break; }
@@ -147,7 +147,7 @@ FollowStatus Model::predict(int nScalings, double predictionTime, double minPred
         finalPredictionBias.constrainThis(velocity.toVector().length(), velocity.a);
         predictionBiasVelocity = finalPredictionBias;
         show(canvas, Color(255, 255, 255), Thin);
-        if (distance < minPredictionDistance && status == Status_Ok) {
+        if (distance < comm.minPredictionDistance_param && status == Status_Ok) {
             status = Status_ShortPredictionDistance;
         }
         if ((status == Status_TubeCollision || status == Status_Stuck) && speedScale > minSpeedScale) {
@@ -193,7 +193,7 @@ void Model::showStatus(const string& modelName) {
 
 void Model::show(Visualization& canvas, Color c, int drawstyle) {}
 
-FollowStatus Model::follow(Tubes &tubes, Visualization &canvas, bool debug) {
+FollowStatus Model::follow(Tubes &tubes, Communication& comm, Visualization &canvas, bool debug) {
     return Status_Error;
 }
 

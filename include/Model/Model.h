@@ -23,6 +23,7 @@
 
 class Tubes;
 
+enum Movement {Movement_Forward, Movement_Backward, Movement_Left, Movement_Right, Movement_RotateLeft, Movement_RotateRight};
 enum Frame {Frame_Robot, Frame_World};
 enum FollowStatus {Status_Ok, Status_ObstacleCollision, Status_TubeCollision, Status_Stuck, Status_Error, Status_Done, Status_ShortPredictionDistance, Status_OutsideTube, Status_Recovering, Status_WrongWay};
 
@@ -36,6 +37,7 @@ public:
     double maxRotationalAcceleration;
     double footprintClearance = 0.05;
     int currentTubeIndex = 0;
+    vector<Movement> limitedMovements;
 
     Polygon footprint;
     Polygon dilatedFootprint;
@@ -47,7 +49,7 @@ public:
     double speedScale = 1;
 
     Model(Pose2D pose_, Polygon footprint_, double maxSpeed_, double maxAcceleration_, double wheelDistanceToMiddle_);
-    bool collision(Obstacles& o);
+    bool checkCollision(Obstacles& o);
     void dilateFootprint(double offset);
     void update(double dt, Communication &comm);
     void brake();
@@ -58,12 +60,12 @@ public:
     double length();
     double turnWidth();
     double brakeDistance();
-    FollowStatus predict(int nScalings, double predictionTime, double minPredictionDistance, double dt, Model &origionalModel, Tubes &tubes, Obstacles &obstacles, Visualization &canvas);
+    FollowStatus predict(double dt, Model &origionalModel, Tubes &tubes, Communication &comm, Visualization &canvas);
     void showCommunicationInput(Visualization& canvas, Color c, int drawstyle, Communication &comm);
     void showStatus(const string& modelName);
 
     virtual void show(Visualization& canvas, Color c, int drawstyle);
-    virtual FollowStatus follow(Tubes& tubes, Visualization& canvas, bool debug);
+    virtual FollowStatus follow(Tubes& tubes, Communication& comm, Visualization& canvas, bool debug);
     virtual void updateModel(double dt);
     virtual void updatePrediction(double dt);
     virtual void input(Pose2D velocity_, Frame frame);

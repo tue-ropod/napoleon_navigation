@@ -17,7 +17,7 @@ public:
     void updateModel(double dt) override;
     void updatePrediction(double dt) override;
     void show(Visualization& canvas, Color c, int drawstyle) override;
-    FollowStatus follow(Tubes& tubes, Visualization& canvas, bool debug) override;
+    FollowStatus follow(Tubes& tubes, Communication& comm, Visualization& canvas, bool debug) override;
 };
 
 #endif //NAVIGATION_HOLONOMICMODEL_H

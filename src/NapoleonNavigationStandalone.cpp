@@ -17,7 +17,18 @@ typedef Vector2D Vec;
 #define staticobstacle(poly, middle, pose) Obstacle(Polygon(poly, middle, Closed), pose, Static)
 #define dynamicobstacle(poly, pose) Obstacle(Polygon(poly), pose, Dynamic)
 
-int main() {
+int main(int argc, char** argv) {
+
+    ros::init(argc, argv, "route_navigation");
+
+    ros::NodeHandle nroshndl("~");
+
+    Communication comm;
+    comm.tubeExtraSpace_param = 0.4;
+    comm.minPredictionDistance_param = 1;
+    comm.nTries_param = 10;
+    comm.predictionTime_param = 2;
+
     double F_loop = 30;
     double F_planner = 10;
 
@@ -27,11 +38,10 @@ int main() {
     //Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.6), Vec(0,0.6)}, Closed, true, Pose2D(0.325,0.3,0));
     HolonomicModel hmodel(Pose2D(-3.5,-4,M_PI_2), footprint, 3, 0.8, 1);
 
-    Obstacles obstacles;
-    //obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1.5,1,0)));
-    //obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1,10,0)));
-    //obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(9,9,0)));
-    //obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(9,4,0)));
+    //comm.obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1.5,1,0)));
+    //comm.obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1,10,0)));
+    //comm.obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(9,9,0)));
+    //comm.obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(9,4,0)));
 
     Tubes tubes(Tube(Vec(-3,-6), 2, Vec(-3,-2), 2, 1));
     tubes.addPoint(Vec(-3,-1), 1.5, 1);
@@ -52,7 +62,6 @@ int main() {
     FollowStatus predictionStatus = Status_Ok;
     HolonomicModel hmodelCopy = hmodel;
 
-
     while(realStatus != Status_Done){
         canvas.setorigin(Pose2D(hmodel.pose.x, hmodel.pose.y, 0)-canvas.getWindowMidOffset());
 
@@ -65,11 +74,11 @@ int main() {
             //tubes.recover(hmodel);
         }
 
-        predictionStatus = hmodelCopy.predict(10, 2, 1, 1/F_planner, hmodel, tubes, obstacles, canvas); //nScaling | predictionTime | minDistance
+        predictionStatus = hmodelCopy.predict(1/F_planner, hmodel, tubes, comm, canvas); //nScaling | predictionTime | minDistance
 
         if(predictionStatus == Status_Ok || predictionStatus == Status_Done || predictionStatus == Status_ShortPredictionDistance || predictionStatus == Status_TubeCollision || predictionStatus == Status_Recovering) {
             hmodel.copySettings(hmodelCopy);
-            realStatus = hmodel.follow(tubes, canvas, true);
+            realStatus = hmodel.follow(tubes, comm, canvas, true);
             //tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, obstacles, hmodel, DrivingSide_Right, canvas);
             if(realStatus != Status_Ok && realStatus != Status_TubeCollision) {hmodel.brake();}
         }
@@ -84,7 +93,7 @@ int main() {
         hmodel.showStatus("Model");
         tubes.showSides(canvas);
         hmodel.show(canvas, Color(0,0,0), Thin);
-        obstacles.show(canvas, Color(100,100,100), Filled);
+        comm.obstacles.show(canvas, Color(100,100,100), Filled);
 
         canvas.visualize();
 
