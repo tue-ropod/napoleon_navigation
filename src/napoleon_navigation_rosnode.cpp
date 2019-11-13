@@ -714,15 +714,17 @@ void updateStateAndTask()
             if(task2[5] == "right")
             {
                 standard_steering_offset = 0.0;
+                steering_offset = START_STEERING_EARLY_RIGTH + standard_steering_offset;
             }
             else
             {
                 standard_steering_offset = fmin( 0.0, fabs(cur_pivot_local.y)
                                   - (sqrt(dist2(getPoint(point_right_entry_next_wall), getPoint(point_pivot))) - TUBE_WIDTH_C/2.0)
                                   ) + ROPOD_TO_AX;
+                steering_offset = START_STEERING_EARLY_LEFT + standard_steering_offset;
             }
 
-            steering_offset = START_STEERING_EARLY + standard_steering_offset;
+            
 
 
         } else if (cur_pivot_local.x <= SIZE_FRONT_RAX + steering_offset && pred_state[prevstate] == ACCELERATE_ON_INTERSECTION) {
@@ -1260,6 +1262,7 @@ void visualizeGlobalFreeArea(Rectangle freeNavArea, double rw_angle, int vis_id)
 /**
  * Use laser points to create bounding box
  * */
+std::vector<bool> laser_point_in_context;
 void createFreeNavigationBoundingBox()
 {
     double minFreeSpaceDepth = (ROPOD_TO_AX + SIZE_FRONT_ROPOD + MIN_DIST_TO_OVERTAKE); // TODO: Add later + ROPOD_LENGTH + OBS_AVOID_MARGIN_FRONT so robot fits also while overtaking?
@@ -1288,15 +1291,30 @@ void createFreeNavigationBoundingBox()
     Rectangle freeNavigationLeftLane_C;
     Rectangle freeNavigationLeftLane_L;
 
+    if(j==1) laser_point_in_context.clear();
+
     for(unsigned int iScan = 0; iScan < laser_meas_points.size(); iScan++)
     {
         Point laser_point(laser_meas_points[iScan].x, laser_meas_points[iScan].y);
         Point local_robot_wall_laser_point = coordGlobalToRopod(laser_point, pred_xy_ropod[j-1], rw_angle);
         distance_point_to_line = -distToLine(laser_point, rw_p_rear, rw_p_front);
         // consider only points within defined areas
-        if ( curr_area.type == "hallway"
-        || ( next_area.type == "hallway" && isPointOnLeftSide(task2[0], task2[1], pointlist, laser_point, 2.0*TUBE_WIDTH_C) )
-        || ( next_second_area.type == "hallway" ) && isPointOnLeftSide(task3[0], task3[1], pointlist, laser_point, 2.0*TUBE_WIDTH_C) )
+        if(j == 1)
+        {
+            if ( 
+            (curr_area.type == "hallway" && isPointOnLeftSide(task1[0], task1[1], pointlist, laser_point, 2.0*TUBE_WIDTH_C) )
+            || ( next_area.type == "hallway" && isPointOnLeftSide(task2[0], task2[1], pointlist, laser_point, 2.0*TUBE_WIDTH_C) )
+            || ( next_second_area.type == "hallway" ) && isPointOnLeftSide(task3[0], task3[1], pointlist, laser_point, 2.0*TUBE_WIDTH_C) )
+            {
+                laser_point_in_context.push_back(true);
+            }
+            else
+            {
+                laser_point_in_context.push_back(false);
+            }
+            
+        }
+        if (laser_point_in_context[iScan])
         {
             if(distance_point_to_line > 0 && distance_point_to_line < 2.0*TUBE_WIDTH_C && local_robot_wall_laser_point.x > (-ROPOD_TO_AX)  && local_robot_wall_laser_point.x < minFreeSpaceDepth-ROPOD_TO_AX)
             {

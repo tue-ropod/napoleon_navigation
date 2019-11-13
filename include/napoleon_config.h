@@ -44,12 +44,13 @@ static constexpr double SIZE_FRONT_ROPOD = ROPOD_LENGTH/2.0;  // How long ropod 
     static constexpr double V_OBS_OVERTAKE_MAX = 0.1;       // Max speed an obstacle can have to overtake is [m/s]
     static constexpr double MIN_DIST_TO_OVERTAKE = 3.0;     // Don't start earlier than x meters to overtake [m]
     // Performance based on position in environment
-    static constexpr double START_STEERING_EARLY = 0.6;     // Start steering earlier by x [m]
+    static constexpr double START_STEERING_EARLY_RIGTH = 1.0;     // Start steering earlier by x [m]
+    static constexpr double START_STEERING_EARLY_LEFT = 0.6;  // 0.3   // Start steering earlier by x [m]
     static constexpr double ROTATED_ENOUGH_TRES = M_PI/3;   // Stop turning when within x rad of the new corridor
 #else
     static constexpr double FEELER_SIZE = 2.0;          // d_f: 0.5 Size of feeler [m] - used to predict where ropod goes suppose it would go straight
     static constexpr double FEELER_SIZE_STEERING = 2.5; // df_c: 0.3 Size of feeler when steering [m]
-    static constexpr double ENV_TCTW_SIZE = 0.05;       // d_cor 0.05 Too close too wall area size [m]
+    static constexpr double ENV_TCTW_SIZE = 0.1;       // d_cor 0.05 Too close too wall area size [m]
     static constexpr double ENV_TRNS_SIZE = 0.20;       // d_trns 0.2 Transition area size [m]
     static constexpr double CARROT_LENGTH = FEELER_SIZE+0.5;       // How far ahead point lies where ropod steers towards when too close to a wall [m]
 
@@ -59,7 +60,7 @@ static constexpr double SIZE_FRONT_ROPOD = ROPOD_LENGTH/2.0;  // How long ropod 
     // Optimization / performance parameters
     static constexpr double ENV_TRNS_SIZE_CORNERING = 0.3; // d_trnsc Transition area size while cornering [m]
     static constexpr double V_CRUISING = 1.1;//1.4;           // Max velocity [m/s] while cruising
-    static constexpr double V_INTER_TURNING = 0.6;//0.5;      // Max velocity [m/s] when taking a turn
+    static constexpr double V_INTER_TURNING = 0.7;//0.5;      // Max velocity [m/s] when taking a turn
     static constexpr double V_INTER_ACC = V_INTER_TURNING;//0.7;          // Max velocity [m/s] when driving straight at intersection
     static constexpr double V_INTER_DEC = V_INTER_TURNING;//0.3;          // Max velocity [m/s] when driving straight at intersection
     static constexpr double V_ENTRY = 0.6;//0.5;              // Max velocity [m/s] when at entry of intersection
@@ -72,7 +73,8 @@ static constexpr double SIZE_FRONT_ROPOD = ROPOD_LENGTH/2.0;  // How long ropod 
     static constexpr double V_OBS_OVERTAKE_MAX = 0.1;       // Max speed an obstacle can have to overtake is [m/s]
     static constexpr double MIN_DIST_TO_OVERTAKE = 2.5;     // Don't start earlier than x meters to overtake [m]
     // Performance based on position in environment
-    static constexpr double START_STEERING_EARLY = 0.0;  // 0.3   // Start steering earlier by x [m]
+    static constexpr double START_STEERING_EARLY_RIGTH = 1.5;  // 0.3   // Start steering earlier by x [m]
+    static constexpr double START_STEERING_EARLY_LEFT = 0.9;  // 0.3   // Start steering earlier by x [m]
     static constexpr double ROTATED_ENOUGH_TRES = 1.2*M_PI/4;   // Stop turning when within x rad of the new corridor
 #endif
 
