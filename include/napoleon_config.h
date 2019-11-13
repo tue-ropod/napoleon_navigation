@@ -48,13 +48,13 @@ static constexpr double SIZE_FRONT_ROPOD = ROPOD_LENGTH/2.0;  // How long ropod 
     static constexpr double START_STEERING_EARLY_LEFT = 0.6;  // 0.3   // Start steering earlier by x [m]
     static constexpr double ROTATED_ENOUGH_TRES = M_PI/3;   // Stop turning when within x rad of the new corridor
 #else
-    static constexpr double FEELER_SIZE = 2.0;          // d_f: 0.5 Size of feeler [m] - used to predict where ropod goes suppose it would go straight
-    static constexpr double FEELER_SIZE_STEERING = 2.5; // df_c: 0.3 Size of feeler when steering [m]
+    static constexpr double FEELER_SIZE = 1.5;          // d_f: 0.5 Size of feeler [m] - used to predict where ropod goes suppose it would go straight
+    static constexpr double FEELER_SIZE_STEERING = 1.0; // df_c: 0.3 Size of feeler when steering [m]
     static constexpr double ENV_TCTW_SIZE = 0.1;       // d_cor 0.05 Too close too wall area size [m]
     static constexpr double ENV_TRNS_SIZE = 0.20;       // d_trns 0.2 Transition area size [m]
     static constexpr double CARROT_LENGTH = FEELER_SIZE+0.5;       // How far ahead point lies where ropod steers towards when too close to a wall [m]
 
-    static constexpr double D_AX = ROPOD_LENGTH/2; // Length from rear axle to front steering point  [m] (without load) NOTE: rear axle means center of rotation; Because of the bycicle model, 0 causes NaN.
+    static constexpr double D_AX = ROPOD_LENGTH; // Length from rear axle to front steering point  [m] (without load) NOTE: rear axle means center of rotation; Because of the bycicle model, 0 causes NaN.
     static constexpr double ROPOD_TO_AX = 0;       // Length from rear axle to ropod center [m] (without load).
     static constexpr double SIZE_REAR = ROPOD_LENGTH/2; // How far vehicle extends behind rear axle (witho
     // Optimization / performance parameters
@@ -63,18 +63,18 @@ static constexpr double SIZE_FRONT_ROPOD = ROPOD_LENGTH/2.0;  // How long ropod 
     static constexpr double V_INTER_TURNING = 0.7;//0.5;      // Max velocity [m/s] when taking a turn
     static constexpr double V_INTER_ACC = V_INTER_TURNING;//0.7;          // Max velocity [m/s] when driving straight at intersection
     static constexpr double V_INTER_DEC = V_INTER_TURNING;//0.3;          // Max velocity [m/s] when driving straight at intersection
-    static constexpr double V_ENTRY = 0.6;//0.5;              // Max velocity [m/s] when at entry of intersection
-    static constexpr double V_STEERSATURATION = 0.4;          // Velocity during steering saturation [m/s]
+    static constexpr double V_ENTRY = V_INTER_TURNING;//0.5;              // Max velocity [m/s] when at entry of intersection
+    static constexpr double V_STEERSATURATION = 0.6;          // Velocity during steering saturation [m/s]
     static constexpr double V_OVERTAKE = 0.8*V_CRUISING;//0.5;           // Velocity during overtaking [m/s]
     // Limits
-    static constexpr double DELTA_DOT_LIMIT = 0.3;   // Max steering rate per second [rad/s]
+    static constexpr double DELTA_DOT_LIMIT = 1.0;   // Max steering rate per second [rad/s]
     static constexpr double A_MAX = 0.7;                    // Maximum acceleration magnitude [m/s^2]
     // Obstacle
     static constexpr double V_OBS_OVERTAKE_MAX = 0.1;       // Max speed an obstacle can have to overtake is [m/s]
     static constexpr double MIN_DIST_TO_OVERTAKE = 2.5;     // Don't start earlier than x meters to overtake [m]
     // Performance based on position in environment
-    static constexpr double START_STEERING_EARLY_RIGTH = 1.5;  // 0.3   // Start steering earlier by x [m]
-    static constexpr double START_STEERING_EARLY_LEFT = 0.9;  // 0.3   // Start steering earlier by x [m]
+    static constexpr double START_STEERING_EARLY_RIGTH = 0.3;  // 0.3   // Start steering earlier by x [m]
+    static constexpr double START_STEERING_EARLY_LEFT = 0.3;  // 0.3   // Start steering earlier by x [m]
     static constexpr double ROTATED_ENOUGH_TRES = 1.2*M_PI/4;   // Stop turning when within x rad of the new corridor
 #endif
 

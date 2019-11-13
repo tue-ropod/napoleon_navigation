@@ -663,7 +663,7 @@ void updateStateAndTask()
 
         //printf("Ropod entry hall task2[5] non empty: %d\n",(int)pred_ropod_on_entry_hall[j]);
         if (pred_ropod_on_entry_hall[j] && (pred_state[prevstate] == CRUSING || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == TIGHT_OVERTAKE) ){
-            pred_state[j] = CRUSING;
+            pred_state[j] = pred_state[prevstate];
             //disp([num2str(i), ': Here we can switch to the next hallway']);
             u = u+1;
             area1ID = assignment[u];
@@ -702,28 +702,29 @@ void updateStateAndTask()
             if(j==1)printf("Entry detected to turn intersection u = %d\n",u);
             pred_state[j] = ENTRY_BEFORE_TURN_ON_INTERSECTION;
 
-        } else if (cur_pivot_local.x < SIZE_FRONT_ROPOD  && pred_state[prevstate] == ENTRY_BEFORE_TURN_ON_INTERSECTION) {
-            // If in entry and the y position of the ropod exceeds the y
-            // position of the intersection
-            pred_state[j] = ACCELERATE_ON_INTERSECTION;
             PointID point_right_entry_next_wall = getPointByID(task2[2],pointlist);
             point_pivot = getPointByID(task2[4],pointlist);
-
             double standard_steering_offset;
             // TODO: change calculation to perpendicular distances
             if(task2[5] == "right")
             {
+                if(j==1)printf("Will turn right");
                 standard_steering_offset = 0.0;
                 steering_offset = START_STEERING_EARLY_RIGTH + standard_steering_offset;
             }
             else
             {
+                if(j==1)printf("Will turn left");
                 standard_steering_offset = fmin( 0.0, fabs(cur_pivot_local.y)
                                   - (sqrt(dist2(getPoint(point_right_entry_next_wall), getPoint(point_pivot))) - TUBE_WIDTH_C/2.0)
                                   ) + ROPOD_TO_AX;
                 steering_offset = START_STEERING_EARLY_LEFT + standard_steering_offset;
             }
 
+        } else if (cur_pivot_local.x < SIZE_FRONT_ROPOD + steering_offset && pred_state[prevstate] == ENTRY_BEFORE_TURN_ON_INTERSECTION) {
+            // If in entry and the y position of the ropod exceeds the y
+            // position of the intersection
+            pred_state[j] = ACCELERATE_ON_INTERSECTION;
             
 
 
