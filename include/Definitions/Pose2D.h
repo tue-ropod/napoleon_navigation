@@ -58,6 +58,33 @@ public:
     bool operator< (const Pose2D& other)const{
         return (this->x < other.x && this->y < other.y && this->a < other.a);
     }
+    void unitPoseThis(){
+        Vector2D v(x,y);
+        if(v.length() > 0.0001){
+            v = v/v.length();
+        }else{
+            v.x = 0;
+            v.y = 0;
+        }
+        x = v.x;
+        y = v.y;
+        double a_ = a;
+        if(abs(a_) > 0.0001){a = a_/abs(a_);}
+        else{a = 0;}
+    }
+    Pose2D unitPose()const{
+        Vector2D v(x,y);
+        if(v.length() > 0.0001){
+            v = v/v.length();
+        }else{
+            v.x = 0;
+            v.y = 0;
+        }
+        double a_;
+        if(abs(a) > 0.0001){a_ = a/abs(a);}
+        else{a_ = 0;}
+        return {v,a_};
+    }
     Vector2D toVector()const{
         return {x,y};
     }

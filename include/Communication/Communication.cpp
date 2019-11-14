@@ -5,19 +5,14 @@
 #include "Communication.h"
 
 Communication::Communication(ros::NodeHandle nroshndl) {
+    measuredOdom_pub = nroshndl.advertise<nav_msgs::Odometry>("/measuredodom", 1);
     vel_pub = nroshndl.advertise<geometry_msgs::Twist>("/navigation/cmd_vel", 1);
-    amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 1,
-                                                                                 &Communication::getAmclCallback,
-                                                                                 this);
+    amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 1, &Communication::getAmclCallback,this);
     odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/navigation/odom", 1, &Communication::getOdomCallback, this);
-    obstacles_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 1,
-                                                                  &Communication::getObstaclesCallback, this);
+    obstacles_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 1, &Communication::getObstaclesCallback, this);
     //ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
-    ropod_debug_plan_sub = nroshndl.subscribe<ropod_ros_msgs::RoutePlannerResult>("/ropod/debug_route_plan", 1,
-                                                                                  &Communication::getDebugRoutePlanCallback,
-                                                                                  this);
-    scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("/navigation/scan", 1,
-                                                          &Communication::getLaserScanCallback, this);
+    ropod_debug_plan_sub = nroshndl.subscribe<ropod_ros_msgs::RoutePlannerResult>("/ropod/debug_route_plan", 1, &Communication::getDebugRoutePlanCallback,this);
+    scan_sub = nroshndl.subscribe<sensor_msgs::LaserScan>("/navigation/scan", 1, &Communication::getLaserScanCallback, this);
 
     nroshndl.getParam("/napoleon_navigation/global_frame_id", globalFrame);
     nroshndl.getParam("/napoleon_navigation/base_frame_id", baseFrame);
@@ -87,6 +82,12 @@ void Communication::getOdomCallback(const nav_msgs::OdometryConstPtr &odom_msg){
     }
     measuredVelocity = addedVelocities / measuredVelocityList.size();
 
+    nav_msgs::Odometry testoutput;
+    testoutput.twist.twist.linear.x = measuredVelocity.x;
+    testoutput.twist.twist.linear.y = measuredVelocity.y;
+    testoutput.twist.twist.angular.z = measuredVelocity.a;
+    measuredOdom_pub.publish(testoutput);
+
     if(!initializedOdometry && validPose){
         measuredVelocity.print("Initial velocity:");
         measuredPose.print("Initial Pose:");
@@ -123,13 +124,13 @@ void Communication::getAmclCallback(const geometry_msgs::PoseWithCovarianceStamp
 
     //eigenvectors X Y
     Vector2D E1, E2;
-    if(abs(c) > 0.001){
+    if(abs(c) > 0.0001){
         E1 = Vector2D(L1-d, c);
         E2 = Vector2D(L2-d, c);
-    }else if(abs(b) > 0.001){
+    }else if(abs(b) > 0.0001){
         E1 = Vector2D(b, L1-a);
         E2 = Vector2D(b, L2-a);
-    }else if(abs(b) <= 0.001 && abs(c) <= 0.001){
+    }else if(abs(b) <= 0.0001 && abs(c) <= 0.0001){
         E1 = Vector2D(1, 0);
         E2 = Vector2D(0, 1);
     }

@@ -25,7 +25,8 @@ public:
             Vector2D p;
             double angleIncrement = (M_PI*2)/nPoints;
             for(u_int i = 0; i < nPoints; i++){
-                p = Vector2D(a*cos(angle+angleIncrement*i), b*sin(angle+angleIncrement*i));
+                p = Vector2D(a*cos(angleIncrement*i), b*sin(angleIncrement*i));
+                p.transformThis(0,0,angle);
                 points.emplace_back(p+point);
             }
         }else{

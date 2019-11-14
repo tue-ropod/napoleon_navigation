@@ -68,6 +68,26 @@ public:
         }
     }
 
+    void dilateDirection(double offsetXP, double offsetXM, double offsetYP, double offsetYM, double angle){
+        vector<Line> sides = getSides();
+        for(auto & side : sides){
+            Vector2D normal = (side.p2 - side.p1).transform(0,0,-M_PI_2).unit();
+            double normalAngle = fmod(normal.angle() - angle + M_PI*2, M_PI*2);
+            double offset = 0;
+            if(normalAngle >= M_PI_4*7 || normalAngle < M_PI_4){offset = cos(normalAngle)*offsetXP + sin(normalAngle)*offsetYP;}
+            if(normalAngle >= M_PI_4 && normalAngle < M_PI_4*3){offset = -cos(normalAngle)*offsetXM + sin(normalAngle)*offsetYP;}
+            if(normalAngle >= M_PI_4*3 && normalAngle < M_PI_4*5){offset = -cos(normalAngle)*offsetXM - sin(normalAngle)*offsetYM;}
+            if(normalAngle >= M_PI_4*5 && normalAngle < M_PI_4*7){offset = cos(normalAngle)*offsetXP - sin(normalAngle)*offsetYM;}
+            side.p1 = side.p1 + normal*offset;
+            side.p2 = side.p2 + normal*offset;
+        }
+        for(int i = 0; i < sides.size()-type; i++){
+            Line side1 = sides[i];
+            Line side2 = sides[(i+1)%sides.size()];
+            vertices[(i+1)%sides.size()] = side2.lineProjectionPoint(side1.p2);
+        }
+    }
+
     void transform(double x, double y, double a){
         middle.transformThis(x, y, 0);
         middle.rotateOrientation(a);

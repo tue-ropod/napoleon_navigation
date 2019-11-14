@@ -81,9 +81,10 @@ struct Vector2D{
     double dot(const Vector2D &other)const{
         return ((x * other.x) + (y * other.y));
     }
-    void unitThis(){
+
+    virtual void unitThis(){
         Vector2D v(x,y);
-        if(v.length() != 0){
+        if(v.length() > 0.0001){
             v = v/v.length();
         }else{
             v.x = 0;
@@ -92,9 +93,10 @@ struct Vector2D{
         x = v.x;
         y = v.y;
     }
+
     Vector2D unit()const{
         Vector2D v(x,y);
-        if(v.length() != 0){
+        if(v.length() > 0.0001){
             v = v/v.length();
         }else{
             v.x = 0;

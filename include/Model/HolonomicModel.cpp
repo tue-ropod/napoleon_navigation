@@ -48,17 +48,20 @@ void HolonomicModel::updatePrediction(double dt) {
         desiredAcceleration.constrainThis(maxAcceleration, maxRotationalAcceleration);
         inputVelocity = velocity + desiredAcceleration * dt;
         inputVelocity.constrainThis(maxSpeed, maxRotationalSpeed);
+        inputVelocity.transformThis(0,0,-pose.a);
         for(auto & movement : limitedMovements){
             switch(movement){
                 case Movement_Left: if(inputVelocity.y < 0){inputVelocity.y = 0;} break;
                 case Movement_Right: if(inputVelocity.y > 0){inputVelocity.y = 0;} break;
                 case Movement_Forward: if(inputVelocity.x > 0){inputVelocity.x = 0;} break;
                 case Movement_Backward: if(inputVelocity.x < 0){inputVelocity.x = 0;} break;
-                case Movement_RotateLeft: break;
-                case Movement_RotateRight: break;
+                case Movement_RotateLeft: if(inputVelocity.a > 0){inputVelocity.a = 0;} break;
+                case Movement_RotateRight: if(inputVelocity.a < 0){inputVelocity.a = 0;} break;
             }
         }
+        inputVelocity.transformThis(0,0,pose.a);
     }
+    limitedMovements.clear();
     velocity = inputVelocity;
     updateModel(dt);
 }
@@ -83,12 +86,13 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Communication& comm, Visualiza
         //vector<Vector2D> frontFootprint = {footprint.vertices[2], footprint.vertices[3]};
         //vector<Line> sidesFootprint = {Line(footprint.vertices[0],footprint.vertices[1]),Line(footprint.vertices[5],footprint.vertices[4])};
 
+        currentTubeIndex = tubes.tubeContainingPoint(pose, currentTubeIndex);
+
         int nVelocityVector = 0;
         for(auto & vertex : frontBoundingBox){
             int ti = tubes.tubeContainingPoint(vertex, currentTubeIndex);
             if(ti != -1){
                 Tube &currentTube = tubes.tubes[ti];
-                currentTubeIndex = ti;
                 Vector2D pointVelocity;
                 int ci = tubes.tubeCornerContainingPoint(vertex, currentTubeIndex);
                 if(ci != -1){ //footprint point in corner
@@ -116,7 +120,7 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Communication& comm, Visualiza
 
         velocityInput = velocityInput/double(nVelocityVector);
 
-        if( tubes.tubeContainingPoint(pose, currentTubeIndex) != -1 ) { //Middle of object inside tube
+        if( currentTubeIndex != -1 ) { //Middle of object inside tube
 
             //Calculate the minimum and maximum tube index which the footprint of the object occupies
             int minTubeIndex = -1, maxTubeIndex = -1;
@@ -233,7 +237,7 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Communication& comm, Visualiza
 
             if(nRepulsion > 0){repulsionInput = repulsionInput/double(nRepulsion);}
             if(nCollision > 0){collisionInput = collisionInput/double(nCollision);}
-            Pose2D currentCorrectionInput = (repulsionInput + collisionInput * 2)/2;
+            Pose2D currentCorrectionInput = (repulsionInput*2 + collisionInput*2)/2; //TODO determine repulsion and collision factor
             Pose2D correctionInput = currentCorrectionInput*0.8 + predictionBiasVelocity*0.2;
             Pose2D totalInput = velocityInput + correctionInput;
             predictionBiasVelocity = correctionInput;
@@ -246,7 +250,7 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Communication& comm, Visualiza
 
             if(collisionDistance > footprintClearance){
                 status = Status_TubeCollision;
-            }else if(tubes.tubes[tubes.tubes.size()-1].connectedShape.polygonContainsPoint(pose)){
+            }else if(tubes.tubes.size()-1 == currentTubeIndex){
                 status = Status_Done;
             }else if(abs(inputDirectionDifference) > M_PI_2){
                 status = Status_Stuck;

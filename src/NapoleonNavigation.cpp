@@ -86,7 +86,10 @@ int main(int argc, char** argv) {
                 predictionStatus == Status_ObstacleCollision            ){
 
                 hmodel.copySettings(hmodelCopy);
+                int temp = hmodel.currentTubeIndex;
                 realStatus = hmodel.follow(tubes, comm, canvas, true);
+                if(hmodel.currentTubeIndex != temp){cout << "Pose in tube "<< hmodel.currentTubeIndex << endl;}
+
                 //tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, obstacles, hmodel, DrivingSide_Right, canvas);
 //                if(realStatus != Status_Ok && realStatus != Status_TubeCollision) {hmodel.brake();}
             }
@@ -99,15 +102,17 @@ int main(int argc, char** argv) {
                 startNavigation = false;
             }
         }
-        if(!startNavigation && comm.newPlan()) {
-            if(tubes.convertRoute(comm, hmodel, canvas)){
-                startNavigation = true;
-            }else{
-                cout << "Tube is larger than the defined area! [check if margins can be decreased or if the object fits through at all.]" << endl;
+        if(!startNavigation) {
+            hmodel.brake();
+            if(comm.newPlan()) {
+                if (tubes.convertRoute(comm, hmodel, canvas)) {
+                    startNavigation = true;
+                } else {
+                    cout << "Tube is larger than the defined area! [check if margins can be decreased or if the object fits through at all.]" << endl;
+                }
             }
         }
-
-        hmodel.checkCollision(comm.obstacles);
+        hmodel.checkCollision(comm.obstacles, canvas);
 
         hmodelCopy.showStatus("Prediction model");
         hmodel.showStatus("Model");

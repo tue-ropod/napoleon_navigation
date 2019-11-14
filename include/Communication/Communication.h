@@ -26,6 +26,7 @@
 
 class Communication {
 public:
+    ros::Publisher measuredOdom_pub;
     ros::Publisher vel_pub;
     ros::Subscriber obstacles_sub;
     ros::Subscriber odom_sub;
@@ -43,7 +44,7 @@ public:
     Pose2D measuredPose, measuredVelocity, measuredPoseAmcl;
     Ellipse poseUncertainty;
     list<Pose2D> measuredVelocityList;
-    int velocityAverageSamples = 10;
+    int velocityAverageSamples = 2;
     vector<Vector2D> laserPoints;
     Obstacles obstacles;
 

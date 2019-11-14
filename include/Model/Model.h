@@ -41,15 +41,14 @@ public:
 
     Polygon footprint;
     Polygon dilatedFootprint;
-    Pose2D pose = Pose2D(0,0,0), velocity = Pose2D(0,0,0);
+    Pose2D pose = Pose2D(0,0,0), velocity = Pose2D(0,0,0), measuredVelocity = Pose2D(0,0,0);
     Pose2D inputVelocity = Pose2D(0,0,0), desiredVelocity = Pose2D(0,0,0), predictionBiasVelocity = Pose2D(0,0,0);
     bool applyBrake = false;
-    bool poseInitialized = false;
     FollowStatus status = Status_Ok, prevStatus = Status_Error;
     double speedScale = 1;
 
     Model(Pose2D pose_, Polygon footprint_, double maxSpeed_, double maxAcceleration_, double wheelDistanceToMiddle_);
-    bool checkCollision(Obstacles& o);
+    bool checkCollision(Obstacles& o, Visualization &canvas);
     void dilateFootprint(double offset);
     void update(double dt, Communication &comm);
     void brake();

@@ -7,7 +7,6 @@
 Model::Model(Pose2D pose_, Polygon footprint_, double maxSpeed_, double maxAcceleration_, double wheelDistanceToMiddle_){
     pose = pose_;
     footprint = std::move(footprint_);
-    dilatedFootprint = footprint;
     footprint.transformto(pose);
     dilatedFootprint = footprint;
     maxSpeed = maxSpeed_;
@@ -16,24 +15,42 @@ Model::Model(Pose2D pose_, Polygon footprint_, double maxSpeed_, double maxAccel
     maxRotationalAcceleration = maxAcceleration / wheelDistanceToMiddle_;
 }
 
-bool Model::checkCollision(Obstacles& obstacles){
+bool Model::checkCollision(Obstacles& obstacles, Visualization &canvas){
     bool collision = false;
-    vector<Vector2D> boundingBox = dilatedFootprint.boundingBoxRotated(pose.a);
-    Polygon left = Polygon({boundingBox[0], boundingBox[1], pose.toVector()},Closed);
-    Polygon right = Polygon({boundingBox[2], boundingBox[3], pose.toVector()},Closed);
-    Polygon front = Polygon({boundingBox[1], boundingBox[2], pose.toVector()},Closed);
-    Polygon back = Polygon({boundingBox[0], boundingBox[3], pose.toVector()},Closed);
-    bool leftcheck = false, rightcheck = false, frontcheck = false, backcheck = false;
-    limitedMovements.clear();
+    Polygon obstacleCollisionFootprint;
+    obstacleCollisionFootprint = dilatedFootprint;
+    double Xplus = cos(velocity.angle())*brakeDistance();
+    double Xmin = -cos(velocity.angle())*brakeDistance();
+    double Yplus = sin(velocity.angle())*brakeDistance();
+    double Ymin = -sin(velocity.angle())*brakeDistance();
+    Xplus = Xplus < 0 ? 0 : Xplus;
+    Xmin = Xmin < 0 ? 0 : Xmin;
+    Yplus = Yplus < 0 ? 0 : Yplus;
+    Ymin = Ymin < 0 ? 0 : Ymin;
+    obstacleCollisionFootprint.dilateDirection(Xplus,Xmin,Yplus,Ymin,0);
+    //canvas.polygon(obstacleCollisionFootprint.vertices, Color(0,255,0));
+
+    vector<Vector2D> boundingBox = obstacleCollisionFootprint.boundingBoxRotated(pose.a);
+    Polygon left = Polygon({boundingBox[0], boundingBox[1], pose.toVector()}, Closed);
+    Polygon right = Polygon({boundingBox[2], boundingBox[3], pose.toVector()}, Closed);
+    Polygon front = Polygon({boundingBox[1], boundingBox[2], pose.toVector()}, Closed);
+    Polygon back = Polygon({boundingBox[0], boundingBox[3], pose.toVector()}, Closed);
+    Vector2D leftSideMiddle = (boundingBox[2]+boundingBox[3])/2;
+    Vector2D rightSideMiddle = (boundingBox[0]+boundingBox[1])/2;
+    Polygon rotateLeft = Polygon({boundingBox[0], rightSideMiddle, pose.toVector(), leftSideMiddle, boundingBox[2], pose.toVector()}, Closed);
+    Polygon rotateRight = Polygon({boundingBox[1], rightSideMiddle, pose.toVector(), leftSideMiddle, boundingBox[3], pose.toVector()}, Closed);
+    bool leftCheck = false, rightCheck = false, frontCheck = false, backCheck = false, rotateLeftCheck = false, rotateRightCheck = false;
     for(auto &obstacle : obstacles.obstacles){
         //sequence only check sides collisions of a polygon if the middle is not inside.
-        if((dilatedFootprint.polygonContainsPoint(obstacle.footprint.middle) || dilatedFootprint.polygonPolygonCollision(obstacle.footprint))){
+        if( (obstacleCollisionFootprint.polygonContainsPoint(obstacle.footprint.middle) || obstacleCollisionFootprint.polygonPolygonCollision(obstacle.footprint)) ){
             //check which side of the bounding box has collision and then add that side to the limited movements
-            if(!leftcheck && obstacle.footprint.polygonPolygonCollision(left)){limitedMovements.emplace_back(Movement_Left); leftcheck = true;}
-            else if(!rightcheck && obstacle.footprint.polygonPolygonCollision(right)){limitedMovements.emplace_back(Movement_Right); rightcheck = true;}
-            else if(!frontcheck && obstacle.footprint.polygonPolygonCollision(front)){limitedMovements.emplace_back(Movement_Forward); frontcheck = true;}
-            else if(!backcheck && obstacle.footprint.polygonPolygonCollision(back)){limitedMovements.emplace_back(Movement_Backward); backcheck = true;}
-            else {break;}
+            if(!leftCheck && obstacle.footprint.polygonPolygonCollision(left)){limitedMovements.emplace_back(Movement_Left); leftCheck = true;}
+            if(!rightCheck && obstacle.footprint.polygonPolygonCollision(right)){limitedMovements.emplace_back(Movement_Right); rightCheck = true;}
+            if(!frontCheck && obstacle.footprint.polygonPolygonCollision(front)){limitedMovements.emplace_back(Movement_Forward); frontCheck = true;}
+            if(!backCheck && obstacle.footprint.polygonPolygonCollision(back)){limitedMovements.emplace_back(Movement_Backward); backCheck = true;}
+            if(!rotateLeftCheck && obstacle.footprint.polygonPolygonCollision(rotateLeft)){limitedMovements.emplace_back(Movement_RotateLeft); rotateLeftCheck = true;}
+            if(!rotateRightCheck && obstacle.footprint.polygonPolygonCollision(rotateRight)){limitedMovements.emplace_back(Movement_RotateRight); rotateRightCheck = true;}
+            if(leftCheck && rightCheck && frontCheck && backCheck && rotateLeftCheck && rotateRightCheck){break;}
             status = Status_ObstacleCollision;
             collision = true;
         }
@@ -61,7 +78,7 @@ double Model::turnWidth(){
 double Model::brakeDistance(){
     double v = velocity.length();
     double a = maxAcceleration;
-    return 0.5*(v*v)/maxAcceleration;
+    return 0.5*(v*v)/a;
 }
 
 void Model::dilateFootprint(double offset){
@@ -77,6 +94,9 @@ void Model::changeSpeedScale(double x) {
 void Model::copySettings(Model &modelCopy) {
     speedScale = modelCopy.speedScale;
     predictionBiasVelocity = modelCopy.predictionBiasVelocity;
+    for(Movement &movement : modelCopy.limitedMovements){
+        limitedMovements.emplace_back(movement);
+    }
 }
 
 void Model::copyState(Model &modelCopy) {
@@ -89,22 +109,30 @@ void Model::copyState(Model &modelCopy) {
 }
 
 void Model::update(double dt, Communication &comm) {
-    if(!poseInitialized){
-        poseInitialized = true;
+    if(comm.newOdometry()) {
         pose = comm.measuredPose;
-        Pose2D measuredVelocity = comm.measuredVelocity;
-        measuredVelocity.transformThis(0,0,pose.a);
-        velocity = Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a);
-    }else{
-        pose = comm.measuredPose;
-        Pose2D measuredVelocity = comm.measuredVelocity;
-        measuredVelocity.transformThis(0,0,pose.a);
-        velocity = velocity * 0.9 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a) * 0.1;
+        measuredVelocity = comm.measuredVelocity;
+        measuredVelocity.transformThis(0, 0, pose.a);
+        velocity = velocity * 0.8 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a) * 0.2;
     }
 
-    updatePrediction(dt);
+//    if(limitedMovements.size() > 0){cout << "Limit: ";}
+//    for(auto & movement : limitedMovements){
+//        switch(movement){
+//            case Movement_Left: cout << " left "; break;
+//            case Movement_Right: cout << " right "; break;
+//            case Movement_Forward: cout << " forward "; break;
+//            case Movement_Backward: cout << " backward "; break;
+//            case Movement_RotateLeft:  cout << " rotate left "; break;
+//            case Movement_RotateRight:  cout << " rotate right "; break;
+//        }
+//    }
+//    if(limitedMovements.size() > 0){cout << endl;}
 
-    Pose2D vel = inputVelocity;
+    updatePrediction(dt);
+    //double anglebias = 0;
+    //if(abs(inputVelocity.a) > 0.0001){anglebias = (inputVelocity.a/abs(inputVelocity.a))*0.03;}
+    Pose2D vel = inputVelocity;// + Pose2D(inputVelocity.unit()*0.03, anglebias);
     vel.transformThis(0, 0, -pose.a);
     geometry_msgs::Twist cmd_vel;
     cmd_vel.linear.x = vel.x;
@@ -124,8 +152,11 @@ FollowStatus Model::predict(double dt, Model &origionalModel, Tubes &tubes, Comm
     changeSpeedScale(speedScale*1.01);
     //changeSpeedScale(1);
 
+    //Pose2D minimalVelocity = origionalModel.velocity.unitPose()* (comm.minPredictionDistance_param/comm.predictionTime_param);
+
     for(int s = 0; s < comm.nTries_param; s++) {
         copyState(origionalModel);
+        //if(velocity.length() < minimalVelocity.length()){velocity = minimalVelocity;}
         Vector2D prevPos = pose.toVector();
         double distance = 0;
         double N = ceil(comm.predictionTime_param / dt);
@@ -138,15 +169,15 @@ FollowStatus Model::predict(double dt, Model &origionalModel, Tubes &tubes, Comm
             prevPos = pose.toVector();
             finalPredictionBias = finalPredictionBias + predictionBiasVelocity * ((N-p)/N);
             if(int(floor(distance / origionalModel.length())) == nLengthsAhead && distance <= brakeDistance()+brakeMargin+origionalModel.length()){
-                show(canvas, Color(255,255,255), Thin);
-                checkCollision(comm.obstacles);
+                //show(canvas, Color(255,255,255), Thin);
+                checkCollision(comm.obstacles, canvas);
                 nLengthsAhead++;
             }
             if (status != Status_Ok) { break; }
         }
         finalPredictionBias.constrainThis(velocity.toVector().length(), velocity.a);
         predictionBiasVelocity = finalPredictionBias;
-        show(canvas, Color(255, 255, 255), Thin);
+        //show(canvas, Color(255, 255, 255), Thin);
         if (distance < comm.minPredictionDistance_param && status == Status_Ok) {
             status = Status_ShortPredictionDistance;
         }
