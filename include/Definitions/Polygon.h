@@ -172,11 +172,15 @@ public:
     }
 
     bool polygonPolygonCollision(Polygon& other){
-        vector<Line> sides = getSides();
-        for(auto & side : sides){
-            if(other.polygonLineCollision(side)){return true;}
+        bool collision;
+        collision = polygonContainsPoint(other.middle) || other.polygonContainsPoint(middle);
+        if(!collision) {
+            vector<Line> sides = getSides();
+            for (auto &side : sides) {
+                if (other.polygonLineCollision(side)) {collision = true; break;}
+            }
         }
-        return false;
+        return collision;
     }
 
     vector<Line> sidesPolygonPolygonCollision(Polygon& other){

@@ -233,7 +233,7 @@ void Communication::getLaserScanCallback(const sensor_msgs::LaserScan::ConstPtr&
                 counter++;
                 p2 = laserPoints[i+1];
             }else{
-                if(counter >= 5){
+                if(counter >= 3){
                     obstacles.obstacles.emplace_back(Obstacle(Polygon({p1, p2}, Open), Pose2D((p1+p2)/2, 0), Static));
                 }
                 counter = 0;

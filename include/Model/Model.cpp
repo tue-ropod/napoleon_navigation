@@ -19,16 +19,15 @@ bool Model::checkCollision(Obstacles& obstacles, Visualization &canvas){
     bool collision = false;
     Polygon obstacleCollisionFootprint;
     obstacleCollisionFootprint = dilatedFootprint;
-    double Xplus = cos(velocity.angle())*brakeDistance();
-    double Xmin = -cos(velocity.angle())*brakeDistance();
-    double Yplus = sin(velocity.angle())*brakeDistance();
-    double Ymin = -sin(velocity.angle())*brakeDistance();
+    double Xplus = cos(velocity.angle()-pose.a)*brakeDistance() + 0.1;
+    double Xmin = -cos(velocity.angle()-pose.a)*brakeDistance();
+    double Yplus = sin(velocity.angle()-pose.a)*brakeDistance();
+    double Ymin = -sin(velocity.angle()-pose.a)*brakeDistance();
     Xplus = Xplus < 0 ? 0 : Xplus;
     Xmin = Xmin < 0 ? 0 : Xmin;
     Yplus = Yplus < 0 ? 0 : Yplus;
     Ymin = Ymin < 0 ? 0 : Ymin;
-    obstacleCollisionFootprint.dilateDirection(Xplus,Xmin,Yplus,Ymin,0);
-    //canvas.polygon(obstacleCollisionFootprint.vertices, Color(0,255,0));
+    obstacleCollisionFootprint.dilateDirection(Xplus,Xmin,Yplus,Ymin,pose.a);
 
     vector<Vector2D> boundingBox = obstacleCollisionFootprint.boundingBoxRotated(pose.a);
     Polygon left = Polygon({boundingBox[0], boundingBox[1], pose.toVector()}, Closed);
@@ -41,8 +40,7 @@ bool Model::checkCollision(Obstacles& obstacles, Visualization &canvas){
     Polygon rotateRight = Polygon({boundingBox[1], rightSideMiddle, pose.toVector(), leftSideMiddle, boundingBox[3], pose.toVector()}, Closed);
     bool leftCheck = false, rightCheck = false, frontCheck = false, backCheck = false, rotateLeftCheck = false, rotateRightCheck = false;
     for(auto &obstacle : obstacles.obstacles){
-        //sequence only check sides collisions of a polygon if the middle is not inside.
-        if( (obstacleCollisionFootprint.polygonContainsPoint(obstacle.footprint.middle) || obstacleCollisionFootprint.polygonPolygonCollision(obstacle.footprint)) ){
+        if( (obstacleCollisionFootprint.polygonPolygonCollision(obstacle.footprint)) ){
             //check which side of the bounding box has collision and then add that side to the limited movements
             if(!leftCheck && obstacle.footprint.polygonPolygonCollision(left)){limitedMovements.emplace_back(Movement_Left); leftCheck = true;}
             if(!rightCheck && obstacle.footprint.polygonPolygonCollision(right)){limitedMovements.emplace_back(Movement_Right); rightCheck = true;}
@@ -55,6 +53,12 @@ bool Model::checkCollision(Obstacles& obstacles, Visualization &canvas){
             collision = true;
         }
     }
+    if(leftCheck){canvas.polygon(left.vertices, Color(0,0,255), Thick);}
+    if(rightCheck){canvas.polygon(right.vertices, Color(0,0,255), Thick);}
+    if(frontCheck){canvas.polygon(front.vertices, Color(0,0,255), Thick);}
+    if(backCheck){canvas.polygon(back.vertices, Color(0,0,255), Thick);}
+    if(rotateLeftCheck){canvas.polygon(rotateLeft.vertices, Color(0,0,255), Thick);}
+    if(rotateRightCheck){canvas.polygon(rotateRight.vertices, Color(0,0,255), Thick);}
     return collision;
 }
 
@@ -168,11 +172,11 @@ FollowStatus Model::predict(double dt, Model &origionalModel, Tubes &tubes, Comm
             distance += prevPos.distance(pose.toVector());
             prevPos = pose.toVector();
             finalPredictionBias = finalPredictionBias + predictionBiasVelocity * ((N-p)/N);
-            if(int(floor(distance / origionalModel.length())) == nLengthsAhead && distance <= brakeDistance()+brakeMargin+origionalModel.length()){
-                //show(canvas, Color(255,255,255), Thin);
-                checkCollision(comm.obstacles, canvas);
-                nLengthsAhead++;
-            }
+//            if(int(floor(distance / origionalModel.length())) == nLengthsAhead && distance <= brakeDistance()+brakeMargin+origionalModel.length()){
+//                //show(canvas, Color(255,255,255), Thin);
+//                checkCollision(comm.obstacles, canvas);
+//                nLengthsAhead++;
+//            }
             if (status != Status_Ok) { break; }
         }
         finalPredictionBias.constrainThis(velocity.toVector().length(), velocity.a);

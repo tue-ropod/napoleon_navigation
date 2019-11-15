@@ -315,7 +315,7 @@ void Tubes::avoidObstacles(unsigned int startIndex, unsigned int index, Obstacle
         bool obstruction = false;
         for (auto &obstacle : obstacles.obstacles){
             //TODO Add scan window (width of hallway X forward)
-            if(tube.connectedShape.polygonContainsPoint(obstacle.footprint.middle) || tube.connectedShape.polygonPolygonCollision(obstacle.footprint) ){
+            if(tube.connectedShape.polygonPolygonCollision(obstacle.footprint) ){
                 obstruction = true;
                 break;
             }
@@ -336,7 +336,7 @@ void Tubes::avoidObstacles(unsigned int startIndex, unsigned int index, Obstacle
             Obstacle *closestObstacle = nullptr;
 
             for (auto &obstacle : obstacles.obstacles){
-                if(tube.connectedShape.polygonContainsPoint(obstacle.footprint.middle) || tube.connectedShape.polygonPolygonCollision(obstacle.footprint) ){
+                if(tube.connectedShape.polygonPolygonCollision(obstacle.footprint) ){
 
                     vector<Vector2D> obstacleProjection = obstacle.footprint.projectPolygonOnLine(obstacleProjectionLine);
                     vector<double> distances = obstacle.footprint.distancePolygonToLineMinMax(obstacleProjectionLine);
