@@ -24,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
   ed_gui_server
   actionlib_msgs
   ropod_ros_msgs
+  dynamic_reconfigure
 )
 
 
@@ -35,6 +36,9 @@ generate_messages(
   ropod_ros_msgs
 )
 
+generate_dynamic_reconfigure_options(
+    config/NapoleonNavigation.cfg
+)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -61,6 +65,10 @@ include_directories(
 
 add_executable(napoleon_navigation src/napoleon_navigation_rosnode.cpp src/napoleon_geometry.cpp src/napoleon_functions.cpp )
 target_link_libraries(napoleon_navigation ${catkin_LIBRARIES})
-add_dependencies(napoleon_navigation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(napoleon_navigation
+    ${${PROJECT_NAME}_EXPORTED_TARGETS}
+    ${catkin_EXPORTED_TARGETS}
+    ${PROJECT_NAME}_gencfg
+)
 
 
