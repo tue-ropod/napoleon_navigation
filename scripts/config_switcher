@@ -46,7 +46,7 @@ class ConfigSwitcher(object):
         try:
             client = dynamic_reconfigure.client.Client(self.navigation_node_name, timeout=1.5)
         except Exception, e:
-            rospy.logerr("Service {0} does not exist".format(node_name + '/set_parameters'))
+            rospy.logerr("Service {0} does not exist".format(self.navigation_node_name + '/set_parameters'))
             return False
         try:
             config = client.update_configuration(params)
