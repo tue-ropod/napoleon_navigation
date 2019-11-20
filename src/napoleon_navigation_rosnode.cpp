@@ -141,15 +141,7 @@ void getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPt
     //ROS_INFO("X: %f, Y: %f", pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y);
     this_amcl_x = pose_msg->pose.pose.position.x;
     this_amcl_y = pose_msg->pose.pose.position.y;
-    quaternion_x = pose_msg->pose.pose.orientation.x;
-    quaternion_y = pose_msg->pose.pose.orientation.y;
-    quaternion_z = pose_msg->pose.pose.orientation.z;
-    quaternion_w = pose_msg->pose.pose.orientation.w;
-
-    // yaw (z-axis rotation)
-    siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
-    cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
-    this_amcl_theta = atan2(siny_cosp, cosy_cosp);
+    this_amcl_theta = tf::getYaw(pose_msg->pose.pose.orientation);
 }
 
 void simpleGoalCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_msg)
@@ -1795,8 +1787,8 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             k++;
             m = 0;
             j = 0;
-            t_pred[m] = 0;
-            t_pred_j[j] = 0;
+            t_pred[0] = 0;
+            t_pred_j[0] = 0;
 
             //ROS_INFO("xdot: %f \t ydot: %f", odom_xdot_ropod_global, odom_ydot_ropod_global);
 
