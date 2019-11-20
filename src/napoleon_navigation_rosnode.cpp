@@ -1768,18 +1768,32 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         //TODO: Change to time check! only predict durin 1/3 ec, otherwise reset to las AMCL!
             // Set latest values from AMCL to previous AMCL values for next iteration
             // And take AMCL values as initial for the prediction
-            prev_amcl_x = this_amcl_x;
-            prev_amcl_y = this_amcl_y;
-            prev_amcl_theta = this_amcl_theta;
-            ropod_x = this_amcl_x;
-            ropod_y = this_amcl_y;
-            ropod_theta = this_amcl_theta;
+            // prev_amcl_x = this_amcl_x;
+            // prev_amcl_y = this_amcl_y;
+            // prev_amcl_theta = this_amcl_theta;
+            // ropod_x = this_amcl_x;
+            // ropod_y = this_amcl_y;
+            // ropod_theta = this_amcl_theta;
       //  }
 
         //ROS_INFO("Ropod x: %f / Ropod y: %f / Theta: %f", ropod_x, ropod_y, ropod_theta);
         //ROS_INFO("xdot: %f / ydot: %f / thetadot %f", odom_xdot_ropod_global, odom_ydot_ropod_global, odom_thetadot_global);
         //ROS_INFO("ropodx: %f / ropody: %f / ropodtheta %f", ropod_x, ropod_y, ropod_theta);
 
+        try
+        {
+            tf::StampedTransform t_ropod_pose;
+            tf_listener_->lookupTransform("map", "/ropod/base_link", ros::Time(0), t_ropod_pose);
+
+            ropod_x = t_ropod_pose.getOrigin().getX();
+            ropod_y = t_ropod_pose.getOrigin().getY();
+            ropod_theta = tf::getYaw(t_ropod_pose.getRotation());
+
+        }
+        catch(tf::TransformException ex)
+        {
+            ROS_ERROR("Error while getting ropod pose");
+        }
 
         while ((ropod_colliding_obs || ropod_colliding_wall) && k < V_SCALE_OPTIONS.size())
         {
