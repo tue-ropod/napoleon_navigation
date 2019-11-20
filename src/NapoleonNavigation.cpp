@@ -52,6 +52,7 @@ int main(int argc, char** argv) {
     FollowStatus realStatus = Status_Error;
     FollowStatus predictionStatus;
     bool startNavigation = false;
+    bool stopped = false;
     HolonomicModel hmodelCopy = hmodel;
 
     while(nroshndl.ok() && ros::ok() && comm.initialized){
@@ -101,6 +102,7 @@ int main(int argc, char** argv) {
                 hmodel.brake();
                 startNavigation = false;
             }
+            stopped = false;
         }
         if(!startNavigation) {
             hmodel.brake();
@@ -122,12 +124,14 @@ int main(int argc, char** argv) {
         hmodel.showCommunicationInput(canvas, Color(0,255,50), Thin, comm);
         comm.obstacles.show(canvas, Color(255,0,0), Thick);
 
-        double ct = rate.cycleTime().toSec();
-        double ect = rate.expectedCycleTime().toSec();
-        double cycleTime = ct > ect ? ct : ect;
-
-        hmodel.update(cycleTime, comm);
-
+		if(startNavigation || !stopped){
+			double ct = rate.cycleTime().toSec();
+			double ect = rate.expectedCycleTime().toSec();
+			double cycleTime = ct > ect ? ct : ect;
+			hmodel.update(cycleTime, comm);
+			stopped = true;
+		}
+		
         ros::spinOnce();
         rate.sleep();
         
