@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+
+# based on https://github.com/b-it-bots/mas_common_robotics/tree/kinetic/mcr_common/mcr_dynamic_reconfigure_client
+
+import rospy
+import std_msgs.msg
+import yaml
+import dynamic_reconfigure.client
+
+class ConfigSwitcher(object):
+    def __init__(self):
+        self.ropod_config_file_name = rospy.get_param('~ropod_config_file')
+        self.load_config_file_name = rospy.get_param('~load_config_file')
+        self.navigation_node_name = rospy.get_param('~navigation_node_name')
+
+        self.ropod_config = yaml.load(open(self.ropod_config_file_name, 'r'))
+        self.load_config = yaml.load(open(self.load_config_file_name, 'r'))
+
+        # Node cycle rate (in hz)
+        self.loop_rate = rospy.Rate(rospy.get_param('~loop_rate', 0.2))
+
+        # Subscribers
+        rospy.Subscriber(
+            '~load_topic', std_msgs.msg.Bool,
+            self.load_attached_cb
+        )
+
+    def start(self):
+        while not rospy.is_shutdown():
+            self.loop_rate.sleep()
+
+    def load_attached_cb(self, msg):
+        if (msg.data):
+            rospy.loginfo("Switching to ropod with load parameters")
+            self.set_node_parameters(self.load_config)
+        else:
+            rospy.loginfo("Switching to ropod only parameters")
+            self.set_node_parameters(self.ropod_config)
+
+    def set_node_parameters(self, params):
+        """
+        create dynamic reconfigure client and set params for a single node
+        """
+
+        try:
+            client = dynamic_reconfigure.client.Client(self.navigation_node_name, timeout=1.5)
+        except Exception, e:
+            rospy.logerr("Service {0} does not exist".format(self.navigation_node_name + '/set_parameters'))
+            return False
+        try:
+            config = client.update_configuration(params)
+        except Exception as e:
+            rospy.logerr("Error: %s", str(e))
+            return False
+        return True
+
+
+def main():
+    rospy.init_node('config_switcher', anonymous=True)
+    config_switcher = ConfigSwitcher()
+    config_switcher.start()
+
+if __name__ == '__main__':
+    main()
