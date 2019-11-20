@@ -67,7 +67,7 @@ static constexpr double SIZE_FRONT_ROPOD = ROPOD_LENGTH/2.0;  // How long ropod 
     static constexpr double V_STEERSATURATION = 0.6;          // Velocity during steering saturation [m/s]
     static constexpr double V_OVERTAKE = 0.8*V_CRUISING;//0.5;           // Velocity during overtaking [m/s]
     // Limits
-    static constexpr double DELTA_DOT_LIMIT = 1.0;   // Max steering rate per second [rad/s]
+    static constexpr double DELTA_DOT_LIMIT = 0.4;   // Max steering rate per second [rad/s]
     static constexpr double A_MAX = 0.7;                    // Maximum acceleration magnitude [m/s^2]
     // Obstacle
     static constexpr double V_OBS_OVERTAKE_MAX = 0.1;       // Max speed an obstacle can have to overtake is [m/s]
