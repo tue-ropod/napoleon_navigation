@@ -1012,8 +1012,8 @@ void computeSteeringAndVelocity()
         double carrot_length = CARROT_LENGTH;
         if(distance_point_to_line < 0)
         {
-            if(j==1) printf("DECREASE CARROT\n");
-            carrot_length = 0.3*CARROT_LENGTH; // this increases sharpness of corrections
+            //if(j==1) printf("DECREASE CARROT\n");
+            //carrot_length = 0.3*CARROT_LENGTH; // this increases sharpness of corrections
         }
 
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], carrot_length, FEELER_SIZE );
