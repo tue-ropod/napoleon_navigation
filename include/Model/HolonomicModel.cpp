@@ -108,7 +108,7 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Communication& comm, Visualiza
                             break;
                     }
                     double tubeWidth = tubes.tubes[ci].width2;
-                    pointVelocity = (r/tubeWidth) * maxSpeed * speedScale * currentTube.velocity.length();
+                    pointVelocity = (r/tubeWidth) * maxSpeed * speedScale * currentTube.velocity.length() * sqrt(2);
                 }else{ //straight ahead
                     pointVelocity = currentTube.velocity * maxSpeed * speedScale;
                 }
@@ -252,7 +252,7 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Communication& comm, Visualiza
                 status = Status_TubeCollision;
             }else if(tubes.tubes.size()-1 == currentTubeIndex){
                 status = Status_Done;
-            }else if(abs(inputDirectionDifference) > M_PI_2){
+            }else if(abs(inputDirectionDifference) > M_PI_4*3){
                 status = Status_Stuck;
             }else if(abs(directiondifference) > 2*M_PI/3){
                 status = Status_WrongWay;

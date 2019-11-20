@@ -152,7 +152,7 @@ void Model::brake(){
 FollowStatus Model::predict(double dt, Model &origionalModel, Tubes &tubes, Communication &comm, Visualization &canvas) {
     status = Status_Error;
     double brakeMargin = 1;
-    double minSpeedScale = 0.2;
+    double minSpeedScale = 0.3;
     changeSpeedScale(speedScale*1.01);
     //changeSpeedScale(1);
 

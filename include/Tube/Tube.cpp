@@ -15,13 +15,14 @@
 //    velocity = p*speed;
 //}
 
-Tube::Tube(Vector2D p1_, double width1_, Vector2D p2_, double width2_, double speed){
-    p1 = p1_;
-    width1 = width1_;
-    p2 = p2_;
-    width2=  width2_;
+Tube::Tube(const Vector2D& p1_, double width1_, const Vector2D& p2_, double width2_, double speed){
     buildTube(p1, width1, p2, width2, speed);
 }
+
+Tube::Tube(const Vector2D& p1Left, const Vector2D& p1Right, const Vector2D& p2Left, const Vector2D& p2Right, double speed){
+    buildTube(p1Left, p1Right, p2Left, p2Right, speed);
+}
+
 
 void Tube::buildTube(Vector2D p1_, double width1_, Vector2D p2_, double width2_, double speed){
     p1 = p1_;
@@ -78,6 +79,20 @@ void Tube::buildTube(Vector2D p1_, double width1_, Vector2D p2_, double width2_,
     connectedShape = Polygon({v1,v2,v3,v4});
     leftSide = Line(v1, v4);
     rightSide = Line(v2, v3);
+}
+
+void Tube::buildTube(Vector2D p1Left, Vector2D p1Right, Vector2D p2Left, Vector2D p2Right, double speed) {
+    p1 = (p1Left + p1Right)/2;
+    p2 = (p2Left + p2Right)/2;
+    Vector2D dir = (p2 - p1).unit();
+    speed = speed > 1 ? 1 : speed;
+    speed = speed < 0 ? 0 : speed;
+    velocity = dir*speed;
+    width1 = p1Left.distance(p1Right);
+    width2 = p2Left.distance(p2Right);
+    leftSide = Line(p1Left, p2Left);
+    rightSide = Line(p1Right, p2Right);
+    connectedShape = Polygon({p1Left,p1Right,p2Right,p2Left});
 }
 
 void Tube::resetSides(Place place){

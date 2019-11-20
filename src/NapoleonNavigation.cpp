@@ -107,6 +107,7 @@ int main(int argc, char** argv) {
             if(comm.newPlan()) {
                 if (tubes.convertRoute(comm, hmodel, canvas)) {
                     startNavigation = true;
+                    cout << "Tube ready." << endl;
                 } else {
                     cout << "Tube is larger than the defined area! [check if margins can be decreased or if the object fits through at all.]" << endl;
                 }

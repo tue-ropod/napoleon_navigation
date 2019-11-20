@@ -24,7 +24,9 @@ public:
 
     Tubes() = default;
     Tubes(const Tube& tube);
-    void addPoint(Vector2D p, double width, double speed, int index = -1);
+    void addPoint(const Vector2D& p, double width, double speed, int index = -1);
+    void addPoint(const Vector2D& pLeft, const Vector2D& pRight, double speed, int index = -1);
+
     void removePoint(unsigned int index);
     void connectTubes(unsigned int index);
 

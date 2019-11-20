@@ -9,18 +9,23 @@ Tubes::Tubes(const Tube& tube){
 }
 
 bool Tubes::convertRoute(Communication &comm, Model &model, Visualization &canvas) {
+    cout << "Plan: " << endl;
+
     ropod_ros_msgs::RoutePlannerResult &route = comm.route;
     std::vector<ropod_ros_msgs::Area> &areas = route.areas;
     tubes.clear();
     bool fit = true;
-    double extraSpace = comm.tubeExtraSpace_param;
-    double wallOffset = comm.tubeWallOffset_param;
-    double corridorSpeed = 1;
-    double junctionSpeed = 1;
-    DrivingSide drivingSide = DrivingSide_Right; //TODO change tube generation based on driving side now only right side is supported
     vector<Polygon> areaFootprints;
     bool firstTubePlaced = false;
-    cout << "Plan: " << endl;
+    double extraSpace = comm.tubeExtraSpace_param;
+    double wallOffset = comm.tubeWallOffset_param;
+
+    double corridorSpeed = 1;
+    double junctionSpeed = 1;
+    double finalSpeed = 0.5;
+    double hallwayPointOffset = 0.3;
+    DrivingSide drivingSide = DrivingSide_Right; //TODO change tube generation based on driving side, only right side is supported now
+
     for (int a = 0; a < areas.size(); a++) {
         ropod_ros_msgs::Area &area = areas[a];
         for (int s = 0; s < area.sub_areas.size(); s++){
@@ -39,74 +44,138 @@ bool Tubes::convertRoute(Communication &comm, Model &model, Visualization &canva
                 //Build tube
                 double minWidth = model.width()+extraSpace;
                 double maxWidth = model.turnWidth()+extraSpace;
-                double width = minWidth;
+                double width;
+
+                Vector2D p1Right;
+                Vector2D p2Right;
+                Vector2D p1Left;
+                Vector2D p2Left;
 
                 if(area.type == "junction"){
                     width = maxWidth;
-                    Vector2D offsetPoint;
-                    Vector2D prePointCorner, postPointCorner;
-                    Vector2D prevPoint;
-                    Vector2D point;
-                    Vector2D point2 = ((p1-p2).unit().transform(0,0,-M_PI_2))*(width/2 + wallOffset) + p2;
+                    p1Right = p1 + (p2-p1).unit().transform(0,0,M_PI_2)*wallOffset;
+                    p2Right = p2 + (p2-p1).unit().transform(0,0,M_PI_2)*wallOffset;
+                    p1Left = p1Right + (p4-p1).unit()*width;
+                    p2Left = p2Right + (p3-p2).unit()*width;
                     if(!firstTubePlaced){
-                        tubes.emplace_back(Tube(model.pose.toVector(), width, point2, width, junctionSpeed));
+                        tubes.emplace_back(Tube(p1Left, p1Right, p2Left, p2Right, junctionSpeed));
                         firstTubePlaced = true;
                     }
                     else{
                         Corner corner = getJunctionDirection(route, a, s);
+                        Vector2D p1RightAdditional, p1LeftAdditional;
                         switch (corner){
                             case Corner_None:
-                                addPoint(point2, width/2, junctionSpeed);
+                                addPoint(p2Left, p2Right, corridorSpeed);
                                 cout << " - Junction > Straight" << endl;
                                 break;
                             case Corner_Left:
-                                offsetPoint = ((p2-p1).unit())*(width/2 + wallOffset) + p1;
-                                prePointCorner = ((p1-offsetPoint).unit().transform(0,0,-M_PI_2))*(width + wallOffset*2) + offsetPoint;
-                                addPoint(prePointCorner, width, junctionSpeed);
-                                point = ((p1-offsetPoint).unit().transform(0,0,-M_PI_2))*(width/2 + wallOffset) + offsetPoint;
-                                addPoint(point, width, junctionSpeed);
-                                prevPoint = tubes[tubes.size()-1].p1;
-                                postPointCorner = (prevPoint-point).unit().transform(0,0,-M_PI_2)*(width/2 + wallOffset) + point;
-//                                postPointCorner = (p1-p2).unit().transform(0,0,-M_PI_2)*(width/2 + wallOffset) + p2;
-                                addPoint(postPointCorner, width, junctionSpeed);
+                                p1RightAdditional = p4 + (p1-p4).unit().transform(0,0,M_PI_2)*wallOffset;
+                                p1Right = p1 + (p2-p1).unit().transform(0,0,M_PI_2)*wallOffset + (p1-p4).unit().transform(0,0,M_PI_2)*wallOffset;
+                                addPoint(p2Left, p1RightAdditional, junctionSpeed);
+                                addPoint(p2Left, p1Right, junctionSpeed);
+                                addPoint(p2Left, p2Right, junctionSpeed);
                                 cout << " - Junction > Left" << endl;
                                 break;
                             case Corner_Right:
-                                offsetPoint = ((p1-p2).unit())*(width/2 + wallOffset) + p2;
-                                prePointCorner = ((p2-offsetPoint).unit().transform(0,0,-M_PI_2))*wallOffset + offsetPoint;
-                                addPoint(prePointCorner, width, junctionSpeed);
-                                point = ((p2-offsetPoint).unit().transform(0,0,M_PI_2))*(width/2 + wallOffset) + offsetPoint;
-                                addPoint(point, width, junctionSpeed);
-                                prevPoint = tubes[tubes.size()-1].p1;
-                                postPointCorner = (prevPoint-point).unit().transform(0,0,M_PI_2)*(width/2 + wallOffset) + point;
-//                                postPointCorner = (p1-p2).unit().transform(0,0,M_PI_2)*(width/2 + wallOffset) + p2;
-                                addPoint(postPointCorner, width, junctionSpeed);
+                                p1LeftAdditional = p2Right + (p1-p2).unit()*width;
+                                p2Right = p2 + (p2-p1).unit().transform(0,0,M_PI_2)*wallOffset + (p3-p2).unit().transform(0,0,M_PI_2)*wallOffset;
+                                addPoint(p1LeftAdditional, p2Right, junctionSpeed);
+                                addPoint(p1Left, p2Right, junctionSpeed);
+                                addPoint(p2Left, p2Right, junctionSpeed);
                                 cout << " - Junction > Right" << endl;
                                 break;
                         }
                     }
                 }else{
-                    Vector2D p1Offset = (p2-p1)*0.3+p1;
-                    Vector2D point1 = ((p2-p1Offset).unit().transform(0,0,M_PI_2))*(width/2 + wallOffset) + p1Offset;
-                    Vector2D p2Offset = (p1-p2)*0.4+p2;
-                    Vector2D point2 = ((p1-p2Offset).unit().transform(0,0,-M_PI_2))*(width/2 + wallOffset) + p2Offset;
+                    width = minWidth;
+                    Vector2D offset = (p2-p1)*hallwayPointOffset;
+                    p1Right = p1 + (p2-p1).unit().transform(0,0,M_PI_2)*wallOffset + offset;
+                    p2Right = p2 + (p2-p1).unit().transform(0,0,M_PI_2)*wallOffset - offset;
+                    p1Left = p1Right + (p4-p1).unit()*width;
+                    p2Left = p2Right + (p3-p2).unit()*width;
                     if(!firstTubePlaced){
-                        //tubes.emplace_back(Tube(point1, maxWidth, point2, width, corridorSpeed));
-                        tubes.emplace_back(Tube(model.pose.toVector(), width, point2, width, corridorSpeed));
+                        tubes.emplace_back(Tube(p1Left, p1Right, p2Left, p2Right, corridorSpeed));
                         firstTubePlaced = true;
                     }
                     else{
-                        addPoint(point1, width, corridorSpeed);
-                        addPoint(point2, width, corridorSpeed);
+                        addPoint(p1Left, p1Right, corridorSpeed);
+                        addPoint(p2Left, p2Right, corridorSpeed);
                     }
                     cout << " - Corridor" << endl;
                 }
+
+//                if(area.type == "junction"){
+//                    width = maxWidth;
+//                    Vector2D offsetPoint;
+//                    Vector2D prePointCorner, postPointCorner;
+//                    Vector2D prevPoint;
+//                    Vector2D point;
+//                    Vector2D point2 = ((p1-p2).unit().transform(0,0,-M_PI_2))*(width/2 + wallOffset) + p2;
+//                    if(!firstTubePlaced){
+//                        tubes.emplace_back(Tube(model.pose.toVector(), width, point2, width, junctionSpeed));
+//                        firstTubePlaced = true;
+//                    }
+//                    else{
+//                        Corner corner = getJunctionDirection(route, a, s);
+//                        switch (corner){
+//                            case Corner_None:
+//                                addPoint(point2, width/2, junctionSpeed);
+//                                cout << " - Junction > Straight" << endl;
+//                                break;
+//                            case Corner_Left:
+//                                offsetPoint = ((p2-p1).unit())*(width/2 + wallOffset) + p1;
+//                                prePointCorner = ((p1-offsetPoint).unit().transform(0,0,-M_PI_2))*(width + wallOffset*2) + offsetPoint;
+//                                addPoint(prePointCorner, width, junctionSpeed);
+//                                point = ((p1-offsetPoint).unit().transform(0,0,-M_PI_2))*(width/2 + wallOffset) + offsetPoint;
+//                                addPoint(point, width, junctionSpeed);
+//                                prevPoint = tubes[tubes.size()-1].p1;
+//                                postPointCorner = (prevPoint-point).unit().transform(0,0,-M_PI_2)*(width/2 + wallOffset) + point;
+////                                postPointCorner = (p1-p2).unit().transform(0,0,-M_PI_2)*(width/2 + wallOffset) + p2;
+//                                addPoint(postPointCorner, width, junctionSpeed);
+//                                cout << " - Junction > Left" << endl;
+//                                break;
+//                            case Corner_Right:
+//                                offsetPoint = ((p1-p2).unit())*(width/2 + wallOffset) + p2;
+//                                prePointCorner = ((p2-offsetPoint).unit().transform(0,0,-M_PI_2))*wallOffset + offsetPoint;
+//                                addPoint(prePointCorner, width, junctionSpeed);
+//                                point = ((p2-offsetPoint).unit().transform(0,0,M_PI_2))*(width/2 + wallOffset) + offsetPoint;
+//                                addPoint(point, width, junctionSpeed);
+//                                prevPoint = tubes[tubes.size()-1].p1;
+//                                postPointCorner = (prevPoint-point).unit().transform(0,0,M_PI_2)*(width/2 + wallOffset) + point;
+////                                postPointCorner = (p1-p2).unit().transform(0,0,M_PI_2)*(width/2 + wallOffset) + p2;
+//                                addPoint(postPointCorner, width, junctionSpeed);
+//                                cout << " - Junction > Right" << endl;
+//                                break;
+//                        }
+//                    }
+//                }else{
+//                    Vector2D p1Offset = (p2-p1)*0.3+p1;
+//                    Vector2D point1 = ((p2-p1Offset).unit().transform(0,0,M_PI_2))*(width/2 + wallOffset) + p1Offset;
+//                    Vector2D p2Offset = (p1-p2)*0.4+p2;
+//                    Vector2D point2 = ((p1-p2Offset).unit().transform(0,0,-M_PI_2))*(width/2 + wallOffset) + p2Offset;
+//                    if(!firstTubePlaced){
+//                        //tubes.emplace_back(Tube(point1, maxWidth, point2, width, corridorSpeed));
+//                        tubes.emplace_back(Tube(model.pose.toVector(), width, point2, width, corridorSpeed));
+//                        firstTubePlaced = true;
+//                    }
+//                    else{
+//                        addPoint(point1, width, corridorSpeed);
+//                        addPoint(point2, width, corridorSpeed);
+//                    }
+//                    cout << " - Corridor" << endl;
+//                }
+
             }
         }
     }
     if(!tubes.empty()){
-        Vector2D point = (tubes[tubes.size()-1].p2 - tubes[tubes.size()-1].p1).unit()*model.length() + tubes[tubes.size()-1].p2;
-		addPoint(point, tubes[tubes.size()-1].width2, 0.3); //final point with speed 0
+        Tube &prevTube = tubes[tubes.size()-1];
+        Vector2D pointLeft = (prevTube.leftSide.p2 - prevTube.leftSide.p1).unit()*model.length() + prevTube.leftSide.p2;
+        Vector2D pointRight = (prevTube.rightSide.p2 - prevTube.rightSide.p1).unit()*model.length() + prevTube.rightSide.p2;
+        addPoint(pointLeft, pointRight, finalSpeed);
+        //Vector2D point = (prevTube.p2 - prevTube.p1).unit()*model.length() + prevTube.p2;
+		//addPoint(point, tubes[tubes.size()-1].width2, 0.3); //final point with speed 0
 		for(Tube &tube : tubes){
 		    for(Vector2D &p : tube.connectedShape.vertices) {
 		        bool tubePointInside = false;
@@ -265,7 +334,7 @@ void Tubes::visualizeRightWall(ropod_ros_msgs::RoutePlannerResult &route, Visual
     }
 }
 
-void Tubes::addPoint(Vector2D p, double width, double speed, int index){
+void Tubes::addPoint(const Vector2D& p, double width, double speed, int index){
     if(!tubes.empty()) {
         double angle = 0; //TODO more than 90 degree turns add point (or find a different way to combine the sides of the tubes)
         if(angle > M_PI_2){
@@ -282,13 +351,29 @@ void Tubes::addPoint(Vector2D p, double width, double speed, int index){
             } else if (index >= 0 && index < tubes.size()) { // insert point
                 Tube &r = tubes[index];
                 r.buildTube(r.p1, r.width1, p, width, speed);
-                Tube n = tubes[index + 1];
+                Tube &n = tubes[index + 1];
                 Tube tube(p, width, n.p1, n.width1, speed);
                 tubes.insert(tubes.begin() + index + 1, tube);
                 if(index > 0) {connectTubes(index - 1);}
                 connectTubes(index);
                 connectTubes(index + 1);
             }
+        }
+    }
+}
+
+void Tubes::addPoint(const Vector2D &pLeft, const Vector2D &pRight, double speed, int index){
+    if(!tubes.empty()) {
+        if (index < 0) { // add tube at the end [default if no index is given]
+            Tube &lastTube = tubes[tubes.size() - 1];
+            Tube tube(lastTube.leftSide.p2,lastTube.rightSide.p2, pLeft, pRight, speed);
+            tubes.emplace_back(tube);
+        } else if (index >= 0 && index < tubes.size()) { // insert point
+            Tube &r = tubes[index];
+            r.buildTube(r.leftSide.p1, r.rightSide.p1, pLeft, pRight, speed);
+            Tube &n = tubes[index + 1];
+            Tube tube(pLeft, pRight, n.leftSide.p2, n.rightSide.p2, speed);
+            tubes.insert(tubes.begin() + index + 1, tube);
         }
     }
 }
