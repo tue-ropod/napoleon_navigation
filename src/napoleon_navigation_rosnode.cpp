@@ -143,15 +143,7 @@ void getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPt
     //ROS_INFO("X: %f, Y: %f", pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y);
     this_amcl_x = pose_msg->pose.pose.position.x;
     this_amcl_y = pose_msg->pose.pose.position.y;
-    quaternion_x = pose_msg->pose.pose.orientation.x;
-    quaternion_y = pose_msg->pose.pose.orientation.y;
-    quaternion_z = pose_msg->pose.pose.orientation.z;
-    quaternion_w = pose_msg->pose.pose.orientation.w;
-
-    // yaw (z-axis rotation)
-    siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
-    cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
-    this_amcl_theta = atan2(siny_cosp, cosy_cosp);
+    this_amcl_theta = tf::getYaw(pose_msg->pose.pose.orientation);
 }
 
 void simpleGoalCallback(const geometry_msgs::PoseStamped::ConstPtr& goal_msg)
@@ -1079,8 +1071,8 @@ void computeSteeringAndVelocity()
         double carrot_length = config.CARROT_LENGTH;
         if(distance_point_to_line < 0)
         {
-            if(j==1) printf("DECREASE CARROT\n");
-            carrot_length = 0.3*config.CARROT_LENGTH; // this increases sharpness of corrections
+            //if(j==1) printf("DECREASE CARROT\n");
+            //carrot_length = 0.3*CARROT_LENGTH; // this increases sharpness of corrections
         }
 
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], carrot_length, config.FEELER_SIZE );
@@ -1843,18 +1835,32 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         //TODO: Change to time check! only predict durin 1/3 ec, otherwise reset to las AMCL!
             // Set latest values from AMCL to previous AMCL values for next iteration
             // And take AMCL values as initial for the prediction
-            prev_amcl_x = this_amcl_x;
-            prev_amcl_y = this_amcl_y;
-            prev_amcl_theta = this_amcl_theta;
-            ropod_x = this_amcl_x;
-            ropod_y = this_amcl_y;
-            ropod_theta = this_amcl_theta;
+            // prev_amcl_x = this_amcl_x;
+            // prev_amcl_y = this_amcl_y;
+            // prev_amcl_theta = this_amcl_theta;
+            // ropod_x = this_amcl_x;
+            // ropod_y = this_amcl_y;
+            // ropod_theta = this_amcl_theta;
       //  }
 
         //ROS_INFO("Ropod x: %f / Ropod y: %f / Theta: %f", ropod_x, ropod_y, ropod_theta);
         //ROS_INFO("xdot: %f / ydot: %f / thetadot %f", odom_xdot_ropod_global, odom_ydot_ropod_global, odom_thetadot_global);
         //ROS_INFO("ropodx: %f / ropody: %f / ropodtheta %f", ropod_x, ropod_y, ropod_theta);
 
+        try
+        {
+            tf::StampedTransform t_ropod_pose;
+            tf_listener_->lookupTransform("map", "/ropod/base_link", ros::Time(0), t_ropod_pose);
+
+            ropod_x = t_ropod_pose.getOrigin().getX();
+            ropod_y = t_ropod_pose.getOrigin().getY();
+            ropod_theta = tf::getYaw(t_ropod_pose.getRotation());
+
+        }
+        catch(tf::TransformException ex)
+        {
+            ROS_ERROR("Error while getting ropod pose");
+        }
 
         while ((ropod_colliding_obs || ropod_colliding_wall) && k < V_SCALE_OPTIONS.size())
         {
@@ -1862,8 +1868,8 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             k++;
             m = 0;
             j = 0;
-            t_pred[m] = 0;
-            t_pred_j[j] = 0;
+            t_pred[0] = 0;
+            t_pred_j[0] = 0;
 
             //ROS_INFO("xdot: %f \t ydot: %f", odom_xdot_ropod_global, odom_ydot_ropod_global);
 

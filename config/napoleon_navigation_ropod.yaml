@@ -12,7 +12,7 @@ v_cruising: 1.1
 v_inter_turning: 0.7
 v_steersaturation: 0.6
 v_overtake: 0.88 # NOTE: hardcoded to 0.8 * v_cruising
-delta_dot_limit: 1.0
+delta_dot_limit: 0.4
 a_max: 0.7
 v_obs_overtake_max: 0.1
 min_dist_to_overtake: 2.5
