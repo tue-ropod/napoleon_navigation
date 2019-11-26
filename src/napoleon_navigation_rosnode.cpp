@@ -28,6 +28,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <ropod_ros_msgs/GoToAction.h>
 #include <ropod_ros_msgs/RoutePlannerAction.h>
+#include <ropod_ros_msgs/TaskProgressGOTO.h>
 
 #include <math.h>
 
@@ -62,6 +63,7 @@ bool goal_received = false;
 ropod_ros_msgs::RoutePlannerResult debug_route_planner_result_;
 
 struct NapoleonConfig config;
+ropod_ros_msgs::TaskProgressGOTO progress_msg;
 
 void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray)
 {
@@ -784,7 +786,7 @@ void updateStateAndTask()
             // If in entry and the y position of the ropod exceeds the y
             // position of the intersection
             pred_state[j] = ACCELERATE_ON_INTERSECTION;
-            
+
 
 
         } else if (cur_pivot_local.x <= config.SIZE_FRONT_RAX + steering_offset && pred_state[prevstate] == ACCELERATE_ON_INTERSECTION) {
@@ -996,6 +998,8 @@ ros::Publisher mapmarker_pub;
 ros::Publisher wallmarker_pub;
 ros::Publisher freeAreaOR_marker_pub;
 ros::Publisher freeAreaOL_marker_pub;
+ros::Publisher feedback_pub;
+
 /**
  * Compute steering and default forward acceleration based on computed state and local features
  * */
@@ -1361,7 +1365,7 @@ void createFreeNavigationBoundingBox()
         // consider only points within defined areas
         if(j == 1)
         {
-            if ( 
+            if (
             (curr_area.type == "hallway" && isPointOnLeftSide(task1[0], task1[1], pointlist, laser_point, 2.0*config.TUBE_WIDTH_C) )
             || ( next_area.type == "hallway" && isPointOnLeftSide(task2[0], task2[1], pointlist, laser_point, 2.0*config.TUBE_WIDTH_C) )
             || ( next_second_area.type == "hallway" ) && isPointOnLeftSide(task3[0], task3[1], pointlist, laser_point, 2.0*config.TUBE_WIDTH_C) )
@@ -1372,7 +1376,7 @@ void createFreeNavigationBoundingBox()
             {
                 laser_point_in_context.push_back(false);
             }
-            
+
         }
         if (laser_point_in_context[iScan])
         {
@@ -1801,6 +1805,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
 
     std::clock_t start_loop;
 
+    progress_msg.totalNumber = planner_areas.size();
     while(ros::ok() && !ropod_reached_target)
     {
         // Process scan data
@@ -2114,6 +2119,8 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             {
                 ropod_reached_target = true;
                 ROS_INFO("Ropod has reached its target, yay!");
+                progress_msg.sequenceNumber = planner_areas.size();
+                feedback_pub.publish(progress_msg);
             }
         }
 
@@ -2292,6 +2299,8 @@ int main(int argc, char** argv)
 
     ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+
+    feedback_pub = nroshndl.advertise<ropod_ros_msgs::TaskProgressGOTO>("/napoleon_driving/feedback", 1);
 
     // Visualize map nodes and robot
     ropodmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/ropodpoints", 1);
