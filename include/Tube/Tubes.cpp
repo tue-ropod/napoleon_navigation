@@ -25,7 +25,7 @@ bool Tubes::convertRoute(Communication &comm, Model &model, Visualization &canva
     double corridorSpeed = 1;
     double junctionSpeed = 1;
     double finalSpeed = 0.5;
-    double hallwayPointOffset = 0.3;
+    double hallwayPointOffset = 0.4;
     DrivingSide drivingSide = DrivingSide_Right; //TODO change tube generation based on driving side, only right side is supported now
 
     for (int a = 0; a < areas.size(); a++) {

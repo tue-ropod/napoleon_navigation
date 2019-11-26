@@ -117,7 +117,7 @@ void Model::update(double dt, Communication &comm) {
         pose = comm.measuredPose;
         measuredVelocity = comm.measuredVelocity;
         measuredVelocity.transformThis(0, 0, pose.a);
-        velocity = velocity * 0.8 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a) * 0.2;
+        velocity = velocity * 0.9 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a) * 0.1;
     }
 
 //    if(limitedMovements.size() > 0){cout << "Limit: ";}
@@ -152,7 +152,7 @@ void Model::brake(){
 FollowStatus Model::predict(double dt, Model &origionalModel, Tubes &tubes, Communication &comm, Visualization &canvas) {
     status = Status_Error;
     double brakeMargin = 1;
-    double minSpeedScale = 0.3;
+    double minSpeedScale = 0.5;
     changeSpeedScale(speedScale*1.01);
     //changeSpeedScale(1);
 

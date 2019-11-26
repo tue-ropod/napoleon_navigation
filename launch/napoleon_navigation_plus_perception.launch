@@ -108,7 +108,8 @@
         <remap from="/navigation/scan" to="/$(arg robotName)/$(arg laser1_name)/scan"/>
 
         <param name="odom_frame_id" value="$(arg robotName)/odom"/>
-        <param name="base_frame_id" value="$(arg robotName)/base_link"/>
+        <!--<param name="base_frame_id" value="$(arg robotName)/base_link"/>-->
+        <param name="base_frame_id" value="$(arg robotName)/flock_base"/>
         <param name="global_frame_id" value="/map"/>
 
     </node>
