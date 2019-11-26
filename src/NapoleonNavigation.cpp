@@ -56,15 +56,16 @@ int main(int argc, char** argv) {
 
     while(nroshndl.ok() && ros::ok() && comm.initialized){
 
-        canvas.checkId();
         canvas.resetId();
 
         tubes.visualizePlan(comm.route, canvas);
         tubes.visualizeRightWall(comm.route, canvas);
 
+        canvas.idName = "Frame";
         canvas.arrow(Vec(0,0),Vec(1,0),Color(0,0,0),Thin);
         canvas.arrow(Vec(0,0),Vec(0,1),Color(0,0,0),Thin);
 
+        canvas.idName = "AMCL_uncertainty";
         canvas.polygon(comm.poseUncertainty.toPoints(10), Color(100,100,100), Thin);
 
         if(startNavigation){

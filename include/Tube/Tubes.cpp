@@ -9,6 +9,8 @@ Tubes::Tubes(const Tube& tube){
 }
 
 bool Tubes::convertRoute(Communication &comm, Model &model, Visualization &canvas) {
+    canvas.idName = "BuildTubeDebug";
+
     cout << "Plan: " << endl;
 
     ropod_ros_msgs::RoutePlannerResult &route = comm.route;
@@ -312,6 +314,7 @@ Corner Tubes::getJunctionDirection(ropod_ros_msgs::RoutePlannerResult &route, in
 
 
 void Tubes::visualizePlan(ropod_ros_msgs::RoutePlannerResult &route, Visualization &canvas){
+    canvas.idName = "Plan";
     std::vector<ropod_ros_msgs::Area> &areas = route.areas;
     for(auto &area : areas){
         for(auto &subarea : area.sub_areas){
@@ -325,6 +328,7 @@ void Tubes::visualizePlan(ropod_ros_msgs::RoutePlannerResult &route, Visualizati
 }
 
 void Tubes::visualizeRightWall(ropod_ros_msgs::RoutePlannerResult &route, Visualization &canvas) {
+    canvas.idName = "RightWall";
     std::vector<ropod_ros_msgs::Area> &areas = route.areas;
     for (int a = 0; a < areas.size(); a++) {
         ropod_ros_msgs::Area &area = areas[a];
@@ -617,18 +621,21 @@ Polygon Tubes::getCornerArea(unsigned int index){
 }
 
 void Tubes::showOriginalTubes(Visualization &canvas) {
+    canvas.idName = "Tubes";
     for(auto & tube : tubes){
         tube.showOriginalTube(canvas, Color(255*(1-tube.velocity.length()),255*(tube.velocity.length()),0), Thin);
     }
 }
 
 void Tubes::showTubes(Visualization &canvas) {
+    canvas.idName = "Tubes";
     for(auto & tube : tubes){
         tube.showTube(canvas, Color(255*(1-tube.velocity.length()),255*(tube.velocity.length()),0), Thin);
     }
 }
 
 void Tubes::showSides(Visualization &canvas) {
+    canvas.idName = "Tubes";
     for(auto & tube : tubes){
         tube.showSides(canvas, Color(255*(1-tube.velocity.length()),255*(tube.velocity.length()),100), Thin);
         canvas.point(tube.p1, Color(100,100,100), Thick);

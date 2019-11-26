@@ -168,6 +168,7 @@ FollowStatus Model::predict(double dt, Model &origionalModel, Tubes &tubes, Comm
         int nLengthsAhead = 0;
         for (int p = 0; p < N; p++) {
             status = follow(tubes, comm, canvas, false);
+            canvas.idName = "Prediction";
             updatePrediction(dt);
             distance += prevPos.distance(pose.toVector());
             prevPos = pose.toVector();
@@ -194,6 +195,8 @@ FollowStatus Model::predict(double dt, Model &origionalModel, Tubes &tubes, Comm
 }
 
 void Model::showCommunicationInput(Visualization& canvas, Color c, int drawstyle, Communication &comm) {
+    canvas.idName = "CommunicationInput";
+
     Pose2D mPose = comm.measuredPose;
     Vector2D posdir = Vector2D(0.5,0).transform(0,0,mPose.a);
     Vector2D pos = mPose.toVector();

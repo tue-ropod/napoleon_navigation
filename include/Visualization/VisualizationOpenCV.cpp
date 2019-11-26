@@ -132,3 +132,12 @@ void VisualizationOpenCV::polygon(const vector<Vector2D> &points, const Color &c
         }
     }
 }
+
+void VisualizationOpenCV::lines(const vector<Vector2D> &points, const Color &c, int drawstyle) {
+    const int npts = points.size();
+    for(int i = 0; i < points.size(); i+=2){
+        Vector2D p1 = points[i];
+        Vector2D p2 = points[(i+1)%npts];
+        line(p1, p2, c, drawstyle);
+    }
+}

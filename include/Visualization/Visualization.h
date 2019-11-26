@@ -33,12 +33,15 @@ public:
 
 class Visualization{
 protected:
-    int idCounter = 0;
-    int idCounterPrev = 0;
+    vector<int> idCounters = {0};
+    vector<string> idNames = {"unassigned"};
+
 public:
+    string idName = "unassigned";
+
     Visualization();
 
-    int getId();
+    int getId(string name);
     void resetId();
 
     virtual void point(const Vector2D& p, const Color& c, unsigned int thickness = Thin);
@@ -47,6 +50,8 @@ public:
     virtual void circle(const Vector2D& p, double radius, const Color& c, int drawstyle = Thin);
     virtual void rectangle(const Vector2D &p1, const Vector2D &p2, const Color &c, int drawstyle = Thin);
     virtual void polygon(const vector<Vector2D>& points, const Color& c, int drawstyle = Filled);
+    virtual void lines(const vector<Vector2D>& points, const Color& c, int drawstyle = Thin);
+
 };
 
 #endif //NAVIGATION_VISUALIZATION_H

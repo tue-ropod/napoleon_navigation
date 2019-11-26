@@ -7,6 +7,7 @@
 VisualizationRviz::VisualizationRviz(ros::NodeHandle nroshndl){
     visualization_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_navigation", 100, false);
 
+    baseMarker.lifetime = ros::Duration(1);
     baseMarker.header.frame_id = "map";
     baseMarker.ns = "napoleon";
     baseMarker.action = visualization_msgs::Marker::ADD;
@@ -21,12 +22,6 @@ void VisualizationRviz::removeAll(){
     visualization_pub.publish(marker);
 }
 
-void VisualizationRviz::checkId(){
-    if(idCounter < idCounterPrev || idCounter > idCounterPrev){
-        removeAll();
-    }
-}
-
 void VisualizationRviz::point(const Vector2D& p, const Color& c, unsigned int thickness){
     if(p.valid()) {
         visualization_msgs::Marker marker = baseMarker;
@@ -37,7 +32,8 @@ void VisualizationRviz::point(const Vector2D& p, const Color& c, unsigned int th
         point.y = p.y;
         marker.points.push_back(point);
 
-        marker.id = getId();
+        marker.id = getId(idName);
+        marker.ns += ("/"+idName);
         marker.type = visualization_msgs::Marker::POINTS;
 
         marker.scale.x = 0.01 * thickness;
@@ -65,7 +61,8 @@ void VisualizationRviz::line(const Vector2D& p1, const Vector2D& p2, const Color
         marker.points.push_back(point1);
         marker.points.push_back(point2);
 
-        marker.id = getId();
+        marker.id = getId(idName);
+        marker.ns += ("/"+idName);
         marker.type = visualization_msgs::Marker::LINE_LIST;
 
         marker.scale.x = 0.01 * thickness;
@@ -93,7 +90,8 @@ void VisualizationRviz::arrow(const Vector2D& p1, const Vector2D& p2, const Colo
         marker.points.push_back(point1);
         marker.points.push_back(point2);
 
-        marker.id = getId();
+        marker.id = getId(idName);
+        marker.ns += ("/"+idName);
         marker.type = visualization_msgs::Marker::ARROW;
 
         marker.scale.x = 0.01 * thickness;
@@ -119,7 +117,8 @@ void VisualizationRviz::circle(const Vector2D& p, double radius, const Color& c,
         point.y = p.y;
         marker.points.push_back(point);
 
-        marker.id = getId();
+        marker.id = getId(idName);
+        marker.ns += ("/"+idName);
         marker.type = visualization_msgs::Marker::POINTS;
 
         marker.scale.x = radius / 2;
@@ -163,7 +162,8 @@ void VisualizationRviz::rectangle(const Vector2D &p1, const Vector2D &p2, const 
             marker.points.push_back(point);
         }
 
-        marker.id = getId();
+        marker.id = getId(idName);
+        marker.ns += ("/"+idName);
         marker.type = visualization_msgs::Marker::LINE_STRIP;
 
         marker.scale.x = 0.01 * abs(drawstyle);
@@ -192,8 +192,39 @@ void VisualizationRviz::polygon(const vector<Vector2D>& points, const Color& c, 
             marker.points.push_back(point);
         }
 
-        marker.id = getId();
+        marker.id = getId(idName);
+        marker.ns += ("/"+idName);
         marker.type = visualization_msgs::Marker::LINE_STRIP;
+
+        marker.scale.x = 0.01 * abs(drawstyle);
+
+        marker.color.a = c.alpha / 255.0;
+        marker.color.r = c.red / 255.0;
+        marker.color.g = c.green / 255.0;
+        marker.color.b = c.blue / 255.0;
+
+        visualization_pub.publish(marker);
+    }
+}
+
+void VisualizationRviz::lines(const vector<Vector2D>& points, const Color& c, int drawstyle){
+    bool valid = true;
+    for(auto & p : points){if( !p.valid() ){valid = false;}}
+    if(valid && !points.empty()) {
+        visualization_msgs::Marker marker = baseMarker;
+        marker.header.stamp = ros::Time::now();
+
+        geometry_msgs::Point point;
+        for (int i = 0; i < points.size(); i++) {
+            Vector2D p = points[i % points.size()];
+            point.x = p.x;
+            point.y = p.y;
+            marker.points.push_back(point);
+        }
+
+        marker.id = getId(idName);
+        marker.ns += ("/"+idName);
+        marker.type = visualization_msgs::Marker::LINE_LIST;
 
         marker.scale.x = 0.01 * abs(drawstyle);
 

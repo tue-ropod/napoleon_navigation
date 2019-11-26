@@ -20,14 +20,13 @@ private:
 public:
     VisualizationRviz(ros::NodeHandle nroshndl);
     void removeAll();
-    void checkId();
     void point(const Vector2D& p, const Color& c, unsigned int thickness) override;
     void line(const Vector2D& p1, const Vector2D& p2, const Color& c, unsigned int thickness) override;
     void arrow(const Vector2D& p1, const Vector2D& p2, const Color& c, unsigned int thickness) override;
     void circle(const Vector2D& p, double radius, const Color& c, int drawstyle) override;
     void rectangle(const Vector2D &p1, const Vector2D &p2, const Color &c, int drawstyle) override;
     void polygon(const vector<Vector2D>& points, const Color& c, int drawstyle) override;
+    void lines(const vector<Vector2D>& points, const Color& c, int drawstyle) override;
 };
-
 
 #endif //SRC_VISUALIZATIONRVIZ_H

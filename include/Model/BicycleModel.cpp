@@ -48,6 +48,8 @@ void BicycleModel::update() {
 }
 
 void BicycleModel::show(Visualization& canvas, Color c, int drawstyle) {
+    canvas.idName = "BicycleModel";
+
     canvas.polygon(footprint.vertices, Color(255,0,0), Thin);
 
     canvas.point(constrainedWheel, c, Thick);

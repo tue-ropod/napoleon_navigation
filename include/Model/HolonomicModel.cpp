@@ -75,6 +75,7 @@ void HolonomicModel::updateModel(double dt) {
 
 FollowStatus HolonomicModel::follow(Tubes& tubes, Communication& comm, Visualization& canvas, bool debug){
     status = Status_Error; //Pre set status to error
+    canvas.idName = "Follow Debug";
 
     if(!tubes.tubes.empty() && !dilatedFootprint.vertices.empty()){
         Pose2D velocityInput;
@@ -271,6 +272,8 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Communication& comm, Visualiza
 }
 
 void HolonomicModel::show(Visualization& canvas, Color c, int drawstyle) {
+    canvas.idName = "HolonomicModel";
+
     canvas.polygon(footprint.vertices, c, drawstyle);
     canvas.polygon(dilatedFootprint.vertices, Color(255,0,0), Thin);
     canvas.arrow(pose, velocity.toVector()*1+pose, Color(0,0,255), Thin);

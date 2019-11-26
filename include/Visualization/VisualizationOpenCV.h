@@ -65,6 +65,7 @@ public:
     void circle(const Vector2D& p, double radius, const Color& c, int drawstyle) override;
     void rectangle(const Vector2D &p1, const Vector2D &p2, const Color &c, int drawstyle) override;
     void polygon(const vector<Vector2D>& points, const Color& c, int drawstyle) override;
+    void lines(const vector<Vector2D>& points, const Color& c, int drawstyle) override;
 };
 
 #endif //SRC_VISUALIZATIONOPENCV_H
