@@ -60,8 +60,8 @@ bool Tubes::convertRoute(Communication &comm, Model &model, Visualization &canva
                     p1Left = p1Right + (p4-p1).unit()*width;
                     p2Left = p2Right + (p3-p2).unit()*width;
                     if(!firstTubePlaced){
-                        p1Left = model.pose.toVector() + (p2-p1).unit().transform(0,0,M_PI_2)*width/2;
-                        p1Right = model.pose.toVector() + (p2-p1).unit().transform(0,0,-M_PI_2)*width/2;
+                        p1Left = model.pose.toVector() + (p2-p1).unit().transform(0,0,M_PI_2)*width/2 + (p1-p2).unit()*width/2;
+                        p1Right = model.pose.toVector() + (p2-p1).unit().transform(0,0,-M_PI_2)*width/2 + (p1-p2).unit()*width/2;
                         tubes.emplace_back(Tube(p1Left, p1Right, p2Left, p2Right, junctionSpeed));
                         firstTubePlaced = true;
                     }
@@ -99,8 +99,8 @@ bool Tubes::convertRoute(Communication &comm, Model &model, Visualization &canva
                     p1Left = p1Right + (p4-p1).unit()*width;
                     p2Left = p2Right + (p3-p2).unit()*width;
                     if(!firstTubePlaced){
-                        p1Left = model.pose.toVector() + (p2-p1).unit().transform(0,0,M_PI_2)*width/2;
-                        p1Right = model.pose.toVector() + (p2-p1).unit().transform(0,0,-M_PI_2)*width/2;
+                        p1Left = model.pose.toVector() + (p2-p1).unit().transform(0,0,M_PI_2)*width/2 + (p1-p2).unit()*width/2;
+                        p1Right = model.pose.toVector() + (p2-p1).unit().transform(0,0,-M_PI_2)*width/2 + (p1-p2).unit()*width/2;
                         tubes.emplace_back(Tube(p1Left, p1Right, p2Left, p2Right, corridorSpeed));
                         firstTubePlaced = true;
                     }

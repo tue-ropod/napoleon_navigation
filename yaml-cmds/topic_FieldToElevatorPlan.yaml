@@ -28,12 +28,12 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
               y: 2.06282
               id: 0
             -
-              x: 1.08553
-              y: 1.03872
+              x: 0.89852
+              y: 0.940368
               id: 2
             -
-              x: 1.18805
-              y: 2.40462
+              x: 1.27606
+              y: 2.64239
               id: 3
             -
               x: -2.95648
@@ -86,20 +86,20 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
           geometry:
             vertices:
             -
-              x: 1.08553
-              y: 1.03872
+              x: 0.89852
+              y: 0.940368
               id: 2
             -
-              x: 2.07501
-              y: 1.00905
+              x: 1.87904
+              y: 0.752241
               id: 4
             -
-              x: 2.32288
-              y: 2.39988
+              x: 2.29076
+              y: 2.56642
               id: 5
             -
-              x: 1.18805
-              y: 2.40462
+              x: 1.27606
+              y: 2.64239
               id: 3
           right:
             point1:
@@ -146,10 +146,10 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
               z: 0.0
               w: 0.0
           geometry: 
-            vertices: 
+            vertices:
             -
-              x: 2.07501
-              y: 1.00905
+              x: 1.87904
+              y: 0.752241
               id: 4
             -
               x: 4.02614
@@ -160,8 +160,8 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
               y: 2.14467
               id: 9
             -
-              x: 2.32288
-              y: 2.39988
+              x: 2.29076
+              y: 2.56642
               id: 5
           right: 
             point1: 
@@ -222,8 +222,8 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
               y: 7.49914
               id: 6
             -
-              x: 2.32288
-              y: 2.39988
+              x: 2.29076
+              y: 2.56642
               id: 5
           right: 
             point1: 

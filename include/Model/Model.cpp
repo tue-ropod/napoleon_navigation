@@ -117,7 +117,7 @@ void Model::update(double dt, Communication &comm) {
         pose = comm.measuredPose;
         measuredVelocity = comm.measuredVelocity;
         measuredVelocity.transformThis(0, 0, pose.a);
-        velocity = velocity * 0.9 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a) * 0.1;
+        velocity = velocity * 0.8 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a) * 0.2;
     }
 
 //    if(limitedMovements.size() > 0){cout << "Limit: ";}
@@ -152,7 +152,7 @@ void Model::brake(){
 FollowStatus Model::predict(double dt, Model &origionalModel, Tubes &tubes, Communication &comm, Visualization &canvas) {
     status = Status_Error;
     double brakeMargin = 1;
-    double minSpeedScale = 0.5;
+    double minSpeedScale = 0.2;
     changeSpeedScale(speedScale*1.01);
     //changeSpeedScale(1);
 
@@ -187,7 +187,7 @@ FollowStatus Model::predict(double dt, Model &origionalModel, Tubes &tubes, Comm
             status = Status_ShortPredictionDistance;
         }
         if ((status == Status_TubeCollision || status == Status_Stuck) && speedScale > minSpeedScale) {
-            changeSpeedScale(speedScale*0.8);
+            changeSpeedScale(speedScale*0.80);
         } else { break; }
     }
     //show(canvas, Color(255, 255, 255), Thin);
