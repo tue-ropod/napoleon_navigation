@@ -86,8 +86,8 @@
 <!--        <rosparam file="$(find ropod_navigation_test)/config/parameters/local_costmap_params.yaml"  command="load"/>-->
 <!--        <rosparam file="$(find ropod_navigation_test)/config/parameters/teb_local_planner_params_ropod.yaml" command="load" />-->
 
-        <rosparam param="footprint_param" >[ 0,0, 2,0, 2,0.2, 2.3,0.2, 2.3,0.8, 2,0.8, 2,1, 0,1 ]</rosparam>
-        <rosparam param="footprintMiddlePose_param" >[ 1.15,0.5,0.0 ]</rosparam>
+        <rosparam param="footprint_param" >[ 0,0.175, 0.45,0.175, 0.45,0, 2.69,0, 2.69,0.175, 2.81,0.175, 2.81,0.825, 2.69,0.825, 2.69,1, 0.45,1, 0.45,0.825, 0,0.825]</rosparam> 
+        <rosparam param="footprintMiddlePose_param" >[ 1.405,0.5,3.1415 ]</rosparam>
         <rosparam param="wheelDistanceMiddle_param" > 1 </rosparam>
 <!--        <rosparam param="footprint_param" >[ 0,0, 0.65,0, 0.65,0.65, 0,0.65 ]</rosparam>-->
 <!--        <rosparam param="footprintMiddlePose_param" >[ 0.325,0.325,0 ]</rosparam>-->
@@ -96,7 +96,7 @@
         <rosparam param="maxSpeed_param" > 1 </rosparam>
         <rosparam param="maxAcceleration_param" > 0.7 </rosparam>
 
-        <rosparam param="tubeWallOffset_param" > 0.1 </rosparam>
+        <rosparam param="tubeWallOffset_param" > 0 </rosparam>
         <rosparam param="tubeExtraSpace_param" > 0.2 </rosparam>
 
         <rosparam param="nTries_param" > 10 </rosparam>
