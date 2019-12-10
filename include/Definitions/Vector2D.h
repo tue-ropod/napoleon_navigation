@@ -150,9 +150,8 @@ struct Vector2D{
 };
 
 inline void smallestAngle(double& angle){
-    angle = fmod(angle + M_PI, M_PI*2);
-    if (angle < 0) angle += M_PI*2;
-    angle -= M_PI;
+    angle = fmod(angle + M_PI*4, M_PI*2);
+    if (angle > M_PI) {angle = M_PI*2 - angle;}
 }
 
 #endif //NAVIGATION_VECTOR2D_H

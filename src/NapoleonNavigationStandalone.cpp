@@ -38,7 +38,10 @@ int main(int argc, char** argv) {
     //Polygon footprint({Vec(0,0), Vec(0.65,0), Vec(0.65,0.6), Vec(0,0.6)}, Closed, true, Pose2D(0.325,0.3,0));
     HolonomicModel hmodel(Pose2D(-3.5,-4,M_PI_2), footprint, 3, 0.8, 1);
 
-    comm.obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1.5,1,0)));
+    Obstacles obstacles;
+    comm.obstacles = &obstacles;
+
+    obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1.5,1,0)));
     //comm.obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(1,10,0)));
     //comm.obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(9,9,0)));
     //comm.obstacles.obstacles.emplace_back(dynamicobstacle((Circle(Vec(),0.5).toPoints(8)), Pose2D(9,4,0)));
@@ -79,7 +82,7 @@ int main(int argc, char** argv) {
         if(predictionStatus == Status_Ok || predictionStatus == Status_Done || predictionStatus == Status_ShortPredictionDistance || predictionStatus == Status_TubeCollision || predictionStatus == Status_Recovering) {
             hmodel.copySettings(hmodelCopy);
             realStatus = hmodel.follow(tubes, comm, canvas, true);
-            tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, comm.obstacles, hmodel, DrivingSide_Right, canvas);
+            tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, obstacles, hmodel, DrivingSide_Right, canvas);
             if(realStatus != Status_Ok && realStatus != Status_TubeCollision) {hmodel.brake();}
         }
         else if(predictionStatus == Status_ObstacleCollision){
@@ -93,7 +96,7 @@ int main(int argc, char** argv) {
         hmodel.showStatus("Model");
         tubes.showSides(canvas);
         hmodel.show(canvas, Color(0,0,0), Thin);
-        comm.obstacles.show(canvas, Color(100,100,100), Filled);
+        obstacles.show(canvas, Color(100,100,100), Filled);
 
         canvas.visualize();
 

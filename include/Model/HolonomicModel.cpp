@@ -42,7 +42,9 @@ Pose2D HolonomicModel::translateInput(Vector2D position, Pose2D v_p) {
 void HolonomicModel::updatePrediction(double dt) {
     if(applyBrake){
         inputVelocity = Pose2D(0,0,0);
-        applyBrake = false;
+        if(velocity.length() < 0.01 && abs(velocity.a) < 0.01) {
+            applyBrake = false;
+        }
     }else{
         Pose2D desiredAcceleration = (desiredVelocity - velocity)/dt;
         desiredAcceleration.constrainThis(maxAcceleration, maxRotationalAcceleration);
@@ -71,6 +73,7 @@ void HolonomicModel::updateModel(double dt) {
     pose.transformThis(velocity.x*dt, velocity.y*dt, 0);
     footprint.transformto(pose);
     dilatedFootprint.transformto(pose);
+    scanArea.transformto(pose);
 }
 
 FollowStatus HolonomicModel::follow(Tubes& tubes, Communication& comm, Visualization& canvas, bool debug){
@@ -238,8 +241,8 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Communication& comm, Visualiza
 
             if(nRepulsion > 0){repulsionInput = repulsionInput/double(nRepulsion);}
             if(nCollision > 0){collisionInput = collisionInput/double(nCollision);}
-            Pose2D currentCorrectionInput = (repulsionInput*2 + collisionInput*2)/2; //TODO determine repulsion and collision factor
-            Pose2D correctionInput = currentCorrectionInput*0.8 + predictionBiasVelocity*0.2;
+            Pose2D currentCorrectionInput = repulsionInput*0.3 + collisionInput*0.7; //TODO determine repulsion and collision factor
+            Pose2D correctionInput = currentCorrectionInput*(1-comm.predictionBiasFactor_param) + predictionBiasVelocity*comm.predictionBiasFactor_param;
             Pose2D totalInput = velocityInput + correctionInput;
             predictionBiasVelocity = correctionInput;
             input(totalInput, Frame_World);
@@ -253,9 +256,9 @@ FollowStatus HolonomicModel::follow(Tubes& tubes, Communication& comm, Visualiza
                 status = Status_TubeCollision;
             }else if(tubes.tubes.size()-1 == currentTubeIndex){
                 status = Status_Done;
-            }else if(abs(inputDirectionDifference) > M_PI_4*3){
+            }else if(inputDirectionDifference > M_PI_4*3){
                 status = Status_Stuck;
-            }else if(abs(directiondifference) > 2*M_PI/3){
+            }else if(directiondifference > 2*M_PI/3){
                 status = Status_WrongWay;
             }else{
                 status = Status_Ok;
@@ -276,6 +279,7 @@ void HolonomicModel::show(Visualization& canvas, Color c, int drawstyle) {
 
     canvas.polygon(footprint.vertices, c, drawstyle);
     canvas.polygon(dilatedFootprint.vertices, Color(255,0,0), Thin);
+    canvas.polygon(scanArea.vertices, Color(255,150,0), Thin);
     canvas.arrow(pose, velocity.toVector()*1+pose, Color(0,0,255), Thin);
     //canvas.arrow(pose, inputVelocity.toVector()*1+pose, Color(255,0,255), Thin);
     //canvas.arrow(pose, predictionBiasVelocity.toVector()*1+pose, Color(0,255,0), Thin);

@@ -7,6 +7,7 @@
 Communication::Communication(ros::NodeHandle nroshndl) {
     measuredOdom_pub = nroshndl.advertise<nav_msgs::Odometry>("/measuredodom", 1);
     vel_pub = nroshndl.advertise<geometry_msgs::Twist>("/navigation/cmd_vel", 1);
+    vel_sub = nroshndl.subscribe<geometry_msgs::Twist>("/navigation/cmd_vel", 1, &Communication::getVelCallback, this);
     amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 1, &Communication::getAmclCallback,this);
     odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/navigation/odom", 1, &Communication::getOdomCallback, this);
     obstacles_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 1, &Communication::getObstaclesCallback, this);
@@ -45,6 +46,8 @@ Communication::Communication(ros::NodeHandle nroshndl) {
     cout << "Prediction time: " << predictionTime_param << endl;
     nroshndl.getParam("/napoleon_navigation/minPredictionDistance_param", minPredictionDistance_param);
     cout << "Minimal prediction distance: " << minPredictionDistance_param << endl;
+    nroshndl.getParam("/napoleon_navigation/predictionBiasFactor_param", predictionBiasFactor_param);
+    cout << "Prediction bias factor: " << predictionBiasFactor_param << endl;
 }
 
 void Communication::getOdomCallback(const nav_msgs::OdometryConstPtr &odom_msg){
@@ -149,7 +152,7 @@ void Communication::getAmclCallback(const geometry_msgs::PoseWithCovarianceStamp
 }
 
 void Communication::getObstaclesCallback(const ed_gui_server::objsPosVelConstPtr &obstacles_msg) {
-    obstacles.obstacles.clear();
+    obstacles->obstacles.clear();
     for(auto & obstacle : obstacles_msg->objects){
         if(obstacle.rectangle.probability > obstacle.circle.probability) {
             double x = obstacle.rectangle.pose.position.x;
@@ -165,7 +168,7 @@ void Communication::getObstaclesCallback(const ed_gui_server::objsPosVelConstPtr
 
             Obstacle obs = Obstacle(shape, pose, Dynamic);
             obs.movement = Pose2D(obstacle.rectangle.vel.x, obstacle.rectangle.vel.y, 0);
-            obstacles.obstacles.emplace_back(obs);
+            obstacles->obstacles.emplace_back(obs);
         }else{
             double x = obstacle.circle.pose.position.x;
             double y = obstacle.circle.pose.position.y;
@@ -173,17 +176,23 @@ void Communication::getObstaclesCallback(const ed_gui_server::objsPosVelConstPtr
 
             Pose2D pose = Pose2D(x,y,0);
             Circle circle(Vector2D(0,0),r);
-            Polygon shape = circle.toPoints(8);
+            Polygon shape = circle.toPoints(10);
 
             Obstacle obs = Obstacle(shape, pose, Dynamic);
             obs.movement = Pose2D(obstacle.rectangle.vel.x, obstacle.rectangle.vel.y, 0);
-            obstacles.obstacles.emplace_back(obs);
+            obstacles->obstacles.emplace_back(obs);
         }
     }
 }
 
 void Communication::setVel(geometry_msgs::Twist cmd_vel_msg){
     vel_pub.publish(cmd_vel_msg);
+}
+
+void Communication::getVelCallback(const geometry_msgs::TwistConstPtr &cmd_vel_msg){
+    measuredCmd.x = cmd_vel_msg->linear.x;
+    measuredCmd.y = cmd_vel_msg->linear.y;
+    measuredCmd.a = cmd_vel_msg->angular.z;
 }
 
 void Communication::getDebugRoutePlanCallback(const ropod_ros_msgs::RoutePlannerResultConstPtr &routeData){
@@ -224,26 +233,83 @@ void Communication::getLaserScanCallback(const sensor_msgs::LaserScan::ConstPtr&
     }
 
     if(!laserPoints.empty() && valid){
-        obstacles.obstacles.clear();
+        //obstacles.obstacles.clear();
+//        int counter = 0;
+//        Vector2D p1, p2;
+//        for(int i = 0; i < laserPoints.size()-1; i++){
+//            if(counter == 0){p1 = laserPoints[i];}
+//            if((laserPoints[i]-laserPoints[i+1]).length() < 0.1 && counter <= 20){
+//                counter++;
+//                p2 = laserPoints[i+1];
+//            }else{
+//                Pose2D newObstaclePose = Pose2D((p1+p2)/2, 0);
+//                double dist = DBL_MAX;
+//                for(Obstacle &o : obstacles.obstacles){
+//                    if(dist > o.pose.distance(newObstaclePose)){
+//                        dist = o.pose.distance(newObstaclePose);
+//                    }
+//                }
+//                if(counter >= 3 && dist > 0.2){
+//                    obstacles.obstacles.emplace_back(Obstacle(Polygon({p1, p2}, Open), newObstaclePose, Static));
+//                }
+//                counter = 0;
+//            }
+//        }
+
+        double mergeDistance = 0.05;
+        double mergeAngle = M_PI/16;
+        double maxFitScore = 0.02;
+        double maxDistance = 0.1;
+        int minPoints = 4;
         int counter = 0;
-        Vector2D p1, p2;
-        for(int i = 0; i < laserPoints.size()-1; i++){
-            if(counter == 0){p1 = laserPoints[i];}
-            if((laserPoints[i]-laserPoints[i+1]).length() < 0.1 && counter <= 20){
+        Line l;
+        for(int i = 0; i < laserPoints.size()-1; i+=counter){
+            counter = 0;
+            l.p1 = laserPoints[i];
+            bool done = false;
+            while(!done) {
                 counter++;
-                p2 = laserPoints[i+1];
-            }else{
-                if(counter >= 3){
-                    obstacles.obstacles.emplace_back(Obstacle(Polygon({p1, p2}, Open), Pose2D((p1+p2)/2, 0), Static));
-                }
-                counter = 0;
+                if (i + counter < laserPoints.size()) {
+                    if ((laserPoints[i + counter - 1] - laserPoints[i + counter]).length() < maxDistance) {
+                        l.p2 = laserPoints[i + counter];
+                        double score = 0;
+                        for (int p = i; p <= i + counter; p++) {
+                            score += l.lineDistanceToPoint(laserPoints[p]);
+                        }
+                        score = score / (counter + 1);
+                        if (score > maxFitScore) {done = true;}
+                    } else {done = true;}
+                } else {done = true;}
             }
+            counter--;
+            if(counter > 0) {
+                l.p2 = laserPoints[i + counter];
+                Pose2D newObstaclePose = Pose2D((l.p1 + l.p2) / 2, 0);
+                bool overlap = false;
+                for (Obstacle &o : obstacles->obstacles) {
+                    Line l1 = Line(o.footprint.vertices[0], o.footprint.vertices[1]);
+                    double anglediff = l.angle() - l1.angle();
+                    smallestAngle(anglediff);
+                    if (l.shortestLineTo(l1).length() < mergeDistance && anglediff < mergeAngle) {
+                        Line combinedLine = l.combineLine(l1);
+                        o.footprint.vertices = {combinedLine.p1, combinedLine.p2};
+                        o.lifeTime = 0;
+                        overlap = true;
+                        break;
+                    }
+                }
+                if (counter >= minPoints && !overlap) {
+                    obstacles->obstacles.emplace_back(Obstacle(Polygon({l.p1, l.p2}, Open), newObstaclePose, Static));
+                }
+            }
+            counter++;
         }
         if(!initializedScan){
             initializedScan = true;
             cout << "Scan initialized" << endl;
             checkInitialized();
         }
+        obstaclesUpdated = true;
     }
 }
 
@@ -268,3 +334,10 @@ bool Communication::newPlan(){
     planUpdated = false;
     return temp;
 }
+
+bool Communication::newObstacles(){
+    bool temp = obstaclesUpdated;
+    obstaclesUpdated = false;
+    return temp;
+}
+

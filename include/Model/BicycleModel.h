@@ -5,7 +5,7 @@
 #ifndef NAVIGATION_BICYCLEMODEL_H
 #define NAVIGATION_BICYCLEMODEL_H
 
-#include "Model.h"
+#include <Model/Model.h>
 
 class BicycleModel : public Model{
 protected:

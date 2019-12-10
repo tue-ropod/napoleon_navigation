@@ -26,6 +26,10 @@ public:
         return (p1-p2).length();
     }
 
+    double angle(){
+        return (p2-p1).angle();
+    }
+
     bool lineLineCollision(Line other){
         double x1 = this->p1.x;
         double y1 = this->p1.y;
@@ -142,10 +146,47 @@ public:
         }
         return connectionLine;
     }
-};
 
-inline bool linesort(Line& l1, Line& l2){
-    return (l1.length() < l2.length());
-}
+    Line combineLine(Line& l){
+        double maxdist = 0;
+        Vector2D testPoint1, testPoint2, point1, point2;
+        for(int i = 0; i < 6; i++){
+            switch(i){
+                case 0:
+                    testPoint1 = p1;
+                    testPoint2 = p2;
+                    break;
+                case 1:
+                    testPoint1 = p1;
+                    testPoint2 = l.p1;
+                    break;
+                case 2:
+                    testPoint1 = p1;
+                    testPoint2 = l.p2;
+                    break;
+                case 3:
+                    testPoint1 = p2;
+                    testPoint2 = l.p1;
+                    break;
+                case 4:
+                    testPoint1 = p2;
+                    testPoint2 = l.p2;
+                    break;
+                case 5:
+                    testPoint1 = l.p1;
+                    testPoint2 = l.p2;
+                    break;
+            }
+            double testdist = testPoint1.distance(testPoint2);
+            if(testdist > maxdist){
+                maxdist = testdist;
+                point1 = testPoint1;
+                point2 = testPoint2;
+            }
+        }
+        return {point1, point2};
+    }
+
+};
 
 #endif //NAVIGATION_LINE_H

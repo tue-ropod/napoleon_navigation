@@ -94,7 +94,7 @@
 <!--        <rosparam param="wheelDistanceMiddle_param" > 0.3 </rosparam>-->
 
         <rosparam param="maxSpeed_param" > 1 </rosparam>
-        <rosparam param="maxAcceleration_param" > 0.7 </rosparam>
+        <rosparam param="maxAcceleration_param" > 1 </rosparam>
 
         <rosparam param="tubeWallOffset_param" > 0 </rosparam>
         <rosparam param="tubeExtraSpace_param" > 0.2 </rosparam>
@@ -102,6 +102,7 @@
         <rosparam param="nTries_param" > 10 </rosparam>
         <rosparam param="predictionTime_param" > 2 </rosparam>
         <rosparam param="minPredictionDistance_param" > 0 </rosparam>
+        <rosparam param="predictionBiasFactor_param" > 0.2 </rosparam>
 
         <remap from="/navigation/cmd_vel" to="/$(arg robotName)/cmd_vel"/>
         <remap from="/navigation/odom" to="/$(arg robotName)/odom"/>

@@ -18,10 +18,11 @@ public:
     Pose2D pose;
     Pose2D movement;
     bool dynamic;
+    double lifeTime;
 
     Obstacle(Polygon footprint_, Pose2D pose_ = Pose2D(), Physics physics = Static);
     void show(Visualization& canvas, Color c, int drawstyle = Thin);
-    void update();
+    void update(double dt);
 };
 
 

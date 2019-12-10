@@ -5,7 +5,7 @@
 #ifndef NAVIGATION_HOLONOMICMODEL_H
 #define NAVIGATION_HOLONOMICMODEL_H
 
-#include "Model.h"
+#include <Model/Model.h>
 
 class HolonomicModel : public Model {
 

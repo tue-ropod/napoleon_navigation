@@ -10,22 +10,20 @@
 #include <Definitions/Polygon.h>
 #include <Definitions/Pose2D.h>
 #include <Visualization/Visualization.h>
-#include <Obstacles/Obstacle.h>
-#include <Tube/Tubes.h>
+#include <Obstacles/Obstacles.h>
 #include <Communication/Communication.h>
-
+#include <Tube/Tubes.h>
 #include <ros/ros.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Odometry.h>
 
-
-class Tubes;
-
 enum Movement {Movement_Forward, Movement_Backward, Movement_Left, Movement_Right, Movement_RotateLeft, Movement_RotateRight};
 enum Frame {Frame_Robot, Frame_World};
 enum FollowStatus {Status_Ok, Status_ObstacleCollision, Status_TubeCollision, Status_Stuck, Status_Error, Status_Done, Status_ShortPredictionDistance, Status_OutsideTube, Status_Recovering, Status_WrongWay};
+
+class Tubes;
 
 class Model {
 protected:
@@ -41,6 +39,7 @@ public:
 
     Polygon footprint;
     Polygon dilatedFootprint;
+    Polygon scanArea;
     Pose2D pose = Pose2D(0,0,0), velocity = Pose2D(0,0,0), measuredVelocity = Pose2D(0,0,0);
     Pose2D inputVelocity = Pose2D(0,0,0), desiredVelocity = Pose2D(0,0,0), predictionBiasVelocity = Pose2D(0,0,0);
     bool applyBrake = false;
@@ -50,7 +49,7 @@ public:
     Model(Pose2D pose_, Polygon footprint_, double maxSpeed_, double maxAcceleration_, double wheelDistanceToMiddle_);
     bool checkCollision(Obstacles& o, Visualization &canvas);
     void dilateFootprint(double offset);
-    void update(double dt, Communication &comm);
+    void update(double dt, Communication &comm, bool setVelocity);
     void brake();
     void changeSpeedScale(double x);
     void copySettings(Model &modelCopy);

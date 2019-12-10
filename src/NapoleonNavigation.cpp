@@ -4,21 +4,9 @@
 #include <Visualization/Visualization.h>
 #include <Definitions/Polygon.h>
 #include <Model/HolonomicModel.h>
-#include <Model/BicycleModel.h>
-#include <Obstacles/Obstacles.h>
-#include <Tube/Tube.h>
 #include <Tube/Tubes.h>
-#include <cmath>
-#include <vector>
-#include <Visualization/VisualizationOpenCV.h>
 #include <Visualization/VisualizationRviz.h>
 #include <Communication/Communication.h>
-
-typedef Vector2D Vec;
-
-#define wall(p1, p2) Obstacle(Polygon({p1, p2}, Open), Pose2D(p1, 0), Static)
-#define staticobstacle(poly, middle, pose) Obstacle(Polygon(poly, middle, Closed), pose, Static)
-#define dynamicobstacle(poly, pose) Obstacle(Polygon(poly), pose, Dynamic)
 
 double F_loop = 30;
 double F_prediction = 10;
@@ -34,9 +22,12 @@ int main(int argc, char** argv) {
     VisualizationRviz canvas(nroshndl);
     Communication comm(nroshndl);
 
+    Obstacles obstacles;
     Tubes tubes;
     Polygon footprint(comm.footprint_param, Closed, true, comm.footprintMiddlePose_param);
     HolonomicModel hmodel(Pose2D(0,0,0), footprint, comm.maxSpeed_param, comm.maxAcceleration_param, comm.wheelDistanceMiddle_param);
+
+    comm.obstacles = &obstacles;
 
     bool initialized = false;
     while(!initialized){
@@ -49,10 +40,10 @@ int main(int argc, char** argv) {
         rate.sleep();
     }
 
-    FollowStatus realStatus = Status_Error;
+    FollowStatus realStatus = Status_Ok;
     FollowStatus predictionStatus;
     bool startNavigation = false;
-    bool stopped = false;
+    bool update = false;
     HolonomicModel hmodelCopy = hmodel;
 
     while(nroshndl.ok() && ros::ok() && comm.initialized){
@@ -63,11 +54,14 @@ int main(int argc, char** argv) {
         tubes.visualizeRightWall(comm.route, canvas);
 
         canvas.idName = "Frame";
-        canvas.arrow(Vec(0,0),Vec(1,0),Color(0,0,0),Thin);
-        canvas.arrow(Vec(0,0),Vec(0,1),Color(0,0,0),Thin);
+        canvas.arrow(Vector2D(0,0),Vector2D(1,0),Color(0,0,0),Thin);
+        canvas.arrow(Vector2D(0,0),Vector2D(0,1),Color(0,0,0),Thin);
 
         canvas.idName = "AMCL_uncertainty";
         canvas.polygon(comm.poseUncertainty.toPoints(10), Color(100,100,100), Thin);
+
+        obstacles.removeOldVisibleObstacles(hmodel.scanArea);
+        obstacles.removeOldSelectiveObstacles();
 
         if(startNavigation){
             if(realStatus == Status_Recovering){
@@ -93,7 +87,7 @@ int main(int argc, char** argv) {
                 if(hmodel.currentTubeIndex != temp){cout << "Pose in tube "<< hmodel.currentTubeIndex << endl;}
 
                 //tubes.avoidObstacles(hmodel.currentTubeIndex, hmodel.currentTubeIndex, obstacles, hmodel, DrivingSide_Right, canvas);
-//                if(realStatus != Status_Ok && realStatus != Status_TubeCollision) {hmodel.brake();}
+                //if(realStatus != Status_Ok && realStatus != Status_TubeCollision) {hmodel.brake();}
             }
             else{
                 hmodel.brake();
@@ -103,10 +97,9 @@ int main(int argc, char** argv) {
                 hmodel.brake();
                 startNavigation = false;
             }
-            stopped = false;
+            update = true;
         }
         if(!startNavigation) {
-            hmodel.brake();
             if(comm.newPlan()) {
                 if (tubes.convertRoute(comm, hmodel, canvas)) {
                     startNavigation = true;
@@ -116,23 +109,22 @@ int main(int argc, char** argv) {
                 }
             }
         }
-        hmodel.checkCollision(comm.obstacles, canvas);
+        hmodel.checkCollision(obstacles, canvas);
 
         hmodelCopy.showStatus("Prediction model");
         hmodel.showStatus("Model");
         tubes.showSides(canvas);
         hmodel.show(canvas, Color(0,0,0), Thin);
         hmodel.showCommunicationInput(canvas, Color(0,255,50), Thin, comm);
-        comm.obstacles.show(canvas, Color(255,0,0), Thick);
+        obstacles.show(canvas, Color(255,0,0), Thick);
 
-		if(startNavigation || !stopped){
-			double ct = rate.cycleTime().toSec();
-			double ect = rate.expectedCycleTime().toSec();
-			double cycleTime = ct > ect ? ct : ect;
-			hmodel.update(cycleTime, comm);
-			stopped = true;
-		}
-		
+        double ct = rate.cycleTime().toSec();
+        double ect = rate.expectedCycleTime().toSec();
+        double cycleTime = ct > ect ? ct : ect;
+        hmodel.update(cycleTime, comm, update);
+        obstacles.update(cycleTime);
+        update = false;
+
         ros::spinOnce();
         rate.sleep();
         

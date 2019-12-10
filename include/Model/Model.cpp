@@ -13,13 +13,25 @@ Model::Model(Pose2D pose_, Polygon footprint_, double maxSpeed_, double maxAccel
     maxAcceleration = maxAcceleration_;
     maxRotationalSpeed = maxSpeed / wheelDistanceToMiddle_;
     maxRotationalAcceleration = maxAcceleration / wheelDistanceToMiddle_;
+
+    vector<Vector2D> scanAreaVertices;
+    scanAreaVertices.emplace_back(Vector2D(0,0));
+    double r = 3;
+    double angle = 200*(2*M_PI/360);
+    double N = 20;
+    for(int n = 0; n < N; n++){
+        double a = (angle/(N-1))*n;
+        scanAreaVertices.emplace_back(Vector2D(r*cos(a), r*sin(a)));
+    }
+    scanArea = Polygon(scanAreaVertices, Closed, true, Pose2D(0,0,M_PI-(2*M_PI-angle)/2));
+    scanArea.transformto(pose);
 }
 
 bool Model::checkCollision(Obstacles& obstacles, Visualization &canvas){
     bool collision = false;
     Polygon obstacleCollisionFootprint;
     obstacleCollisionFootprint = dilatedFootprint;
-    double Xplus = cos(velocity.angle()-pose.a)*brakeDistance() + 0.1;
+    double Xplus = cos(velocity.angle()-pose.a)*brakeDistance();
     double Xmin = -cos(velocity.angle()-pose.a)*brakeDistance();
     double Yplus = sin(velocity.angle()-pose.a)*brakeDistance();
     double Ymin = -sin(velocity.angle()-pose.a)*brakeDistance();
@@ -53,6 +65,8 @@ bool Model::checkCollision(Obstacles& obstacles, Visualization &canvas){
             collision = true;
         }
     }
+    canvas.idName = "Collision_prevention";
+    canvas.polygon(boundingBox, Color(0,0,200), Thin);
     if(leftCheck){canvas.polygon(left.vertices, Color(0,0,255), Thick);}
     if(rightCheck){canvas.polygon(right.vertices, Color(0,0,255), Thick);}
     if(frontCheck){canvas.polygon(front.vertices, Color(0,0,255), Thick);}
@@ -112,12 +126,15 @@ void Model::copyState(Model &modelCopy) {
     dilatedFootprint.transformto(pose);
 }
 
-void Model::update(double dt, Communication &comm) {
+void Model::update(double dt, Communication &comm, bool setVelocity) {
     if(comm.newOdometry()) {
         pose = comm.measuredPose;
         measuredVelocity = comm.measuredVelocity;
         measuredVelocity.transformThis(0, 0, pose.a);
-        velocity = velocity * 0.8 + Pose2D(measuredVelocity.x, measuredVelocity.y, measuredVelocity.a) * 0.2;
+        Pose2D diff = velocity - measuredVelocity;
+        if(abs(diff.a) > 0.3){velocity.a = measuredVelocity.a;}
+        if(abs(diff.x) > 0.3){velocity.x = measuredVelocity.x;}
+        if(abs(diff.y) > 0.3){velocity.y = measuredVelocity.y;}
     }
 
 //    if(limitedMovements.size() > 0){cout << "Limit: ";}
@@ -134,15 +151,23 @@ void Model::update(double dt, Communication &comm) {
 //    if(limitedMovements.size() > 0){cout << endl;}
 
     updatePrediction(dt);
-    //double anglebias = 0;
-    //if(abs(inputVelocity.a) > 0.0001){anglebias = (inputVelocity.a/abs(inputVelocity.a))*0.03;}
-    Pose2D vel = inputVelocity;// + Pose2D(inputVelocity.unit()*0.03, anglebias);
-    vel.transformThis(0, 0, -pose.a);
-    geometry_msgs::Twist cmd_vel;
-    cmd_vel.linear.x = vel.x;
-    cmd_vel.linear.y = vel.y;
-    cmd_vel.angular.z = vel.a;
-    comm.setVel(cmd_vel);
+
+    if(setVelocity || applyBrake || !limitedMovements.empty()){
+        Pose2D vel = inputVelocity;
+        //Scaled velocity to overcome the static friction should be in the low level controller
+        //Vector2D scaledVelLinear = vel.toVector() * (1 + ((maxSpeed - vel.length())/maxSpeed)*1);
+        //double scaledVelAngular = vel.a * (1 + ((maxRotationalSpeed - vel.a)/maxRotationalSpeed)*1);
+        //vel = Pose2D(scaledVelLinear, scaledVelAngular);
+        vel.transformThis(0, 0, -pose.a);
+        geometry_msgs::Twist cmd_vel;
+        cmd_vel.linear.x = vel.x;
+        cmd_vel.linear.y = vel.y;
+        cmd_vel.angular.z = vel.a;
+        comm.setVel(cmd_vel);
+    }else{
+        desiredVelocity = Pose2D(0,0,0);
+        inputVelocity = Pose2D(0,0,0);
+    }
 }
 
 void Model::brake(){

@@ -25,7 +25,7 @@ bool Tubes::convertRoute(Communication &comm, Model &model, Visualization &canva
     double corridorSpeed = 1;
     double junctionSpeed = 1;
     double finalSpeed = 0.5;
-    double hallwayPointOffset = 0.4;
+    double hallwayPointOffset = model.length();
     DrivingSide drivingSide = DrivingSide_Right; //TODO change tube generation based on driving side, only right side is supported now
 
     for (int a = 0; a < areas.size(); a++) {
@@ -93,7 +93,7 @@ bool Tubes::convertRoute(Communication &comm, Model &model, Visualization &canva
                     }
                 }else{
                     width = minWidth;
-                    Vector2D offset = (p2-p1)*hallwayPointOffset;
+                    Vector2D offset = ((p2-p1)*0.45).length() > hallwayPointOffset ? (p2-p1).unit()*hallwayPointOffset : (p2-p1)*0.45;
                     p1Right = p1 + (p2-p1).unit().transform(0,0,M_PI_2)*wallOffset + offset;
                     p2Right = p2 + (p2-p1).unit().transform(0,0,M_PI_2)*wallOffset - offset;
                     p1Left = p1Right + (p4-p1).unit()*width;
