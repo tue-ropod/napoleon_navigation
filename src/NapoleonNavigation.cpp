@@ -60,8 +60,10 @@ int main(int argc, char** argv) {
         canvas.idName = "AMCL_uncertainty";
         canvas.polygon(comm.poseUncertainty.toPoints(10), Color(100,100,100), Thin);
 
-        obstacles.removeOldVisibleObstacles(hmodel.scanArea);
-        obstacles.removeOldSelectiveObstacles();
+        if(comm.newObstacles()) {
+            obstacles.removeOldVisibleObstacles(hmodel.scanArea);
+            obstacles.removeOldSelectiveObstacles();
+        }
 
         if(startNavigation){
             if(realStatus == Status_Recovering){
@@ -121,6 +123,7 @@ int main(int argc, char** argv) {
         double ct = rate.cycleTime().toSec();
         double ect = rate.expectedCycleTime().toSec();
         double cycleTime = ct > ect ? ct : ect;
+
         hmodel.update(cycleTime, comm, update);
         obstacles.update(cycleTime);
         update = false;

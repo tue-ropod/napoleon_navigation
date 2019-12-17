@@ -137,27 +137,10 @@ void Model::update(double dt, Communication &comm, bool setVelocity) {
         if(abs(diff.y) > 0.3){velocity.y = measuredVelocity.y;}
     }
 
-//    if(limitedMovements.size() > 0){cout << "Limit: ";}
-//    for(auto & movement : limitedMovements){
-//        switch(movement){
-//            case Movement_Left: cout << " left "; break;
-//            case Movement_Right: cout << " right "; break;
-//            case Movement_Forward: cout << " forward "; break;
-//            case Movement_Backward: cout << " backward "; break;
-//            case Movement_RotateLeft:  cout << " rotate left "; break;
-//            case Movement_RotateRight:  cout << " rotate right "; break;
-//        }
-//    }
-//    if(limitedMovements.size() > 0){cout << endl;}
-
     updatePrediction(dt);
 
     if(setVelocity || applyBrake || !limitedMovements.empty()){
         Pose2D vel = inputVelocity;
-        //Scaled velocity to overcome the static friction should be in the low level controller
-        //Vector2D scaledVelLinear = vel.toVector() * (1 + ((maxSpeed - vel.length())/maxSpeed)*1);
-        //double scaledVelAngular = vel.a * (1 + ((maxRotationalSpeed - vel.a)/maxRotationalSpeed)*1);
-        //vel = Pose2D(scaledVelLinear, scaledVelAngular);
         vel.transformThis(0, 0, -pose.a);
         geometry_msgs::Twist cmd_vel;
         cmd_vel.linear.x = vel.x;
@@ -177,7 +160,7 @@ void Model::brake(){
 FollowStatus Model::predict(double dt, Model &origionalModel, Tubes &tubes, Communication &comm, Visualization &canvas) {
     status = Status_Error;
     double brakeMargin = 1;
-    double minSpeedScale = 0.2;
+    double minSpeedScale = 0.4;
     changeSpeedScale(speedScale*1.01);
     //changeSpeedScale(1);
 

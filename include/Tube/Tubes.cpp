@@ -110,68 +110,6 @@ bool Tubes::convertRoute(Communication &comm, Model &model, Visualization &canva
                     }
                     cout << " - Corridor" << endl;
                 }
-
-//                if(area.type == "junction"){
-//                    width = maxWidth;
-//                    Vector2D offsetPoint;
-//                    Vector2D prePointCorner, postPointCorner;
-//                    Vector2D prevPoint;
-//                    Vector2D point;
-//                    Vector2D point2 = ((p1-p2).unit().transform(0,0,-M_PI_2))*(width/2 + wallOffset) + p2;
-//                    if(!firstTubePlaced){
-//                        tubes.emplace_back(Tube(model.pose.toVector(), width, point2, width, junctionSpeed));
-//                        firstTubePlaced = true;
-//                    }
-//                    else{
-//                        Corner corner = getJunctionDirection(route, a, s);
-//                        switch (corner){
-//                            case Corner_None:
-//                                addPoint(point2, width/2, junctionSpeed);
-//                                cout << " - Junction > Straight" << endl;
-//                                break;
-//                            case Corner_Left:
-//                                offsetPoint = ((p2-p1).unit())*(width/2 + wallOffset) + p1;
-//                                prePointCorner = ((p1-offsetPoint).unit().transform(0,0,-M_PI_2))*(width + wallOffset*2) + offsetPoint;
-//                                addPoint(prePointCorner, width, junctionSpeed);
-//                                point = ((p1-offsetPoint).unit().transform(0,0,-M_PI_2))*(width/2 + wallOffset) + offsetPoint;
-//                                addPoint(point, width, junctionSpeed);
-//                                prevPoint = tubes[tubes.size()-1].p1;
-//                                postPointCorner = (prevPoint-point).unit().transform(0,0,-M_PI_2)*(width/2 + wallOffset) + point;
-////                                postPointCorner = (p1-p2).unit().transform(0,0,-M_PI_2)*(width/2 + wallOffset) + p2;
-//                                addPoint(postPointCorner, width, junctionSpeed);
-//                                cout << " - Junction > Left" << endl;
-//                                break;
-//                            case Corner_Right:
-//                                offsetPoint = ((p1-p2).unit())*(width/2 + wallOffset) + p2;
-//                                prePointCorner = ((p2-offsetPoint).unit().transform(0,0,-M_PI_2))*wallOffset + offsetPoint;
-//                                addPoint(prePointCorner, width, junctionSpeed);
-//                                point = ((p2-offsetPoint).unit().transform(0,0,M_PI_2))*(width/2 + wallOffset) + offsetPoint;
-//                                addPoint(point, width, junctionSpeed);
-//                                prevPoint = tubes[tubes.size()-1].p1;
-//                                postPointCorner = (prevPoint-point).unit().transform(0,0,M_PI_2)*(width/2 + wallOffset) + point;
-////                                postPointCorner = (p1-p2).unit().transform(0,0,M_PI_2)*(width/2 + wallOffset) + p2;
-//                                addPoint(postPointCorner, width, junctionSpeed);
-//                                cout << " - Junction > Right" << endl;
-//                                break;
-//                        }
-//                    }
-//                }else{
-//                    Vector2D p1Offset = (p2-p1)*0.3+p1;
-//                    Vector2D point1 = ((p2-p1Offset).unit().transform(0,0,M_PI_2))*(width/2 + wallOffset) + p1Offset;
-//                    Vector2D p2Offset = (p1-p2)*0.4+p2;
-//                    Vector2D point2 = ((p1-p2Offset).unit().transform(0,0,-M_PI_2))*(width/2 + wallOffset) + p2Offset;
-//                    if(!firstTubePlaced){
-//                        //tubes.emplace_back(Tube(point1, maxWidth, point2, width, corridorSpeed));
-//                        tubes.emplace_back(Tube(model.pose.toVector(), width, point2, width, corridorSpeed));
-//                        firstTubePlaced = true;
-//                    }
-//                    else{
-//                        addPoint(point1, width, corridorSpeed);
-//                        addPoint(point2, width, corridorSpeed);
-//                    }
-//                    cout << " - Corridor" << endl;
-//                }
-
             }
         }
     }
@@ -180,8 +118,6 @@ bool Tubes::convertRoute(Communication &comm, Model &model, Visualization &canva
         Vector2D pointLeft = (prevTube.leftSide.p2 - prevTube.leftSide.p1).unit()*model.length() + prevTube.leftSide.p2;
         Vector2D pointRight = (prevTube.rightSide.p2 - prevTube.rightSide.p1).unit()*model.length() + prevTube.rightSide.p2;
         addPoint(pointLeft, pointRight, finalSpeed);
-        //Vector2D point = (prevTube.p2 - prevTube.p1).unit()*model.length() + prevTube.p2;
-		//addPoint(point, tubes[tubes.size()-1].width2, 0.3); //final point with speed 0
 		for(Tube &tube : tubes){
 		    for(Vector2D &p : tube.connectedShape.vertices) {
 		        bool tubePointInside = false;

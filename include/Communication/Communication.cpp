@@ -233,32 +233,11 @@ void Communication::getLaserScanCallback(const sensor_msgs::LaserScan::ConstPtr&
     }
 
     if(!laserPoints.empty() && valid){
-        //obstacles.obstacles.clear();
-//        int counter = 0;
-//        Vector2D p1, p2;
-//        for(int i = 0; i < laserPoints.size()-1; i++){
-//            if(counter == 0){p1 = laserPoints[i];}
-//            if((laserPoints[i]-laserPoints[i+1]).length() < 0.1 && counter <= 20){
-//                counter++;
-//                p2 = laserPoints[i+1];
-//            }else{
-//                Pose2D newObstaclePose = Pose2D((p1+p2)/2, 0);
-//                double dist = DBL_MAX;
-//                for(Obstacle &o : obstacles.obstacles){
-//                    if(dist > o.pose.distance(newObstaclePose)){
-//                        dist = o.pose.distance(newObstaclePose);
-//                    }
-//                }
-//                if(counter >= 3 && dist > 0.2){
-//                    obstacles.obstacles.emplace_back(Obstacle(Polygon({p1, p2}, Open), newObstaclePose, Static));
-//                }
-//                counter = 0;
-//            }
-//        }
+        //obstacles->obstacles.clear();
 
         double mergeDistance = 0.05;
-        double mergeAngle = M_PI/16;
-        double maxFitScore = 0.02;
+        double mergeAngle = M_PI/8;
+        double maxFitScore = 0.03;
         double maxDistance = 0.1;
         int minPoints = 4;
         int counter = 0;
@@ -294,12 +273,13 @@ void Communication::getLaserScanCallback(const sensor_msgs::LaserScan::ConstPtr&
                         Line combinedLine = l.combineLine(l1);
                         o.footprint.vertices = {combinedLine.p1, combinedLine.p2};
                         o.lifeTime = 0;
+                        o.weight = o.weight < counter+1 ? counter+1 : o.weight;
                         overlap = true;
                         break;
                     }
                 }
                 if (counter >= minPoints && !overlap) {
-                    obstacles->obstacles.emplace_back(Obstacle(Polygon({l.p1, l.p2}, Open), newObstaclePose, Static));
+                    obstacles->obstacles.emplace_back(Obstacle(Polygon({l.p1, l.p2}, Open), newObstaclePose, Static, counter+1));
                 }
             }
             counter++;

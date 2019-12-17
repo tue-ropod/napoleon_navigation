@@ -19,8 +19,9 @@ public:
     Pose2D movement;
     bool dynamic;
     double lifeTime;
+    int weight = 0;
 
-    Obstacle(Polygon footprint_, Pose2D pose_ = Pose2D(), Physics physics = Static);
+    Obstacle(Polygon footprint_, Pose2D pose_ = Pose2D(), Physics physics = Static, int weight = 0);
     void show(Visualization& canvas, Color c, int drawstyle = Thin);
     void update(double dt);
 };

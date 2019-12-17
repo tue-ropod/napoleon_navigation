@@ -20,7 +20,7 @@ void Obstacles::update(double dt) {
 void Obstacles::removeOldVisibleObstacles(Polygon &area) {
     for(int o = 0; o < obstacles.size(); o++){
         Obstacle &obs = obstacles[o];
-        if(obs.lifeTime < 0 || (obs.lifeTime > 1 && area.polygonPolygonCollision(obs.footprint))){
+        if(obs.lifeTime < 0 || (obs.lifeTime > 2 && area.polygonPolygonCollision(obs.footprint))){
             obstacles.erase(obstacles.begin()+o);
             o--;
         }
@@ -36,7 +36,7 @@ void Obstacles::removeOldSelectiveObstacles(){
         for(int o2 = o1+1; o2 < obstacles.size(); o2++){
             Obstacle &obs2 = obstacles[o2];
             Line l2 = Line(obs2.footprint.vertices[0], obs2.footprint.vertices[1]);
-            if(obs1.lifeTime > 1 && obs2.lifeTime > 1){
+            if(obs1.lifeTime > 2 && obs2.lifeTime > 2){
                 double anglediff = l1.angle() - l2.angle();
                 smallestAngle(anglediff);
                 if (l1.shortestLineTo(l2).length() < mergeDistance && anglediff < mergeAngle) {
@@ -51,7 +51,7 @@ void Obstacles::removeOldSelectiveObstacles(){
     }
     for(int o = 0; o < obstacles.size(); o++){
         Obstacle &obs = obstacles[o];
-        if(obs.lifeTime < 0 || obs.lifeTime > 60){
+        if(obs.lifeTime < 0 || obs.lifeTime > 60 || (obs.lifeTime > 2 && obs.weight < 30)){
             obstacles.erase(obstacles.begin()+o);
             o--;
         }

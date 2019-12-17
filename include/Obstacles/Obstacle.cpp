@@ -4,13 +4,14 @@
 
 #include "Obstacle.h"
 
-Obstacle::Obstacle(Polygon footprint_, Pose2D pose_, Physics physics){
+Obstacle::Obstacle(Polygon footprint_, Pose2D pose_, Physics physics, int weight_){
     footprint = std::move(footprint_);
     pose = pose_;
     footprint.transformto(pose);
     movement = Pose2D();
     dynamic = bool(physics);
     lifeTime = 0.0;
+    weight = weight_;
 }
 
 void Obstacle::show(Visualization& canvas, Color c, int drawstyle) {

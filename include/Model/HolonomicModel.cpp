@@ -279,7 +279,7 @@ void HolonomicModel::show(Visualization& canvas, Color c, int drawstyle) {
 
     canvas.polygon(footprint.vertices, c, drawstyle);
     canvas.polygon(dilatedFootprint.vertices, Color(255,0,0), Thin);
-    canvas.polygon(scanArea.vertices, Color(255,150,0), Thin);
+    //canvas.polygon(scanArea.vertices, Color(255,150,0), Thin);
     canvas.arrow(pose, velocity.toVector()*1+pose, Color(0,0,255), Thin);
     //canvas.arrow(pose, inputVelocity.toVector()*1+pose, Color(255,0,255), Thin);
     //canvas.arrow(pose, predictionBiasVelocity.toVector()*1+pose, Color(0,255,0), Thin);
