@@ -14,7 +14,7 @@
 
 using namespace std;
 
-enum DrawStyle {Filled = -1, Thin = 1, Thick = 3};
+enum DrawStyle {Filled = -1, Thin = 2, Thick = 4};
 
 class Color{
 public:
