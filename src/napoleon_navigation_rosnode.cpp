@@ -65,67 +65,69 @@ struct NapoleonConfig config;
 
 void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray)
 {
-    //#define RECTANGULAR_MARGIN 0.25
-    //#define RECTANGULAR_DESIRED_DIM 1.0
+    #define RECTANGULAR_MARGIN 0.5
+    #define RECTANGULAR_DESIRED_DIM 1.0
+        no_obs = obsarray->objects.size();
 
-    //ROS_INFO("%lu obstacles detected", obsarray->objects.size());
+    ROS_INFO("%lu obstacles detected", obsarray->objects.size());
 
-    //// For now, only take all obstacles which are assumed to be a rectangle with
-    //// one of the dimensions having a size of approximately 1m.
-    //// Then, take the closest one.
+    // For now, only take all obstacles which are assumed to be a rectangle with
+    // one of the dimensions having a size of approximately 1m.
+    // Then, take the closest one.
 
-    //float closestDist = std::numeric_limits< float >::infinity();
-    //unsigned int IclosestObject;
-    //bool rectangleDetected = false;
+    float closestDist = std::numeric_limits< float >::infinity();
+    unsigned int IclosestObject;
+    bool rectangleDetected = false;
 
-    //for(unsigned int iObs = 0; iObs < obsarray->objects.size(); iObs++)
-    //{
-        //ed_gui_server::objPosVel candidate_obstacle = obsarray->objects[iObs];
+    for(unsigned int iObs = 0; iObs < obsarray->objects.size(); iObs++)
+    {
+        ed_gui_server::objPosVel candidate_obstacle = obsarray->objects[iObs];
 
-        //bool check1 =  candidate_obstacle.rectangle.probability > 0.5 ;
-        //bool check2 =  std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
-        //bool check3 = std::fabs(candidate_obstacle.rectangle.depth - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
+        bool check1 =  candidate_obstacle.rectangle.probability > 0.5 ;
+        bool check2 =  std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
+        bool check3 = std::fabs(candidate_obstacle.rectangle.depth - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
 
-        //std::cout << "Checks = " << check1 << check2 << check3 << std::endl;
-        //std::cout << "candidate_obstacle.rectangle.probability = " << candidate_obstacle.rectangle.probability << std::endl;
-        //std::cout << "candidate_obstacle.rectangle.width = " << candidate_obstacle.rectangle.width << std::endl;
-        //std::cout << "candidate_obstacle.rectangle.depth = " << candidate_obstacle.rectangle.depth << std::endl;
+       /* std::cout << "Checks = " << check1 << check2 << check3 << std::endl;
+        std::cout << "candidate_obstacle.rectangle.probability = " << candidate_obstacle.rectangle.probability << std::endl;
+        std::cout << "candidate_obstacle.rectangle.width = " << candidate_obstacle.rectangle.width << std::endl;
+        std::cout << "candidate_obstacle.rectangle.depth = " << candidate_obstacle.rectangle.depth << std::endl;
+*/
+        if( candidate_obstacle.rectangle.probability > 0.5 &&
+            ( std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ||
+              std::fabs(candidate_obstacle.rectangle.depth - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ) )
+        {
+                float dist = std::pow(candidate_obstacle.rectangle.pose.position.x - this_amcl_x, 2.0) + std::pow(candidate_obstacle.rectangle.pose.position.y - this_amcl_y, 2.0);
 
-        //if( candidate_obstacle.rectangle.probability > 0.5 &&
-            //( std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ||
-              //std::fabs(candidate_obstacle.rectangle.depth - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ) )
-        //{
-                //float dist = std::pow(candidate_obstacle.rectangle.pose.position.x - this_amcl_x, 2.0) + std::pow(candidate_obstacle.rectangle.pose.position.y - this_amcl_y, 2.0);
+                if(dist < closestDist)
+                {
 
-                //if(dist < closestDist)
-                //{
+                        closestDist = dist;
+                        IclosestObject = iObs;
+                        rectangleDetected = true;
+                }
+        }
+    }
 
-                        //closestDist = dist;
-                        //IclosestObject = iObs;
-                        //rectangleDetected = true;
-                //}
-        //}
-    //}
+    if(rectangleDetected)
+    {
+        current_obstacle = obsarray->objects[IclosestObject];
+        ROS_INFO("Clostest object: Obs is %f wide and %f deep", current_obstacle.rectangle.width, current_obstacle.rectangle.depth);
+        ROS_INFO("Obs x: %f, obs y: %f", current_obstacle.rectangle.pose.position.x, current_obstacle.rectangle.pose.position.y);
+        ROS_INFO("Vx: %f, Vy %f", current_obstacle.rectangle.vel.x, current_obstacle.rectangle.vel.y);
+        quaternion_x = obsarray->objects[IclosestObject].rectangle.pose.orientation.x;
+        quaternion_y = obsarray->objects[IclosestObject].rectangle.pose.orientation.y;
+        quaternion_z = obsarray->objects[IclosestObject].rectangle.pose.orientation.z;
+        quaternion_w = obsarray->objects[IclosestObject].rectangle.pose.orientation.w;
 
-    //if(rectangleDetected)
-    //{
-        //current_obstacle = obsarray->objects[IclosestObject];
-        //ROS_INFO("Clostest object: Obs is %f wide and %f deep", current_obstacle.rectangle.width, current_obstacle.rectangle.depth);
-        //ROS_INFO("Obs x: %f, obs y: %f", current_obstacle.rectangle.pose.position.x, current_obstacle.rectangle.pose.position.y);
-        //ROS_INFO("Vx: %f, Vy %f", current_obstacle.rectangle.vel.x, current_obstacle.rectangle.vel.y);
-        //quaternion_x = obsarray->objects[IclosestObject].rectangle.pose.orientation.x;
-        //quaternion_y = obsarray->objects[IclosestObject].rectangle.pose.orientation.y;
-        //quaternion_z = obsarray->objects[IclosestObject].rectangle.pose.orientation.z;
-        //quaternion_w = obsarray->objects[IclosestObject].rectangle.pose.orientation.w;
-
-        //// yaw (z-axis rotation)
-        //siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
-        //cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
-        //obs_theta = atan2(siny_cosp, cosy_cosp);
-        //obs_center_global.x = current_obstacle.rectangle.pose.position.x;
-        //obs_center_global.y = current_obstacle.rectangle.pose.position.y;
-    //}
+        // yaw (z-axis rotation)
+        siny_cosp = +2.0 * (quaternion_w * quaternion_z + quaternion_x * quaternion_y);
+        cosy_cosp = +1.0 - 2.0 * (quaternion_y * quaternion_y + quaternion_z * quaternion_z);
+        obs_theta = atan2(siny_cosp, cosy_cosp);
+        obs_center_global.x = current_obstacle.rectangle.pose.position.x;
+        obs_center_global.y = current_obstacle.rectangle.pose.position.y;
+    }
 }
+
 
 void getOdomVelCallback(const nav_msgs::Odometry::ConstPtr& odom_vel)
 {
@@ -934,6 +936,7 @@ void updateStateAndTask()
 
     if (pred_state[prevstate] == TIGHT_OVERTAKE || pred_state[prevstate] == SPACIOUS_OVERTAKE) {
         if (no_obs > 0) {
+                  ROS_INFO("obstacle taken into account");
             current_obs_in_ropod_frame_pos = coordGlobalToRopod(obs_center_global, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
             //disp(['Obs is ',num2str(obs_in_ropod_frame_pos.x), ' m in front of ropod']);
             if (current_obs_in_ropod_frame_pos.x+current_obstacle.rectangle.depth/2+config.D_AX+config.SIZE_REAR < 0) {
@@ -1329,7 +1332,7 @@ void createFreeNavigationBoundingBox()
     double distance_point_to_line_max = 0;
     double distance_point_to_line_min = 100.0;
     double distance_point_to_line;
-    no_obs = 0;
+//     no_obs = 0;
 
     //if(curr_area.type != "hallway")
     //    return;
@@ -1490,6 +1493,7 @@ void overtakeStateMachine()
 {
     // TODO: filter fastest obstacle in front of the robot
     v_obs_sq = current_obstacle.rectangle.vel.x*current_obstacle.rectangle.vel.x+current_obstacle.rectangle.vel.y*current_obstacle.rectangle.vel.y;
+  //  std::cout << "overtake state machine: v_obs_sq = " << v_obs_sq << std::endl;
     if ((v_obs_sq < config.V_OBS_OVERTAKE_MAX*config.V_OBS_OVERTAKE_MAX) && overtake_on_current_hallway) {
         rw_p_rear = getPointByID(current_hallway_task[0],pointlist);
         rw_p_front = getPointByID(current_hallway_task[1],pointlist);
@@ -1542,15 +1546,16 @@ void overtakeStateMachine()
 
 }
 
-
-
 /**
  * Check for collision
  * Either for obstacles or virtual walls(to be added)
  * */
 void checkForCollisions()
 {
+        std::cout << "check for collisions: no_obs = " << no_obs << std::endl;
+        
     if (no_obs > 0) {
+            std::cout << "Check for collisions: take obstacle into consideration" << std::endl;
         pred_x_obs[j] = pred_x_obs[j-1]+current_obstacle.rectangle.vel.x*TS*F_FSTR;
         pred_y_obs[j] = pred_y_obs[j-1]+current_obstacle.rectangle.vel.y*TS*F_FSTR;
     }
@@ -1568,18 +1573,18 @@ void checkForCollisions()
     ropod_colliding_obs = false;
     pred_ropod_colliding_obs[j] = false;
     // Obstacle detection (crappy implementation in C++)
-    //if (t_pred[m] < config.T_PRED_OBS_COLLISION && no_obs > 0) {
-        //obslt.x = pred_x_obs[j]+current_obstacle.rectangle.width/2*cos(obs_theta)-current_obstacle.rectangle.depth/2*sin(obs_theta);
-        //obslt.y = pred_y_obs[j]+current_obstacle.rectangle.width/2*sin(obs_theta)+current_obstacle.rectangle.depth/2*cos(obs_theta);
-        //obsrt.x = pred_x_obs[j]+current_obstacle.rectangle.width/2*cos(obs_theta)+current_obstacle.rectangle.depth/2*sin(obs_theta);
-        //obsrt.y = pred_y_obs[j]+current_obstacle.rectangle.width/2*sin(obs_theta)-current_obstacle.rectangle.depth/2*cos(obs_theta);
-        //obslb.x = pred_x_obs[j]-current_obstacle.rectangle.width/2*cos(obs_theta)-current_obstacle.rectangle.depth/2*sin(obs_theta);
-        //obslb.y = pred_y_obs[j]-current_obstacle.rectangle.width/2*sin(obs_theta)+current_obstacle.rectangle.depth/2*cos(obs_theta);
-        //obsrb.x = pred_x_obs[j]-current_obstacle.rectangle.width/2*cos(obs_theta)+current_obstacle.rectangle.depth/2*sin(obs_theta);
-        //obsrb.y = pred_y_obs[j]-current_obstacle.rectangle.width/2*sin(obs_theta)-current_obstacle.rectangle.depth/2*cos(obs_theta);
-        //pred_ropod_colliding_obs[j] = do_shapes_overlap(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt, obsrt, obslt, obslb, obsrb);
-        //ropod_colliding_obs = pred_ropod_colliding_obs[j];
-    //}
+    if (t_pred[m] < config.T_PRED_OBS_COLLISION && no_obs > 0) {
+        obslt.x = pred_x_obs[j]+current_obstacle.rectangle.width/2*cos(obs_theta)-current_obstacle.rectangle.depth/2*sin(obs_theta);
+        obslt.y = pred_y_obs[j]+current_obstacle.rectangle.width/2*sin(obs_theta)+current_obstacle.rectangle.depth/2*cos(obs_theta);
+        obsrt.x = pred_x_obs[j]+current_obstacle.rectangle.width/2*cos(obs_theta)+current_obstacle.rectangle.depth/2*sin(obs_theta);
+        obsrt.y = pred_y_obs[j]+current_obstacle.rectangle.width/2*sin(obs_theta)-current_obstacle.rectangle.depth/2*cos(obs_theta);
+        obslb.x = pred_x_obs[j]-current_obstacle.rectangle.width/2*cos(obs_theta)-current_obstacle.rectangle.depth/2*sin(obs_theta);
+        obslb.y = pred_y_obs[j]-current_obstacle.rectangle.width/2*sin(obs_theta)+current_obstacle.rectangle.depth/2*cos(obs_theta);
+        obsrb.x = pred_x_obs[j]-current_obstacle.rectangle.width/2*cos(obs_theta)+current_obstacle.rectangle.depth/2*sin(obs_theta);
+        obsrb.y = pred_y_obs[j]-current_obstacle.rectangle.width/2*sin(obs_theta)-current_obstacle.rectangle.depth/2*cos(obs_theta);
+        pred_ropod_colliding_obs[j] = do_shapes_overlap(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt, obsrt, obslt, obslb, obsrb);
+        ropod_colliding_obs = pred_ropod_colliding_obs[j];
+    }
 
     // TODO: Add here also check with raw laser (for instance of non-associated objects) data or costmap
     if (t_pred[m] < config.T_PRED_OBS_COLLISION ) // TODO: Condition should be smarter. For instance based on time/distance to stop? . Also the robot should stop at a minimum distance in front. for now we based it on time
@@ -1593,7 +1598,10 @@ void checkForCollisions()
             pred_ropod_colliding_obs[j] = robot_footprint.contains(laser_point);
             ropod_colliding_obs = pred_ropod_colliding_obs[j];
             if(ropod_colliding_obs)
+            {
+                    std::cout << "robot collides with obstacle" << std::endl;
                 break;
+            }
         }
     }
     // Predict intersection times (left out for now)
@@ -1933,10 +1941,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
 
                 overtake_on_current_hallway = false;
                 pred_tube_width[j] = pred_tube_width[j-1];  // Assume same as previous, might change later
-
-
                 updateAreasAndFeatures();
-
 
                 /**
                  * Check whether robot is entrying a new area
@@ -2019,7 +2024,10 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                  * Check for collision
                  * Either for obstacles or virtual walls(to be added)
                  * */
+                std::cout << "Start of check for collisions" << std::endl;
                 checkForCollisions();
+                std::cout << "ropod_colliding_obs = " << ropod_colliding_obs << " ropod_colliding_wall = " << ropod_colliding_wall << std::endl;
+                
                 if(ropod_colliding_obs || ropod_colliding_wall) // Do not execute current plan when collision is precited
                     break;
 
