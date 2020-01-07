@@ -62,7 +62,7 @@ void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray)
     #define RECTANGULAR_MARGIN 0.25
     #define RECTANGULAR_DESIRED_DIM 1.0
         
-    ROS_INFO("%lu obstacles detected", obsarray->objects.size());
+    //ROS_INFO("%lu obstacles detected", obsarray->objects.size());
     
     // For now, only take all obstacles which are assumed to be a rectangle with 
     // one of the dimensions having a size of approximately 1m.
@@ -80,11 +80,11 @@ void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray)
             bool check2 =  std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
             bool check3 = std::fabs(candidate_obstacle.rectangle.depth - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
             
-            std::cout << "Checks = " << check1 << check2 << check3 << std::endl;
+        /*    std::cout << "Checks = " << check1 << check2 << check3 << std::endl;
             std::cout << "candidate_obstacle.rectangle.probability = " << candidate_obstacle.rectangle.probability << std::endl;
             std::cout << "candidate_obstacle.rectangle.width = " << candidate_obstacle.rectangle.width << std::endl;
             std::cout << "candidate_obstacle.rectangle.depth = " << candidate_obstacle.rectangle.depth << std::endl;
-            
+          */  
             if( candidate_obstacle.rectangle.probability > 0.5 && 
                 ( std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN || 
                   std::fabs(candidate_obstacle.rectangle.depth - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ) )
@@ -104,9 +104,10 @@ void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray)
     if(rectangleDetected)
     {
             current_obstacle = obsarray->objects[IclosestObject];
-            ROS_INFO("Clostest object: Obs is %f wide and %f deep", current_obstacle.rectangle.width, current_obstacle.rectangle.depth);
+          /*  ROS_INFO("Clostest object: Obs is %f wide and %f deep", current_obstacle.rectangle.width, current_obstacle.rectangle.depth);
             ROS_INFO("Obs x: %f, obs y: %f", current_obstacle.rectangle.pose.position.x, current_obstacle.rectangle.pose.position.y);
             ROS_INFO("Vx: %f, Vy %f", current_obstacle.rectangle.vel.x, current_obstacle.rectangle.vel.y);
+            */
             quaternion_x = obsarray->objects[IclosestObject].rectangle.pose.orientation.x;
             quaternion_y = obsarray->objects[IclosestObject].rectangle.pose.orientation.y;
             quaternion_z = obsarray->objects[IclosestObject].rectangle.pose.orientation.z;
