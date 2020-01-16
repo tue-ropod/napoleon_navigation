@@ -16,8 +16,8 @@ delta_dot_limit: 0.5
 a_max: 0.5
 v_obs_overtake_max: 0.1
 min_dist_to_overtake: 3.0
-start_steering_early_right: 1.0
-start_steering_early_left: 0.6
+start_steering_early_right: 0.5 # 0.5
+start_steering_early_left: 0.6 # 0.6
 rotated_enough_thres: 1.05
 t_min_pred: 10.0
 t_pred_wall_collision: 5.0

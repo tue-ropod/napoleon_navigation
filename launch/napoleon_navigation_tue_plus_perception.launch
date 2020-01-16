@@ -62,9 +62,9 @@
 
         <!-- initial pose of the robot in TU/e hallway-->
 
-        <param name="initial_pose_x" value="9.1"/>
-        <param name="initial_pose_y" value="7.3"/>
-        <param name="initial_pose_a" value="-3.14"/>
+        <param name="initial_pose_x" value="0.784"/>
+        <param name="initial_pose_y" value="1.704"/>
+        <param name="initial_pose_a" value="-0.075"/>
 
 
         <!-- initial pose of the robot in BRSU-->
@@ -90,13 +90,19 @@
         <param name="default_ropod_load_navigation_param_file" value ="$(find napoleon_navigation)/config/footprint_local_planner_params_ropod_load.yaml"/>
 
         <!-- In Gazebo: -->
-        <remap from="/napoleon_navigation/cmd_vel" to="/load/cmd_vel"/>
+        <remap from="/napoleon_navigation/cmd_vel" to="/ropod/load/cmd_vel"/>
         <!-- On ropod: -->
         <!--<remap from="/napoleon_navigation/cmd_vel" to="/ropod_tue_1/cmd_vel"/>-->
         <remap from="/napoleon_navigation/odom" to="/$(arg robotName)/odom"/>
         <remap from="/napoleon_navigation/scan" to="/$(arg robotName)/$(arg laser1_name)/scan"/>
 
     </node>
-
+    <node name="config_switcher" pkg="napoleon_navigation" type="config_switcher" output="screen">
+        <param name="ropod_config_file" value="$(find napoleon_navigation)/config/napoleon_navigation_ropod.yaml"/>
+        <param name="load_config_file" value="$(find napoleon_navigation)/config/napoleon_navigation_load.yaml"/>
+        <param name="navigation_node_name" value="napoleon_navigation"/>
+        <param name="loop_rate" value="0.2" type="double" />
+        <remap from="~load_topic" to="/route_navigation/set_load_attached" />
+    </node>
 
 </launch>
