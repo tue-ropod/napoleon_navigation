@@ -16,6 +16,7 @@ class ConfigSwitcher(object):
 
         self.ropod_config = yaml.load(open(self.ropod_config_file_name, 'r'))
         self.load_config = yaml.load(open(self.load_config_file_name, 'r'))
+        self.set_node_parameters(self.ropod_config) #  Default
 
         # Node cycle rate (in hz)
         self.loop_rate = rospy.Rate(rospy.get_param('~loop_rate', 0.2))
