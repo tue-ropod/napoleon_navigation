@@ -35,6 +35,7 @@ struct NapoleonConfig
 
     double DELTA_DOT_LIMIT; // Max steering rate per second [rad/s]
     double A_MAX; // Maximum acceleration magnitude [m/s^2]
+    // double A_START; // Acceleration when starting [m/s^2]
     // Obstacle
     double V_OBS_OVERTAKE_MAX; // Max speed an obstacle can have to overtake is [m/s]
     double MIN_DIST_TO_OVERTAKE; // Don't start earlier than x meters to overtake [m]

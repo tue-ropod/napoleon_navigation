@@ -626,7 +626,7 @@ bool does_line_intersect_shape(Point p0, Point p1, AreaQuad shape) {
 
 // Case where circle is completely within shape is not considered as this is
 // not very likely to occur with the sizes of the objects, plus the velocity
-// adaptation will also work of a few prediction samples say 'no collision',
+// adaptation will also work if a few prediction samples say 'no collision',
 // as long as the other samples notice a collision.
 bool doesShapeCollideWithCircle(double shape[][2], Point c, double r) {
     int shapesize = 4;  // Only working for rectangles for now
@@ -869,8 +869,8 @@ vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID 
             // disp(['Use node: ', shiftedOBJ2{2}, ' as front wall point']);
             // disp(['Use node: ', shiftedOBJ2{1}, ' as pivot']);
             // disp('-------------------------------');
-            // Wallpoint rear, wallpoint front, pivoting point
             intersectiontask = {OBJ2_point_IDs[2], OBJ2_point_IDs[1], next_left_wall_hallway[1], next_left_wall_hallway[0], OBJ2_point_IDs[0], "right", next_right_wall_hallway[0], next_right_wall_hallway[1]};
+	    // First wall rear, First wall front, Second wall rear, Second wall front, pivoting point, turning direction, wall to follow rear, wall to follow front
         } else if (index_dir == 3) {
             next_right_wall_hallway = getWallPointsAwayFromB(OBJ3,OBJ2);
             // disp('Corner/intersection: turn left');
@@ -879,7 +879,7 @@ vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID 
             // disp(['Use node: ', shiftedOBJ2{4}, ' as pivot']);
             // disp('-------------------------------');
             intersectiontask = {OBJ2_point_IDs[1], OBJ2_point_IDs[2], next_right_wall_hallway[0], next_right_wall_hallway[1], OBJ2_point_IDs[3],"left", next_right_wall_hallway[0], next_right_wall_hallway[1] };
-            // Wallpoint rear, wallpoint front, pivoting point
+            // First wall rear, First wall front, Second wall rear, Second wall front, pivoting point, turning direction, wall to follow rear, wall to follow front
         } else {
             ROS_INFO("Cannot turn around 2nd or 3rd node");
         }

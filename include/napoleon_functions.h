@@ -60,7 +60,7 @@ string get_date(void);
 
 // State of ropod
 enum{
-    CRUSING = 1,
+    CRUISING = 1,
     ENTRY_BEFORE_TURN_ON_INTERSECTION,
     ACCELERATE_ON_INTERSECTION,
     ALIGN_AXIS_AT_INTERSECTION, //  (& slow down)
@@ -68,7 +68,8 @@ enum{
     ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION,
     GOING_STRAIGHT_ON_INTERSECTION,
     TIGHT_OVERTAKE,     // (follow left wall)
-    SPACIOUS_OVERTAKE   // (shift right wall to left virtually)
+    SPACIOUS_OVERTAKE,   // (shift right wall to left virtually)
+    DEPARTURE
 };
 
 #endif
