@@ -8,7 +8,7 @@
 	<!--<arg name="map_file" default="$(find ropod_navigation_test)/config/amk-f064/map.yaml"/>-->
         <!--<arg name="map_file" default="/home/cesar/ropod-project-software/catkin_workspace/src/applications/occupancy_grids/tue/lab-level/map.yaml"/>-->
 
-         <arg name="map_file" default="$(find ed_object_models)/models/tue_hallway_RLtoAL/walls/shape/map_2DoorsOpen.yaml" />
+         <arg name="map_file" default="$(find ed_object_models)/models/tue_hallway_RLtoAL/walls/shape/straight_hallway.yaml" />
 
       <!-- <arg name="map_file" default="/home/ropod/ropod-project-software/catkin_workspace/src/applications/occupancy_grids/brsu/brsu-c-floor0_osm/map.yaml" />  -->
  
@@ -61,17 +61,12 @@
         <param name="laser_model_type" value="likelihood_field"/>
 
         <!-- initial pose of the robot in TU/e hallway-->
-		
-		
-        <param name="initial_pose_x" value="9.1"/> 
-        <param name="initial_pose_y" value="7.3"/>
-        <param name="initial_pose_a" value="-3.14"/>
-		
-		<!--
-		<param name="initial_pose_x" value="-1.39"/> 
-        <param name="initial_pose_y" value="1.81"/>
-        <param name="initial_pose_a" value="0"/>
-        -->
+
+        <param name="initial_pose_x" value="9.7"/> 
+        <param name="initial_pose_y" value="-8.5	"/>
+        <param name="initial_pose_a" value="1.57"/>
+
+
         <!-- initial pose of the robot in BRSU-->
         <!--       
         <param name="initial_pose_x" value="59.74"/>
