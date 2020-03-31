@@ -1,0 +1,187 @@
+rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
+    -
+      id: '1003'
+      name: 'H3'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'H3_1'
+          id: '102'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: 6.5
+                y: 15.5
+                id: 4
+              -
+                x: 6.5
+                y: -10.3
+                id: 6
+              -
+                x: 10.5
+                y: -10.3
+                id: 7
+              -
+                x: 10.5
+                y: 15.5
+                id: 5
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '1002'
+      name: 'H2'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'H2_1'
+          id: '101'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: 6.5
+                y: 16
+                id: 2
+              -
+                x: 6.5
+                y: 15.5
+                id: 4
+              -
+                x: 10.5
+                y: 15.5
+                id: 5
+              -
+                x: 10.5
+                y: 16
+                id: 3
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '1000'
+      name: 'H1'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'H1_1'
+          id: '100'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: 6.5
+                y: 16.5
+                id: 0
+              -
+                x: 6.5
+                y: 16
+                id: 2
+              -
+                x: 10.5
+                y: 16
+                id: 3
+              -
+                x: 10.5
+                y: 16.5
+                id: 1
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0" -1        
