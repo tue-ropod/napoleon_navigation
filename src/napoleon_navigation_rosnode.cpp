@@ -84,8 +84,8 @@ void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray)
     //{
         //ed_gui_server::objPosVel candidate_obstacle = obsarray->objects[iObs];
 
-        //bool check1 =  candidate_obstacle.rectangle.probability > 0.5 ;
-        //bool check2 =  std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
+        //bool check1 = candidate_obstacle.rectangle.probability > 0.5 ;
+        //bool check2 = std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
         //bool check3 = std::fabs(candidate_obstacle.rectangle.depth - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
 
         //std::cout << "Checks = " << check1 << check2 << check3 << std::endl;
@@ -1314,8 +1314,8 @@ void computeSteeringAndVelocity()
     //ROS_INFO("pred_accel: %f", pred_accel[j]);
 }
 
-std_msgs::Float64 future_pose;
-ros::Publisher fut_pose_pub;
+std_msgs::Float64 fut_phi;
+ros::Publisher fut_phi_pub;
 
 /**
  * Simulate robot during current prediction step.
@@ -1348,8 +1348,8 @@ void simulateRobotDuringCurrentPredictionStep()
 	//And if so, publish it.
 	if(abs(m - FutureTimeStampIndex) < 0.5) //Inequality because we're comparing a double to an integer
 	{
-	  future_pose.data = pred_phi[m];
-	  fut_pose_pub.publish(future_pose);
+	  fut_phi.data = pred_phi[m];
+	  fut_phi_pub.publish(fut_phi);
 	  //ROS_WARN("Predicted theta & timestamp counter");
 	  //printf("Predicted theta: %f \n", pred_theta[m]);  
 	  //printf("Timestamp - counter: %f \n", m - FutureTimeStampIndex);
@@ -1374,7 +1374,6 @@ Rectangle computeGlobalFreeArea(Rectangle local_freeNavArea, double rw_angle)
 void visualizeDilatedVehicle(std::vector<std::vector<AreaQuad>> footprint_list, int vis_id)
 {
 	std::vector<AreaQuad> footprint;
-	//TODO: decide if using int k counter for footprint, or local for loop to cycle through.
 	visualization_msgs::Marker vis_dil_Vehicle;
 	vis_dil_Vehicle.header.frame_id = "/map";
 	vis_dil_Vehicle.header.stamp = ros::Time::now();
@@ -1398,8 +1397,7 @@ void visualizeDilatedVehicle(std::vector<std::vector<AreaQuad>> footprint_list, 
 	  vis_dil_Vehicle.color.b = 0.3*iSize;
 	  
 	  footprint = footprint_list[iSize];
-		
-	  
+	
 	  for(unsigned int iPred = 0; iPred < footprint.size()-2; iPred+=3)
 	  {
 	    area_corner.x = footprint[iPred].p0.x;
@@ -1521,7 +1519,7 @@ void createFreeNavigationBoundingBox()
     Rectangle freeNavigationLeftLane_C;
     Rectangle freeNavigationLeftLane_L;
 
-    if(j==1) laser_point_in_context.clear();
+    if (j==1) laser_point_in_context.clear();
 
     for(unsigned int iScan = 0; iScan < laser_meas_points.size(); iScan++)
     {
@@ -1529,26 +1527,24 @@ void createFreeNavigationBoundingBox()
         Point local_robot_wall_laser_point = coordGlobalToRopod(laser_point, pred_xy_ropod[j-1], rw_angle);
         distance_point_to_line = -distToLine(laser_point, rw_p_rear, rw_p_front);
         // consider only points within defined areas
-        if(j == 1)
+        if (j == 1)
         {
-            if ( 
-            (curr_area.type == "hallway" && isPointOnLeftSide(task1[0], task1[1], pointlist, laser_point, 2.0*config.TUBE_WIDTH_C) )
-            || ( next_area.type == "hallway" && isPointOnLeftSide(task2[0], task2[1], pointlist, laser_point, 2.0*config.TUBE_WIDTH_C) )
-            || ( next_second_area.type == "hallway" ) && isPointOnLeftSide(task3[0], task3[1], pointlist, laser_point, 2.0*config.TUBE_WIDTH_C) )
+            if ((curr_area.type == "hallway" && isPointOnLeftSide(task1[0], task1[1], pointlist, laser_point, 2.0*config.TUBE_WIDTH_C))
+            || ( next_area.type == "hallway" && isPointOnLeftSide(task2[0], task2[1], pointlist, laser_point, 2.0*config.TUBE_WIDTH_C))
+            || ( next_second_area.type == "hallway" ) && isPointOnLeftSide(task3[0], task3[1], pointlist, laser_point, 2.0*config.TUBE_WIDTH_C))
             {
                 laser_point_in_context.push_back(true);
             }
             else
             {
                 laser_point_in_context.push_back(false);
-            }
-            
+            }         
         }
         if (laser_point_in_context[iScan])
         {
 	  //printf("Laser point location %f \n", local_robot_wall_laser_point.x);
 	  //printf("Distance point to line %f \n", distance_point_to_line);
-            if(distance_point_to_line > 0 && distance_point_to_line < (2.0*config.TUBE_WIDTH_C) && local_robot_wall_laser_point.x > (-config.ROPOD_TO_AX)  && local_robot_wall_laser_point.x < minFreeSpaceDepth-config.ROPOD_TO_AX)
+            if(distance_point_to_line > 0 && (distance_point_to_line < 2.0*config.TUBE_WIDTH_C) && local_robot_wall_laser_point.x > (-config.ROPOD_TO_AX)  && local_robot_wall_laser_point.x < minFreeSpaceDepth-config.ROPOD_TO_AX)
             {
 	      //printf("Right lane space left %f \n", right_lane_space_left);
 	      //printf("Right lane space right %f \n", right_lane_space_right);
@@ -1581,7 +1577,6 @@ void createFreeNavigationBoundingBox()
                     if( distance_point_to_line >= (1.5*config.TUBE_WIDTH_C) && (distance_point_to_line - 1.5*config.TUBE_WIDTH_C) <   left_lane_space_center_left )
                         left_lane_space_center_left = (distance_point_to_line - 1.5*config.TUBE_WIDTH_C);
                 }
-
             }
         }
     }
@@ -1601,8 +1596,7 @@ void createFreeNavigationBoundingBox()
     local_freeNavArea.y = 0.5*local_freeNavArea.width - distance_robot_to_wall + (0.5*config.TUBE_WIDTH_C - right_lane_space_center_right);
     freeNavigationRightLane_C = computeGlobalFreeArea(local_freeNavArea, rw_angle);
 
-    if ( freeNavigationRightLane_R.width >= freeNavigationRightLane_C.width)
-
+    if (freeNavigationRightLane_R.width >= freeNavigationRightLane_C.width)
     {
         freeNavigationRightLaneRight = freeNavigationRightLane_R;
     }
@@ -1613,14 +1607,12 @@ void createFreeNavigationBoundingBox()
 
     visualizeGlobalFreeArea(freeNavigationRightLaneRight, rw_angle, 100);
 
-
     local_freeNavArea.width = fmin(right_lane_space_left + left_lane_space_right, config.TUBE_WIDTH_C);
     local_freeNavArea.depth = minFreeSpaceDepth;
     local_freeNavArea.x = 0.5*local_freeNavArea.depth-config.ROPOD_TO_AX;
     local_freeNavArea.y = 0.5*local_freeNavArea.width - distance_robot_to_wall + (config.TUBE_WIDTH_C - right_lane_space_left);
     freeNavigationCenter = computeGlobalFreeArea(local_freeNavArea, rw_angle);
     //visualizeGlobalFreeArea(freeNavigationCenter, rw_angle, 101);
-
 
     local_freeNavArea.width = left_lane_space_center_left + left_lane_space_center_right;
     local_freeNavArea.depth = minFreeSpaceDepth;
@@ -1642,11 +1634,7 @@ void createFreeNavigationBoundingBox()
         freeNavigationLeftLaneLeft = freeNavigationLeftLane_L;
 
     visualizeGlobalFreeArea(freeNavigationLeftLaneLeft, rw_angle, 104);
-
-
 }
-
-
 
 void considerOvertaking()
 {
@@ -1654,30 +1642,33 @@ void considerOvertaking()
     // TODO: Add freeNavigationLeftLaneLeft;
     // TODO: This function might not be necessary
     overtake_on_current_hallway = false;
-    if (u < ka_max-1) {
-        if(curr_area.type == "hallway"){
+    if (u < ka_max-1) 
+    {
+        if (curr_area.type == "hallway")
+	{
             current_hallway = curr_area;
             current_hallway_task = task1;
             overtake_on_current_hallway = true;
-
         }
     }
 }
-
 
 void overtakeStateMachine()
 {
     // TODO: filter fastest obstacle in front of the robot
     v_obs_sq = current_obstacle.rectangle.vel.x*current_obstacle.rectangle.vel.x+current_obstacle.rectangle.vel.y*current_obstacle.rectangle.vel.y;
-    if ((v_obs_sq < config.V_OBS_OVERTAKE_MAX*config.V_OBS_OVERTAKE_MAX) && overtake_on_current_hallway) {
+    if ((v_obs_sq < config.V_OBS_OVERTAKE_MAX*config.V_OBS_OVERTAKE_MAX) && overtake_on_current_hallway) 
+    {
         rw_p_rear = getPointByID(current_hallway_task[0],pointlist);
         rw_p_front = getPointByID(current_hallway_task[1],pointlist);
         cur_obj = current_hallway;
         areaIDs = cur_obj.getPointIDs();
         ind = 0;
         qmax = areaIDs.size();
-        for (int q = 0; q < qmax; ++q) {
-            if (areaIDs[q].compare(rw_p_rear.id) == 0) {
+        for (int q = 0; q < qmax; ++q) 
+	{
+            if (areaIDs[q].compare(rw_p_rear.id) == 0) 
+	    {
                 ind = q;
             }
         }
@@ -1686,13 +1677,16 @@ void overtakeStateMachine()
         lw_p_front = getPointByID(areaIDs[2],pointlist);
         // TODO: Add freeNavigationLeftLaneLeft;
 
-        if (freeNavigationRightLaneRight.width >= config.TUBE_WIDTH_C) {
+        if (freeNavigationRightLaneRight.width >= config.TUBE_WIDTH_C) 
+	{
             if (j == 1) ROS_INFO("No overtake necessary, passing on right should be possible");
 	    //printf("RightlaneRight width %f \n", freeNavigationRightLaneRight.width);
 	    //printf("RightlaneRight depth %f \n", freeNavigationRightLaneRight.depth);
 	    //printf("Tube width %f \n", config.TUBE_WIDTH_C);
             shift_wall = 0;
-        } else if (freeNavigationRightLaneRight.width > 2*(config.SIZE_SIDE+config.OBS_AVOID_MARGIN)) {
+        } 
+        else if (freeNavigationRightLaneRight.width > 2*(config.SIZE_SIDE+config.OBS_AVOID_MARGIN)) 
+	{
             // Same state, but change tube width so ropod will
             // fit through space right
             Point wall_pos(freeNavigationRightLaneRight.x, freeNavigationRightLaneRight.y);
@@ -1700,28 +1694,32 @@ void overtakeStateMachine()
             shift_wall = distAreatoWall - freeNavigationRightLaneRight.width/2;
             pred_tube_width[j] = freeNavigationRightLaneRight.width;
             if (j == 1) ROS_INFO("No overtake necessary, but tube size scaled down");
-        } else if (freeNavigationLeftLaneLeft.width > 2*(config.SIZE_SIDE+config.OBS_AVOID_MARGIN)) {
+        } 
+        else if (freeNavigationLeftLaneLeft.width > 2*(config.SIZE_SIDE+config.OBS_AVOID_MARGIN)) {
             if (j == 1) ROS_INFO("Can overtake on left side, there should be enough space there");
             // Start overtake
-            if (freeNavigationLeftLaneLeft.width < 2*(config.SIZE_SIDE+config.ENV_TRNS_SIZE)) {
+            if (freeNavigationLeftLaneLeft.width < 2*(config.SIZE_SIDE+config.ENV_TRNS_SIZE)) 
+	    {
                 if (j == 1) ROS_INFO("Tight overtake");
                 pred_state[j] = TIGHT_OVERTAKE;
-            } else {
+            } 
+            else 
+	    {
                 if (j == 1) ROS_INFO("Spacious overtake");
                 pred_state[j] = SPACIOUS_OVERTAKE;
                 // TODO: for now obstacle angle is aligned with wall (from bounding box) So only width is looked at
-
             }
             Point wall_pos(freeNavigationLeftLaneLeft.x, freeNavigationLeftLaneLeft.y);
             double distAreatoWall = -distToLine(wall_pos, rw_p_rear, rw_p_front);
             shift_wall = distAreatoWall - freeNavigationLeftLaneLeft.width/2 + config.OBS_AVOID_MARGIN;
             pred_tube_width[j] = freeNavigationLeftLaneLeft.width;
-        } else {
+        } 
+        else 
+	{
             if (j == 1) ROS_INFO("No overtake possible, stuck behind this obstacle");
             shift_wall = 0;
         }
     }
-
 }
 
 /**
@@ -1730,7 +1728,8 @@ void overtakeStateMachine()
  * */
 void checkForCollisions()
 {
-    if (no_obs > 0) {
+    if (no_obs > 0) 
+    {
         pred_x_obs[j] = pred_x_obs[j-1]+current_obstacle.rectangle.vel.x*TS*F_FSTR;
         pred_y_obs[j] = pred_y_obs[j-1]+current_obstacle.rectangle.vel.y*TS*F_FSTR;
     }
@@ -1745,11 +1744,8 @@ void checkForCollisions()
     pred_ropod_dil_rt.x = pred_x_rearax[m] + (config.SIZE_FRONT_RAX+(config.OBS_AVOID_MARGIN_FRONT*v_scale))*cos(pred_theta[m]) + (config.SIZE_SIDE+(config.OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]-M_PI/2);
     pred_ropod_dil_rt.y = pred_y_rearax[m] + (config.SIZE_FRONT_RAX+(config.OBS_AVOID_MARGIN_FRONT*v_scale))*sin(pred_theta[m]) + (config.SIZE_SIDE+(config.OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]-M_PI/2);
     AreaQuad robot_footprint(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt);
-    //std::vector<AreaQuad> robot_footprint_list;
     robot_footprint_list.push_back(robot_footprint);
-    
-    //visualizeDilatedVehicle(robot_footprint, 200);
-    
+
     ropod_colliding_obs = false;
     pred_ropod_colliding_obs[j] = false;
     // Obstacle detection (crappy implementation in C++)
@@ -1784,18 +1780,20 @@ void checkForCollisions()
     // Predict intersection times (left out for now)
     // TODO: Finish next line to add checking collision with walls!
     // Predict intersection with walls
-     if (t_pred[m] < config.T_PRED_WALL_COLLISION) {
+    if (t_pred[m] < config.T_PRED_WALL_COLLISION) 
+    {
         rw_p_rear = getPointByID(task1[0],pointlist);
         Point rw_p_rear_noid(rw_p_rear.x,rw_p_rear.y);
         rw_p_front = getPointByID(task1[1],pointlist);
         Point rw_p_front_noid(rw_p_front.x,rw_p_front.y);
         double distance_point_to_line = -distToLine(pred_xy_ropod[j-1], rw_p_rear, rw_p_front);
         bool ropod_intersect_wall = does_line_intersect_shape(rw_p_rear_noid, rw_p_front_noid, robot_footprint);
-        if(distance_point_to_line > 0 && ropod_intersect_wall == false)
+        if (distance_point_to_line > 0 && ropod_intersect_wall == false)
         {
             robot_left_side_wall_first_time = true;
         }
-        if(distance_point_to_line > 0 && robot_left_side_wall_first_time){ // if ropod is at the right side of the wall and ropod did not start colliding virtual wall (allow to recover)
+        if (distance_point_to_line > 0 && robot_left_side_wall_first_time) // if ropod is at the right side of the wall and ropod did not start colliding virtual wall (allow to recover)
+	{ 
             ropod_colliding_wall = does_line_intersect_shape(rw_p_rear_noid, rw_p_front_noid, robot_footprint);
         }
      }
@@ -2226,7 +2224,6 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                 pred_xy_ropod[j].x = pred_x_ropod[j];
                 pred_xy_ropod[j].y = pred_y_ropod[j];
                 pred_v_ropod_plan[j] = pred_v_ropod[m];
-
                 if (j == 1) {
                     //ROS_INFO("v[0] = %f, a[1] = %f, ts = %f, v[1] = %f", pred_v_ropod[0], pred_accel[j], TS, pred_v_ropod_plan[j]);
                     // ROS_INFO("v[0] = %f, a[1] = %f, deltav = %f, v[1] = %f", pred_v_ropod[0], pred_accel[j], pred_accel[j]*F_PLANNER, pred_v_ropod[0]+pred_accel[1]*F_PLANNER);
@@ -2489,7 +2486,7 @@ int main(int argc, char** argv)
 
     ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
-    fut_pose_pub = nroshndl.advertise<std_msgs::Float64>("/MO/future_pose", 1, true);
+    fut_phi_pub = nroshndl.advertise<std_msgs::Float64>("/MO/fut_phi", 1, true);
 
     // Visualize map nodes and robot
     ropodmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/ropodpoints", 1);

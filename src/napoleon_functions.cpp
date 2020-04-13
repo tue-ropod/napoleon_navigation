@@ -327,9 +327,11 @@ double distToEndSegmentSquared(Point p, PointID v, PointID w) {
 
 double distToEndSegmentSquared(Point p, Point v, Point w) {
     double l2 = dist2(v, w);
-    if (l2 == 0) {
+    if (l2 == 0) 
+    {
         return 0.0;
-    } else {
+    } else 
+    {
         double t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
         t = max(0.0, min(1.0, t));
         return dist2(w, Point(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y)));
@@ -361,9 +363,10 @@ bool do_lines_intersect(Point p0, Point p1, Point p2, Point p3) {
     double s2_y = p3.y - p2.y;
     double s = (-s1_y * (p0.x - p2.x) + s1_x * (p0.y - p2.y)) / (-s2_x * s1_y + s1_x * s2_y);
     double t = ( s2_x * (p0.y - p2.y) - s2_y * (p0.x - p2.x)) / (-s2_x * s1_y + s1_x * s2_y);
-    if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+    if (s >= 0 && s <= 1 && t >= 0 && t <= 1){
         return true;
-    } else {
+    } else
+    {
         return false; // No intersection
     }
 }
