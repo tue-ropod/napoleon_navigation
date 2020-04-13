@@ -24,21 +24,21 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
           geometry:
             vertices:
               -
-                x: 6.5
-                y: 15.5
-                id: 4
-              -
-                x: 6.5
-                y: -10.3
+                x: 3.75
+                y: 5.59
                 id: 6
               -
-                x: 10.5
-                y: -10.3
+                x: 9.7
+                y: 5.59
                 id: 7
               -
-                x: 10.5
-                y: 15.5
-                id: 5
+                x: 9.7
+                y: 8.03
+                id: 4
+              -
+                x: 3.75
+                y: 8.03
+                id: 3
           right:
             point1:
               x: 0
@@ -63,12 +63,12 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
             id: 0
     -
       id: '1002'
-      name: 'H2'
-      type: 'corridor'
+      name: 'J2'
+      type: 'junction'
       floor_number: 0
       sub_areas:
         -
-          name: 'H2_1'
+          name: 'J2_1'
           id: '101'
           floor_number: 0
           type: ''
@@ -86,20 +86,20 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
           geometry:
             vertices:
               -
-                x: 6.5
-                y: 16
+                x: 1.23
+                y: 8.03
                 id: 2
               -
-                x: 6.5
-                y: 15.5
-                id: 4
-              -
-                x: 10.5
-                y: 15.5
+                x: 1.23
+                y: 5.59
                 id: 5
               -
-                x: 10.5
-                y: 16
+                x: 3.75
+                y: 5.59
+                id: 6
+              -
+                x: 3.75
+                y: 8.03
                 id: 3
           right:
             point1:
@@ -148,20 +148,20 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
           geometry:
             vertices:
               -
-                x: 6.5
-                y: 16.5
+                x: 1.23
+                y: 12
                 id: 0
               -
-                x: 6.5
-                y: 16
+                x: 1.23
+                y: 8.03
                 id: 2
               -
-                x: 10.5
-                y: 16
+                x: 3.75
+                y: 8.03
                 id: 3
               -
-                x: 10.5
-                y: 16.5
+                x: 3.75
+                y: 12
                 id: 1
           right:
             point1:
