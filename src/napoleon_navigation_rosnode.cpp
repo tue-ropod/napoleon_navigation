@@ -388,6 +388,8 @@ bool pred_ropod_on_entry_inter[size_p] {false};
 bool pred_ropod_on_entry_hall[size_p] {false};
 double pred_x_ropod[size_p] {x_ropod_0};
 double pred_y_ropod[size_p] {y_ropod_0};
+double pred_sim_x_ropod[size_m] {x_ropod_0};
+double pred_sim_y_ropod[size_m] {y_ropod_0};
 double pred_x_obs[size_p] {0};
 double pred_y_obs[size_p] {0};
 double v_obs_sq = 0;
@@ -1316,6 +1318,8 @@ void computeSteeringAndVelocity()
 
 std_msgs::Float64 fut_phi;
 ros::Publisher fut_phi_pub;
+nav_msgs::Odometry pred_pose_vel;
+ros::Publisher pred_pose_vel_pub;
 
 /**
  * Simulate robot during current prediction step.
@@ -1340,9 +1344,19 @@ void simulateRobotDuringCurrentPredictionStep()
         pred_xdot[m] = pred_v_ropod[m]*cos(pred_phi[m])*cos(pred_theta[m]);
         pred_ydot[m] = pred_v_ropod[m]*cos(pred_phi[m])*sin(pred_theta[m]);
         pred_thetadot[m] = pred_v_ropod[m]*1/config.D_AX*sin(pred_phi[m]);
-
+      
         pred_x_rearax[m] = pred_x_rearax[m-1]+pred_xdot[m]*TS;
         pred_y_rearax[m] = pred_y_rearax[m-1]+pred_ydot[m]*TS;
+	pred_sim_x_ropod[m] = pred_x_rearax[m]+config.D_AX*cos(pred_theta[m]);
+        pred_sim_y_ropod[m] = pred_y_rearax[m]+config.D_AX*sin(pred_theta[m]);
+	
+	pred_pose_vel.pose.pose.position.x = pred_sim_x_ropod[m];
+	pred_pose_vel.pose.pose.position.y = pred_sim_y_ropod[m];
+	pred_pose_vel.twist.twist.linear.x = pred_v_ropod[m]*cos(pred_phi[m]);
+	pred_pose_vel.twist.twist.linear.y = t_pred[m];
+	pred_pose_vel.twist.twist.angular.z = pred_thetadot[m];
+	pred_pose_vel.header.stamp = ros::Time::now();;
+	pred_pose_vel_pub.publish(pred_pose_vel);
 	
 	//Check if prediction index is equal to the desired future heading time
 	//And if so, publish it.
@@ -2282,6 +2296,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         //     publishZeroVelocity();
         // }
         if (control_v > 0) {
+	    printf("Control velocity %f \n", control_v);
             v_ax = cos(pred_phi_des[1])*control_v;
             theta_dot = control_v/config.D_AX*sin(pred_phi_des[1]);
             geometry_msgs::Twist cmd_vel;
@@ -2292,7 +2307,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         } else {
 	    v_ax = cos(pred_phi_des[1])*control_v;
             geometry_msgs::Twist cmd_vel;
-            cmd_vel.linear.x = v_ax;//0.0;
+            cmd_vel.linear.x = v_ax;
             cmd_vel.linear.y = 0.0;
             cmd_vel.angular.z = 0.0;
             vel_pub.publish(cmd_vel);
@@ -2487,7 +2502,8 @@ int main(int argc, char** argv)
     ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     fut_phi_pub = nroshndl.advertise<std_msgs::Float64>("/MO/fut_phi", 1, true);
-
+    pred_pose_vel_pub = nroshndl.advertise<nav_msgs::Odometry>("/ropod/pred_pose_vel", 1, true);
+    
     // Visualize map nodes and robot
     ropodmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/ropodpoints", 1);
     mapmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/wmnodes", 100, true);
