@@ -69,7 +69,8 @@ enum{
     GOING_STRAIGHT_ON_INTERSECTION,
     TIGHT_OVERTAKE,     // (follow left wall)
     SPACIOUS_OVERTAKE,   // (shift right wall to left virtually)
-    DEPARTURE
+    DEPARTURE,
+    EXIT_TURN_RIGHT
 };
 
 #endif

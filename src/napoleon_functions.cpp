@@ -291,7 +291,7 @@ double distToSegmentSquared(Point p, Point v, Point w) {
 }
 
 double perpDistToSegment(Point p, PointID v, PointID w) {
-    // P point, v, w points of line segmens
+    // P point, v, w points of line segments
     Point v_noid(v.x,v.y);
     Point w_noid(w.x,w.y);
     return perpDistToSegment(p, v_noid, w_noid);
@@ -319,7 +319,7 @@ double perpDistToSegment(Point p, Point v, Point w) {
     }
 }
 double distToEndSegmentSquared(Point p, PointID v, PointID w) {
-    // P point, v, w points of line segmens
+    // P point, v, w points of line segments
     Point v_noid(v.x,v.y);
     Point w_noid(w.x,w.y);
     return distToEndSegmentSquared(p, v_noid, w_noid);

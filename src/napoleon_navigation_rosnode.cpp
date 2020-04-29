@@ -570,6 +570,7 @@ void dynamicReconfigureCallback(napoleon_navigation::NapoleonNavigationConfig &d
         config.REACHEDTARGETTHRESHOLD = dyn_config.reached_target_threshold;
         config.ENTRY_LENGTH = dyn_config.entry_length;
         config.SHARP_ANGLE_THRESHOLD = dyn_config.sharp_angle_threshold;
+	config.TURN_OFFSET = dyn_config.turn_offset;
 
     }
 
@@ -762,12 +763,12 @@ void updateStateAndTask()
 
     // Taking a turn on an intersection
     if (!task2[5].empty()) {
-        if (real_time_est <= 1) {       // First second is reserved for departure, in which a backwards movement is made.
+        /*if (real_time_est <= 1) {       // First second is reserved for departure, in which a backwards movement is made.
             pred_state[j] = DEPARTURE;  // Smarter statement is needed, so departure can also happen after ropod has stopped for some time and starts moving again
         //printf("Ropod entry hall task2[5] non empty: %d\n",(int)pred_ropod_on_entry_hall[j]);
         } else if (real_time_est >= 1 && pred_state[prevstate] == DEPARTURE){
             pred_state[j] = CRUISING;
-        } else if (pred_ropod_on_entry_hall[j] && (pred_state[prevstate] == DEPARTURE || pred_state[prevstate] == CRUISING || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == TIGHT_OVERTAKE) ){                
+        } else*/ if (pred_ropod_on_entry_hall[j] && (pred_state[prevstate] == DEPARTURE || pred_state[prevstate] == CRUISING || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == TIGHT_OVERTAKE) ){                
             pred_state[j] = pred_state[prevstate];
             //disp([num2str(i), ': Here we can switch to the next hallway']);
             u = u+1;
@@ -817,7 +818,7 @@ void updateStateAndTask()
                     standard_steering_offset =  fmin( 0.0, fabs(cur_pivot_local.y)
                                     - (sqrt(dist2(getPoint(point_right_entry_next_wall), getPoint(point_pivot))) - config.TUBE_WIDTH_C/2.0)
                                     ) + config.ROPOD_TO_AX;
-                    steering_offset = 0.0;//standard_steering_offset; // + config.START_STEERING_EARLY_RIGHT
+                    steering_offset = 0.0; //standard_steering_offset + config.START_STEERING_EARLY_RIGHT;
                 }
                 else
                 {
@@ -887,12 +888,12 @@ void updateStateAndTask()
         }
     // Going straight on an intersection / or between hallways
     } else if (!task2[1].empty()) {      
-	if (real_time_est <= 1) {       // First second is reserved for departure, in which a backwards movement is made.
+	/*if (real_time_est <= 1) {       // First second is reserved for departure, in which a backwards movement is made.
             pred_state[j] = DEPARTURE;  // Smarter statement is needed, so departure can also happen after ropod has stopped for some time and starts moving again
         //printf("Ropod entry hall task2[5] non empty: %d\n",(int)pred_ropod_on_entry_hall[j]);
         } else if (real_time_est >= 1 && pred_state[prevstate] == DEPARTURE){
             pred_state[j] = CRUISING;
-	} else if (pred_ropod_on_entry_hall[j] && pred_state[prevstate] == CRUISING) {
+	} else*/ if (pred_ropod_on_entry_hall[j] && pred_state[prevstate] == CRUISING) {
             pred_state[j] = CRUISING;
             //disp([num2str(i), ': Here we can switch to the next hallway']);
             u = u+1;
@@ -1152,10 +1153,20 @@ void computeSteeringAndVelocity()
             point_rear = getPointByID(task1[0],pointlist);
             point_front = getPointByID(task1[1],pointlist);
 	    point_pivot = getPointByID(task1[4],pointlist);
-            glob_wallpoint_front.x = point_front.x;
-            glob_wallpoint_front.y = point_front.y;
-            glob_wallpoint_rear.x = point_rear.x;
-            glob_wallpoint_rear.y = point_rear.y;
+	    if (task2[5] == "right") {
+	      if(j==1) printf("Shifting wall for turn");
+	      //TODO: Adjust this to something smarter, so it works for different hallway widths
+	      wallang = atan2(point_front.y-point_rear.y,point_front.x-point_rear.x);
+	      glob_wallpoint_front.x = point_front.x+0.5*config.TUBE_WIDTH_C*cos(wallang+M_PI/2);
+	      glob_wallpoint_front.y = point_front.y+0.5*config.TUBE_WIDTH_C*sin(wallang+M_PI/2);
+	      glob_wallpoint_rear.x = point_rear.x+0.5*config.TUBE_WIDTH_C*cos(wallang+M_PI/2);
+	      glob_wallpoint_rear.y = point_rear.y+0.5*config.TUBE_WIDTH_C*sin(wallang+M_PI/2);
+	    } else {
+	      glob_wallpoint_front.x = point_front.x;
+	      glob_wallpoint_front.y = point_front.y;
+	      glob_wallpoint_rear.x = point_rear.x;
+	      glob_wallpoint_rear.y = point_rear.y;
+	    }
         }
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
@@ -1166,7 +1177,7 @@ void computeSteeringAndVelocity()
 	  showPivotPoint(cur_pivot_local, wallmarker_pub);
 	}
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
-        v_des = config.V_INTER_TURNING + ((config.V_CRUISING - config.V_INTER_TURNING)/0.81)*local_pivot.x;//config.V_ENTRY;
+        v_des = config.V_ENTRY;// + ((config.V_CRUISING - config.V_ENTRY)/config.ENTRY_LENGTH)*local_pivot.x;//config.V_ENTRY;
 	if(j==1) printf("Desired speed: %f \n", v_des);
     } else if (pred_state[j] == ACCELERATE_ON_INTERSECTION) {
         if(j==1) printf("ACCELERATE_ON_INTERSECTION\n");
@@ -1190,7 +1201,7 @@ void computeSteeringAndVelocity()
 	  showPivotPoint(cur_pivot_local, wallmarker_pub);
 	}
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
-        v_des = config.V_INTER_TURNING + ((config.V_CRUISING - config.V_INTER_TURNING)/0.81)*local_pivot.x;//config.V_INTER_ACC;
+        v_des = config.V_INTER_TURNING;// + ((config.V_CRUISING - config.V_INTER_TURNING)/0.81)*local_pivot.x;//config.V_INTER_ACC;
 	if(j==1) printf("Desired speed: %f \n", v_des);
         // Monitor if we don't bump into front wall
         if (update_state_points) {
@@ -1232,7 +1243,7 @@ void computeSteeringAndVelocity()
 	  showPivotPoint(cur_pivot_local, wallmarker_pub);
 	}
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
-        v_des = config.V_INTER_TURNING + ((config.V_CRUISING - config.V_INTER_TURNING)/0.81)*local_pivot.x;//config.V_INTER_DEC;
+        v_des = config.V_INTER_TURNING;// + ((config.V_CRUISING - config.V_INTER_TURNING)/0.81)*local_pivot.x;//config.V_INTER_DEC;
 	if(j==1) printf("Desired speed: %f \n", v_des);
         // Monitor if we don't bump into front wall
         if (update_state_points) {
@@ -1340,7 +1351,19 @@ void simulateRobotDuringCurrentPredictionStep()
         pred_phi[m] = (1-lpf)*pred_phi[m-1]+lpf*pred_phi_des[j];
         pred_theta[m] = wrapToPi(pred_theta[m-1]+pred_thetadot[m-1]*TS);
         pred_v_ropod[m] = pred_v_ropod[m-1]+pred_accel[j]*TS;
-
+	
+	if (abs(pred_phi[m]-pred_phi[m-1]) > config.DELTA_DOT_LIMIT*TS) {
+        //disp("Delta steering too large, steering saturated");
+        pred_phi[m] = pred_phi[m-1] + sgn(pred_phi[m]-pred_phi[m-1])*config.DELTA_DOT_LIMIT*TS;
+        // Decrease vel leads to better corners
+        // The velocity is already decreased in the state machine, but this is just a harsh backup
+        // pred_steer_rate_saturation[j] = 1;
+        if (pred_v_ropod[m] > config.V_STEERSATURATION) {
+            pred_v_ropod[m] = config.V_STEERSATURATION;
+        }
+        //disp(['In saturation - j: ', num2str(j) ,', Phides: ', num2str(pred_phi_des(j)), ' // Prev phides: ' , num2str(prev_pred_phi_des), ', v_des = ', num2str(v_des)]);
+	}
+	
         pred_xdot[m] = pred_v_ropod[m]*cos(pred_phi[m])*cos(pred_theta[m]);
         pred_ydot[m] = pred_v_ropod[m]*cos(pred_phi[m])*sin(pred_theta[m]);
         pred_thetadot[m] = pred_v_ropod[m]*1/config.D_AX*sin(pred_phi[m]);
@@ -1525,14 +1548,15 @@ void createFreeNavigationBoundingBox()
     double right_lane_space_center_right = 0.5*config.TUBE_WIDTH_C;
     Rectangle freeNavigationRightLane_R;
     Rectangle freeNavigationRightLane_C;
-
+    Rectangle freeNavigationRightLane_T;
+    
     double left_lane_space_left = config.TUBE_WIDTH_C;
     double left_lane_space_right = config.TUBE_WIDTH_C;
     double left_lane_space_center_left = 0.5*config.TUBE_WIDTH_C;
     double left_lane_space_center_right = 0.5*config.TUBE_WIDTH_C;
     Rectangle freeNavigationLeftLane_C;
     Rectangle freeNavigationLeftLane_L;
-
+    
     if (j==1) laser_point_in_context.clear();
 
     for(unsigned int iScan = 0; iScan < laser_meas_points.size(); iScan++)
@@ -1556,17 +1580,8 @@ void createFreeNavigationBoundingBox()
         }
         if (laser_point_in_context[iScan])
         {
-	  //printf("Laser point location %f \n", local_robot_wall_laser_point.x);
-	  //printf("Distance point to line %f \n", distance_point_to_line);
             if(distance_point_to_line > 0 && (distance_point_to_line < 2.0*config.TUBE_WIDTH_C) && local_robot_wall_laser_point.x > (-config.ROPOD_TO_AX)  && local_robot_wall_laser_point.x < minFreeSpaceDepth-config.ROPOD_TO_AX)
             {
-	      //printf("Right lane space left %f \n", right_lane_space_left);
-	      //printf("Right lane space right %f \n", right_lane_space_right);
-	      //printf("Right lane space center right %f \n", right_lane_space_center_right);
-	      //printf("Right lane space center left %f \n", right_lane_space_center_left);
-	      //ROS_WARN("if statement succesfully entered");
-	      //printf("Laser point location %f \n", local_robot_wall_laser_point.x);
-	      //printf("Distance point to line %f \n", distance_point_to_line);
                 // Process right lane
                 if(distance_point_to_line < config.TUBE_WIDTH_C)
                 {
@@ -1609,8 +1624,19 @@ void createFreeNavigationBoundingBox()
     local_freeNavArea.x = 0.5*local_freeNavArea.depth-config.ROPOD_TO_AX;
     local_freeNavArea.y = 0.5*local_freeNavArea.width - distance_robot_to_wall + (0.5*config.TUBE_WIDTH_C - right_lane_space_center_right);
     freeNavigationRightLane_C = computeGlobalFreeArea(local_freeNavArea, rw_angle);
+    
+    local_freeNavArea.width = right_lane_space_right;
+    local_freeNavArea.depth = minFreeSpaceDepth;
+    local_freeNavArea.x = 0.5*local_freeNavArea.depth-config.ROPOD_TO_AX;
+    local_freeNavArea.y = 0.5*local_freeNavArea.width + config.TURN_OFFSET;
+    freeNavigationRightLane_T = computeGlobalFreeArea(local_freeNavArea, rw_angle);
 
-    if (freeNavigationRightLane_R.width >= freeNavigationRightLane_C.width)
+    if (((pred_state[j] == ENTRY_BEFORE_TURN_ON_INTERSECTION || pred_state[j] == ACCELERATE_ON_INTERSECTION || pred_state[j] == ALIGN_AXIS_AT_INTERSECTION) && task2[5] == "right") || pred_state[j] == EXIT_TURN_RIGHT)
+    {
+	if (j==1) printf("Driving lane shifted for turn\n");
+	freeNavigationRightLaneRight = freeNavigationRightLane_T;
+    } 
+    else if (freeNavigationRightLane_R.width >= freeNavigationRightLane_C.width)
     {
         freeNavigationRightLaneRight = freeNavigationRightLane_R;
     }
@@ -2296,7 +2322,6 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         //     publishZeroVelocity();
         // }
         if (control_v > 0) {
-	    printf("Control velocity %f \n", control_v);
             v_ax = cos(pred_phi_des[1])*control_v;
             theta_dot = control_v/config.D_AX*sin(pred_phi_des[1]);
             geometry_msgs::Twist cmd_vel;
