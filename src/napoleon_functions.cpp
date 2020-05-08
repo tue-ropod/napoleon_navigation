@@ -361,12 +361,16 @@ double distToLine(Point p, Point v, Point w) {
     return numerator/denominator;
 }
 
-double distToEllipse(Point rc, Point C, PointID semi_major, PointID semi_minor) {
+double distToEllipse(Point rc, PointID C, PointID semi_major, PointID semi_minor) {
     // https://wet-robots.ghost.io/simple-method-for-distance-to-ellipse/
     // Point rc is ropod center, of which we want to know distance to ellipse
     // point C is center of ellipse
     // semi_minor is corner point above pivot, defining semi_minor axis
     // semi_major is corner point to the left/right of pivot, defining semi_major axis
+    
+    Point semi_majornoid(semi_major.x,semi_major.y);
+    Point semi_minornoid(semi_minor.x,semi_minor.y);
+    Point Cnoid (C.x,C.y);
     
     double t, a, b, x, y, ex, ey, rx, ry, qx, qy, r, q, delta_c, delta_t;
     Point point_on_ellipse;
@@ -378,16 +382,16 @@ double distToEllipse(Point rc, Point C, PointID semi_major, PointID semi_minor) 
     
     t = atan2(rc.y, rc.x);
     
-    a = sqrt(dist2(semi_major, C));
-    b = sqrt(dist2(semi_minor, C));
+    a = sqrt(dist2(semi_majornoid, Cnoid));
+    b = sqrt(dist2(semi_minornoid, Cnoid));
     
 
     for (int i = 0; i < 4; i++){
         x = a * cos(t);
         y = b * sin(t);
 
-        ex = (a*a - b*b) * cos(t)**3 / a;
-        ey = (b*b - a*a) * sin(t)**3 / b;
+        ex = (a*a - b*b) * cos(t)*cos(t)*cos(t) / a;
+        ey = (b*b - a*a) * sin(t)*sin(t)*sin(t) / b;
 
         rx = x - ex;
         ry = y - ey;
@@ -402,7 +406,7 @@ double distToEllipse(Point rc, Point C, PointID semi_major, PointID semi_minor) 
         delta_t = delta_c / sqrt(a*a + b*b - x*x - y*y);
 
         t += delta_t;
-        t = min(M_PI/2, max(0, t));
+        t = min(M_PI/2, max(0.0, t));
     }
     
     point_on_ellipse.x = copysign(x, rc.x);
@@ -940,7 +944,7 @@ vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID 
             // disp(['Use node: ', shiftedOBJ2{3}, ' as front wall point']);
             // disp(['Use node: ', shiftedOBJ2{4}, ' as pivot']);
             // disp('-------------------------------');
-            intersectiontask = {OBJ2_point_IDs[1], OBJ2_point_IDs[2], next_right_wall_hallway[0], next_right_wall_hallway[1], OBJ2_point_IDs[3],"left", next_right_wall_hallway[0], next_right_wall_hallway[1], OBJ2_point_IDs[0] };
+            intersectiontask = {OBJ2_point_IDs[1], OBJ2_point_IDs[2], next_right_wall_hallway[0], next_right_wall_hallway[1], OBJ2_point_IDs[3],"left", next_right_wall_hallway[0], next_right_wall_hallway[1], OBJ2_point_IDs[0]};
             // First wall rear, First wall front, Second wall rear, Second wall front, pivoting point, turning direction, wall to follow rear, wall to follow front, point to determine ellipse width
         } else {
             ROS_INFO("Cannot turn around 2nd or 3rd node");

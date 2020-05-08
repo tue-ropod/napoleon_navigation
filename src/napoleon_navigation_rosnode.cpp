@@ -1159,7 +1159,7 @@ void computeSteeringAndVelocity()
             point_rear = getPointByID(task1[0],pointlist);
             point_front = getPointByID(task1[1],pointlist);
 	    point_pivot = getPointByID(task1[4],pointlist);
-	    point_front2 = getPointByID(task1[8],pointlist);
+	    //point_front2 = getPointByID(task1[8],pointlist);
 	    if (task2[5] == "right") {
 	      if(j==1) printf("Shifting wall for turn");
 	      //TODO: Adjust this to something smarter, so it works for different hallway widths
@@ -1194,7 +1194,7 @@ void computeSteeringAndVelocity()
             point_rear = getPointByID(task1[0],pointlist);
             point_front = getPointByID(task1[1],pointlist);
 	    point_pivot = getPointByID(task1[4],pointlist);
-	    point_front2 = getPointByID(task1[8],pointlist);
+	    //point_front2 = getPointByID(task1[8],pointlist);
             glob_wallpoint_front.x = point_front.x;
             glob_wallpoint_front.y = point_front.y;
             glob_wallpoint_rear.x = point_rear.x;
@@ -1238,7 +1238,7 @@ void computeSteeringAndVelocity()
             point_rear = getPointByID(task1[0],pointlist);
             point_front = getPointByID(task1[1],pointlist);
 	    point_pivot = getPointByID(task1[4],pointlist);
-	    point_front2 = getPointByID(task1[8],pointlist);
+	    //point_front2 = getPointByID(task1[8],pointlist);
             glob_wallpoint_front.x = point_front.x;
             glob_wallpoint_front.y = point_front.y;
             glob_wallpoint_rear.x = point_rear.x;
@@ -1283,7 +1283,7 @@ void computeSteeringAndVelocity()
             point_rear = getPointByID(task2[0],pointlist);
             point_front = getPointByID(task2[1],pointlist);
             point_pivot = getPointByID(task2[4],pointlist);
-	    point_front2 = getPointByID(task1[8],pointlist);
+	    //point_front2 = getPointByID(task2[8],pointlist);
             glob_wallpoint_front.x = point_front.x;
             glob_wallpoint_front.y = point_front.y;
             glob_wallpoint_rear.x = point_rear.x;

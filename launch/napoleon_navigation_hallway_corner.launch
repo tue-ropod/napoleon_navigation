@@ -68,7 +68,7 @@
         -->
         
         <!-- initial pose of the robot in hallway_corner-->
-        <param name="initial_pose_x" value="9.28"/> <!--9.28--> <!--9.1-->
+        <param name="initial_pose_x" value="9.1"/> <!--9.28--> <!--9.1-->
         <param name="initial_pose_y" value="7.36"/> <!-- 7.36--><!--6.55-->
         <param name="initial_pose_a" value="-3.14"/>
         
