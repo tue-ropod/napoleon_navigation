@@ -452,6 +452,9 @@ int q = 1; // - for loop for movement simulation (in prediction)
 int j = 0; // - prediction plan
 int m = 0; // - prediction movement
 int u = 0; // - Pred task counter
+int a = 0; //
+double pred_lin_vel_vec[100] = {0.91,0.98,1.05,1.12,1.19,1.26,1.33,1.4,1.47,1.54,1.47,1.54,1.47,1.54,1.47,1.54,1.47,1.54,1.47,1.54,1.47,1.54,1.47,1.54,0.53419,0.607,0.53419,0.607,0.53419,0.607,0.53419,0.607,0.53419,0.59461,0.62285,0.6409,0.64476,0.64774,0.65002,0.65175,0.66,0.6542,0.65514,0.66258,0.6628,0.7329,0.66296,0.73299,0.663,0.733,0.663,0.733,0.663,0.733,0.663,0.733,0.66299,0.73297,0.66294,0.7329,0.66287,0.7328,0.53293,0.59195,0.5092,0.57184,0.61871,0.62538,0.63076,0.64184,0.53386,0.60616,0.63166,0.6275,0.62917,0.62326,0.62373,0.6172,0.61068,0.61081,0.60448,0.5984,0.59262,0.5934,0.5881,0.58313,0.57848,0.57413,0.57007,0.56629,0.4454,0.35565,0.37244,0.41567,0.45008,0.48002,0.51113,0.53277,0.55691,0.57199};
+double pred_ang_vel_vec[100] = {-0.001407,-0.0012244,-0.0010117,-0.00078491,-0.00055471,-0.0042226,-0.0010366,0.0020014,0.0046035,0.0067381,0.0076764,0.0087763,0.0087313,0.0092115,0.0086986,0.0088544,0.0081501,0.0081419,0.0073897,0.0073039,0.006575,0.0064576,0.0057844,0.0056591,0.084441,0.0022306,0.084441,0.0022306,0.084441,0.0022306,0.084441,0.0022306,0.084441,0.18771,0.23941,0.21529,0.18605,0.15961,0.13591,0.11474,0.096882,0.074761,0.051769,0.036338,0.025129,0.018893,0.01065,0.0067501,0.0029387,0.00098226,-0.00026431,-0.00067004,-0.00018968,0,-0.001409,-0.0040853,-0.0065805,-0.010877,-0.013376,-0.018703,-0.02043,-0.02614,-0.10151,-0.20669,-0.26237,-0.31319,-0.30149,-0.26691,-0.23508,-0.20855,-0.089172,-0.049117,-0.10011,-0.14974,-0.19643,-0.23689,-0.27592,-0.30872,-0.338,-0.36811,-0.39206,-0.41353,-0.43281,-0.45495,-0.47094,-0.48535,-0.49836,-0.51013,-0.52079,-0.53047,-0.63444,-0.61899,-0.7374,-0.70979,-0.65826,-0.60613,-0.56133,-0.51151,-0.46936,-0.42428};
 int prevstate; // Actually just j-1
 int m_prev;
 int ka_max;  // Assignment length
@@ -485,12 +488,14 @@ Point local_wall_front_p0, local_wall_front_p1;
 Point local_front_ropod_dilated_p0(config.DILATE_ROPOD_ALIGNING, -config.DILATE_ROPOD_ALIGNING);
 Point local_front_ropod_dilated_p1(config.DILATE_ROPOD_ALIGNING, config.DILATE_ROPOD_ALIGNING);
 
-PointID point_rear, point_front;
+PointID point_rear, point_front, point_front2;
 Point glob_wallpoint_front, glob_wallpoint_rear;
 Point global_wall_front_p0, global_wall_front_p1;
 PointID point_pivot;
 Point local_wallpoint_front, local_wallpoint_rear;
 Point local_pivot;
+
+double dist;
 
 bool sharp_corner[100] = {false}; // quick but dirty fix! - now size is fixed to 100 since we don't
                                   // have number of areas value during compilation time
@@ -649,6 +654,7 @@ void initializeAssignment()
                 area_names.push_back(OBJ2TASK[5]);
                 area_names.push_back(OBJ2TASK[6]);
                 area_names.push_back(OBJ2TASK[7]);
+		area_names.push_back(OBJ2TASK[8]);
 
                 obj2wall_p0 = getPointByID(OBJ2TASK[0],pointlist);
                 obj2wall_p1 = getPointByID(OBJ2TASK[1],pointlist);
@@ -826,7 +832,7 @@ void updateStateAndTask()
                     standard_steering_offset = fmin( 0.0, fabs(cur_pivot_local.y)
                                     - (sqrt(dist2(getPoint(point_right_entry_next_wall), getPoint(point_pivot))) - config.TUBE_WIDTH_C/2.0)
                                     ) + config.ROPOD_TO_AX;
-                    steering_offset = config.START_STEERING_EARLY_LEFT + standard_steering_offset;
+                    steering_offset = 0.0;//config.START_STEERING_EARLY_LEFT + standard_steering_offset;
                 }
 
         } else if (cur_pivot_local.x < config.SIZE_FRONT_ROPOD + steering_offset && pred_state[prevstate] == ENTRY_BEFORE_TURN_ON_INTERSECTION) {
@@ -1153,6 +1159,7 @@ void computeSteeringAndVelocity()
             point_rear = getPointByID(task1[0],pointlist);
             point_front = getPointByID(task1[1],pointlist);
 	    point_pivot = getPointByID(task1[4],pointlist);
+	    point_front2 = getPointByID(task1[8],pointlist);
 	    if (task2[5] == "right") {
 	      if(j==1) printf("Shifting wall for turn");
 	      //TODO: Adjust this to something smarter, so it works for different hallway widths
@@ -1177,7 +1184,8 @@ void computeSteeringAndVelocity()
 	  showPivotPoint(cur_pivot_local, wallmarker_pub);
 	}
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
-        v_des = config.V_ENTRY;// + ((config.V_CRUISING - config.V_ENTRY)/config.ENTRY_LENGTH)*local_pivot.x;//config.V_ENTRY;
+	v_des = config.V_ENTRY;
+        //v_des = config.V_ENTRY + ((config.V_CRUISING - config.V_ENTRY)/config.ENTRY_LENGTH)*local_pivot.x;
 	if(j==1) printf("Desired speed: %f \n", v_des);
     } else if (pred_state[j] == ACCELERATE_ON_INTERSECTION) {
         if(j==1) printf("ACCELERATE_ON_INTERSECTION\n");
@@ -1186,6 +1194,7 @@ void computeSteeringAndVelocity()
             point_rear = getPointByID(task1[0],pointlist);
             point_front = getPointByID(task1[1],pointlist);
 	    point_pivot = getPointByID(task1[4],pointlist);
+	    point_front2 = getPointByID(task1[8],pointlist);
             glob_wallpoint_front.x = point_front.x;
             glob_wallpoint_front.y = point_front.y;
             glob_wallpoint_rear.x = point_rear.x;
@@ -1201,7 +1210,8 @@ void computeSteeringAndVelocity()
 	  showPivotPoint(cur_pivot_local, wallmarker_pub);
 	}
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
-        v_des = config.V_INTER_TURNING;// + ((config.V_CRUISING - config.V_INTER_TURNING)/0.81)*local_pivot.x;//config.V_INTER_ACC;
+	v_des = config.V_INTER_TURNING;
+        //v_des = config.V_INTER_TURNING + ((config.V_CRUISING - config.V_INTER_TURNING)/config.ENTRY_LENGTH)*local_pivot.x;
 	if(j==1) printf("Desired speed: %f \n", v_des);
         // Monitor if we don't bump into front wall
         if (update_state_points) {
@@ -1228,6 +1238,7 @@ void computeSteeringAndVelocity()
             point_rear = getPointByID(task1[0],pointlist);
             point_front = getPointByID(task1[1],pointlist);
 	    point_pivot = getPointByID(task1[4],pointlist);
+	    point_front2 = getPointByID(task1[8],pointlist);
             glob_wallpoint_front.x = point_front.x;
             glob_wallpoint_front.y = point_front.y;
             glob_wallpoint_rear.x = point_rear.x;
@@ -1243,7 +1254,8 @@ void computeSteeringAndVelocity()
 	  showPivotPoint(cur_pivot_local, wallmarker_pub);
 	}
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
-        v_des = config.V_INTER_TURNING;// + ((config.V_CRUISING - config.V_INTER_TURNING)/0.81)*local_pivot.x;//config.V_INTER_DEC;
+	v_des = config.V_INTER_DEC;
+        //v_des = config.V_INTER_DEC + ((config.V_CRUISING - config.V_INTER_TURNING)/config.ENTRY_LENGTH)*local_pivot.x
 	if(j==1) printf("Desired speed: %f \n", v_des);
         // Monitor if we don't bump into front wall
         if (update_state_points) {
@@ -1265,29 +1277,36 @@ void computeSteeringAndVelocity()
     } else if (pred_state[j] == TURNING) {
         if(j==1) printf("TURNING\n");
         // disp([num2str[j],' - Ropod is at inter, taking the turn']);
+	task2[6] = task2[2];
+	task2[7] = task2[3];
         if (update_state_points) {
             point_rear = getPointByID(task2[0],pointlist);
             point_front = getPointByID(task2[1],pointlist);
             point_pivot = getPointByID(task2[4],pointlist);
+	    point_front2 = getPointByID(task1[8],pointlist);
             glob_wallpoint_front.x = point_front.x;
             glob_wallpoint_front.y = point_front.y;
             glob_wallpoint_rear.x = point_rear.x;
             glob_wallpoint_rear.y = point_rear.y;
         }
-
+	
+	dist = distToEllipse(pred_xy_ropod[j-1], point_pivot, point_front, point_front2);
+	printf("Distance to ellipse %f \n", dist);
         dir_cw = true;
         if (task2[5].compare("left") == 0) {
         //if (strcmp(task2{6},'left')) {
             dir_cw = false; // direction 0 = CCW, 1 = CW
         }
-
+        
         local_pivot = coordGlobalToRopod(point_pivot, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         if (!sharp_corner[u+1]) {
+	    //printf("No sharp corner\n");
             local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
             local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
             //pred_phi_des[j] = getSteeringTurn(ropod_length, size_side, feeler_size_steering, d_ax, dir_cw, local_pivot, local_wallpoint_front, local_wallpoint_rear,  follow_wall_distance, env_tctw_size, env_trns_size_cornering, env_carrot_size);
-            pred_phi_des[j] = getSteeringTurn(local_pivot, dir_cw, local_wallpoint_front, local_wallpoint_rear, config.CARROT_LENGTH, config.FEELER_SIZE);
+            pred_phi_des[j] = getSteeringTurn(local_pivot, dir_cw, pred_tube_width[j], local_wallpoint_front, local_wallpoint_rear, config.CARROT_LENGTH, config.FEELER_SIZE);
         } else {
+	    //printf("Sharp corner\n");
             //pred_phi_des[j] = getSteeringTurnSharp(pred_x_ropod(j-1), pred_y_ropod(j-1), pred_plan_theta[j-1], size_front_ropod, size_side, feeler_size_steering, d_ax, dir_cw, task2, pointlist, follow_wall_distance, env_tctw_size, env_trns_size_cornering, env_carrot_size);
             pred_phi_des[j] = getSteeringTurnSharp(pred_xy_ropod[j-1], pred_plan_theta[j-1], dir_cw, task2, pointlist, config.CARROT_LENGTH, config.FEELER_SIZE_STEERING);
         }
@@ -1373,13 +1392,13 @@ void simulateRobotDuringCurrentPredictionStep()
 	pred_sim_x_ropod[m] = pred_x_rearax[m]+config.D_AX*cos(pred_theta[m]);
         pred_sim_y_ropod[m] = pred_y_rearax[m]+config.D_AX*sin(pred_theta[m]);
 	
-	pred_pose_vel.pose.pose.position.x = pred_sim_x_ropod[m];
+	/*pred_pose_vel.pose.pose.position.x = pred_sim_x_ropod[m];
 	pred_pose_vel.pose.pose.position.y = pred_sim_y_ropod[m];
 	pred_pose_vel.twist.twist.linear.x = pred_v_ropod[m]*cos(pred_phi[m]);
 	pred_pose_vel.twist.twist.linear.y = t_pred[m];
 	pred_pose_vel.twist.twist.angular.z = pred_thetadot[m];
 	pred_pose_vel.header.stamp = ros::Time::now();;
-	pred_pose_vel_pub.publish(pred_pose_vel);
+	pred_pose_vel_pub.publish(pred_pose_vel);*/
 	
 	//Check if prediction index is equal to the desired future heading time
 	//And if so, publish it.
@@ -1394,6 +1413,14 @@ void simulateRobotDuringCurrentPredictionStep()
 	//printf("Prediction counter: %d \n", m);
 	//printf("Future time stamp index: %f \n", FutureTimeStampIndex);
     }
+    pred_pose_vel.pose.pose.position.x = pred_sim_x_ropod[m];
+    pred_pose_vel.pose.pose.position.y = pred_sim_y_ropod[m];
+    pred_pose_vel.pose.pose.orientation.z = pred_theta[m];
+    pred_pose_vel.twist.twist.linear.x = pred_v_ropod[m]*cos(pred_phi[m]);
+    pred_pose_vel.twist.twist.linear.y = t_pred[m];
+    pred_pose_vel.twist.twist.angular.z = pred_thetadot[m];
+    pred_pose_vel.header.stamp = ros::Time::now();;
+    pred_pose_vel_pub.publish(pred_pose_vel);
 }
 
 Rectangle computeGlobalFreeArea(Rectangle local_freeNavArea, double rw_angle)
@@ -2023,7 +2050,8 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             "obs depth" << "\t" << "obs vx" << "\t" << "obs vy" << "\t" << "des accel" <<"\n";
 
     std::clock_t start_loop;
-
+    
+    
     while(ros::ok() && !ropod_reached_target)
     {
         // Process scan data
@@ -2299,6 +2327,8 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         else
         {
             control_v = pred_v_ropod[0]+pred_accel[1]*1/F_PLANNER;
+	    v_ax = cos(pred_phi_des[1])*control_v;
+            theta_dot = control_v/config.D_AX*sin(pred_phi_des[1]);
         }
         // Compute v_ax and theta_dot from v_des and phi
 
@@ -2322,19 +2352,28 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         //     publishZeroVelocity();
         // }
         if (control_v > 0) {
-            v_ax = cos(pred_phi_des[1])*control_v;
-            theta_dot = control_v/config.D_AX*sin(pred_phi_des[1]);
+            //v_ax = cos(pred_phi_des[1])*control_v;
+            //theta_dot = control_v/config.D_AX*sin(pred_phi_des[1]);
             geometry_msgs::Twist cmd_vel;
-            cmd_vel.linear.x = v_ax;
+	    cmd_vel.linear.x = v_ax;
+            //cmd_vel.linear.x = pred_lin_vel_vec[a];
             cmd_vel.linear.y = 0.0;
+	    cmd_vel.angular.x = ros::Time::now().toSec(); // Crappy way to send ros timestamp with this topic
             cmd_vel.angular.z = theta_dot;
+	    //cmd_vel.angular.z = pred_ang_vel_vec[a];
             vel_pub.publish(cmd_vel);
+	    //printf("a %d \n", a);
+	    //printf("Lin vel from pred %f\n", pred_lin_vel_vec[a]);
+	    //printf("Ang vel from pred %f\n", pred_ang_vel_vec[a]);
         } else {
-	    v_ax = cos(pred_phi_des[1])*control_v;
+	    //v_ax = cos(pred_phi_des[1])*control_v;
             geometry_msgs::Twist cmd_vel;
+	    //cmd_vel.linear.x = pred_lin_vel_vec[a];
             cmd_vel.linear.x = v_ax;
             cmd_vel.linear.y = 0.0;
-            cmd_vel.angular.z = 0.0;
+	    cmd_vel.angular.x = ros::Time::now().toSec(); // Crappy way to send ros timestamp with this topic
+	    cmd_vel.angular.z = 0.0;
+	    //cmd_vel.angular.z = pred_ang_vel_vec[a];
             vel_pub.publish(cmd_vel);
         }
         if (prev_sim_task_counter == (ka_max-1) ) {
@@ -2349,7 +2388,11 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                 ROS_INFO("Ropod has reached its target, yay!");
             }
         }
-
+	
+	//a = a+1;
+	//if (a>110) 
+	//  break;
+	
         // Publish ropod points to rostopic
         vis_points.id = 2;
         vis_points.color.r = 0.0;
@@ -2403,6 +2446,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
     geometry_msgs::Twist cmd_vel;
     cmd_vel.linear.x = 0.0;
     cmd_vel.linear.y = 0.0;
+    cmd_vel.angular.x = ros::Time::now().toSec(); // Crappy way to send ros timestamp with this topic
     cmd_vel.angular.z = 0.0;
     vel_pub.publish(cmd_vel);
     myfile.close();
@@ -2455,6 +2499,7 @@ public:
 
     bool getStatus()
     {
+
         return status_;
     }
 

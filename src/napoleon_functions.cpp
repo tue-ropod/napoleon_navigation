@@ -167,7 +167,7 @@ double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, doub
     return phi;
 }
 
-double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_front, Point local_wallpoint_rear, double carrot_length, double feeler_size) {
+double getSteeringTurn(Point local_pivot, bool dir_cw, double tubewidth, Point local_wallpoint_front, Point local_wallpoint_rear, double carrot_length, double feeler_size) {
     // Function to determine steering action while rotating around a point
     // aka taking a turn
     // dir_cw: direction 0 = CCW, 1 = CW rotation
@@ -186,11 +186,12 @@ double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_fro
 
     double local_wall_angle = atan2(local_wallpoint_front.y-local_wallpoint_rear.y,local_wallpoint_front.x-local_wallpoint_rear.x);
     Point fl_env_0 = rotate_point(origin, -local_wall_angle, local_fl);     // Feeler left @ env at theta = 0
-    Point rb_env_0 = rotate_point(origin, -local_wall_angle, local_wallpoint_rear);   // Wall at left side @ env at theta = 0
-    double dist_left = rb_env_0.y-fl_env_0.y;    // Y distance from feeler left to the wall (neg if beyond wall)
+    Point rm_env_0 = rotate_point(origin, -local_wall_angle, local_wallpoint_front);   // Wall at left side @ env at theta = 0
+    rm_env_0.y += tubewidth;
+    double dist_left = rm_env_0.y-fl_env_0.y;    // Y distance from feeler left to the wall (neg if beyond wall)
 
     Point fr_env_0 = rotate_point(origin, -local_wall_angle, local_fr);     // Feeler right @ env at theta = 0
-    //Point rb_env_0 = rotate_point(origin, -local_wall_angle, local_wallpoint_rear);   // Wall at right side @ env at theta = 0
+    Point rb_env_0 = rotate_point(origin, -local_wall_angle, local_wallpoint_rear);   // Wall at right side @ env at theta = 0
     double dist_right = fr_env_0.y-rb_env_0.y;  // Y distance from feeler right to the wall (neg if beyond wall)
     double dist_ropod_center_to_wall = -rb_env_0.y;      // Y distance from ropod center to right wall
 
@@ -224,17 +225,24 @@ double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_fro
     double phi_tctw = atan2(steer_vec.y,steer_vec.x); // Determine the angle of this steering vector
 
     if (dist < config.ENV_TCTW_SIZE) {
-        //ROS_INFO("Ropod is too close to wall, steer back to middle");
+        //ROS_INFO("Ropod is too close to wall, steer back to middle\n");
         phi = phi_tctw;
-        //ROS_INFO("to_middle_size: %f", to_middle_size);
-        //ROS_INFO("dist left: %f", dist_left);
+        //ROS_INFO("to_middle_size: %f\n", to_middle_size);
+        //ROS_INFO("dist left: %f\n", dist_left);
+	//ROS_INFO("dist right: %f\n", dist_right);
     } else if (dist < config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE) {
-        //ROS_INFO("Ropod is in transition zone at the wall");
+        //ROS_INFO("Ropod is in transition zone at the wall\n");
         double frac_in_trans = 1-(dist-config.ENV_TCTW_SIZE)/config.ENV_TRNS_SIZE;
         phi = frac_in_trans*phi_tctw+(1-frac_in_trans)*phi_0;
+	//ROS_INFO("to_middle_size: %f\n", to_middle_size);
+        //ROS_INFO("dist left: %f\n", dist_left);
+	//ROS_INFO("dist right: %f\n", dist_right);
     } else {
-        //ROS_INFO("Ropod is steering without collision predicted");
+        //ROS_INFO("Ropod is steering without collision predicted\n");
         phi = phi_0;
+	//ROS_INFO("to_middle_size: %f\n", to_middle_size);
+        //ROS_INFO("dist left: %f\n", dist_left);
+	//ROS_INFO("dist right: %f\n", dist_right);
     }
     return phi;
 }
@@ -351,6 +359,57 @@ double distToLine(Point p, Point v, Point w) {
     double numerator =  (w.y-v.y)*p.x - (w.x-v.x)*p.y + w.x*v.y - w.y*v.x;
     double denominator = sqrt( (w.y-v.y)*(w.y-v.y) + (w.x-v.x)*(w.x-v.x) );
     return numerator/denominator;
+}
+
+double distToEllipse(Point rc, Point C, PointID semi_major, PointID semi_minor) {
+    // https://wet-robots.ghost.io/simple-method-for-distance-to-ellipse/
+    // Point rc is ropod center, of which we want to know distance to ellipse
+    // point C is center of ellipse
+    // semi_minor is corner point above pivot, defining semi_minor axis
+    // semi_major is corner point to the left/right of pivot, defining semi_major axis
+    
+    double t, a, b, x, y, ex, ey, rx, ry, qx, qy, r, q, delta_c, delta_t;
+    Point point_on_ellipse;
+    double dist_to_ellipse;
+    //TODO: point to check distance with might need to change to feeler instead of ropod center
+    // translate point so ellipse center is origin
+    rc.x -= C.x;
+    rc.y -= C.y;
+    
+    t = atan2(rc.y, rc.x);
+    
+    a = sqrt(dist2(semi_major, C));
+    b = sqrt(dist2(semi_minor, C));
+    
+
+    for (int i = 0; i < 4; i++){
+        x = a * cos(t);
+        y = b * sin(t);
+
+        ex = (a*a - b*b) * cos(t)**3 / a;
+        ey = (b*b - a*a) * sin(t)**3 / b;
+
+        rx = x - ex;
+        ry = y - ey;
+
+        qx = rc.x - ex;
+        qy = rc.y - ey;
+
+        r = hypot(ry, rx);
+        q = hypot(qy, qx);
+
+        delta_c = r * asin((rx*qy - ry*qx)/(r*q));
+        delta_t = delta_c / sqrt(a*a + b*b - x*x - y*y);
+
+        t += delta_t;
+        t = min(M_PI/2, max(0, t));
+    }
+    
+    point_on_ellipse.x = copysign(x, rc.x);
+    point_on_ellipse.y = copysign(y, rc.y);
+    
+    dist_to_ellipse = sqrt(dist2(rc, point_on_ellipse));
+    return (dist_to_ellipse);
 }
 
 bool do_lines_intersect(Point p0, Point p1, Point p2, Point p3) {
@@ -872,8 +931,8 @@ vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID 
             // disp(['Use node: ', shiftedOBJ2{2}, ' as front wall point']);
             // disp(['Use node: ', shiftedOBJ2{1}, ' as pivot']);
             // disp('-------------------------------');
-            intersectiontask = {OBJ2_point_IDs[2], OBJ2_point_IDs[1], next_left_wall_hallway[1], next_left_wall_hallway[0], OBJ2_point_IDs[0], "right", next_right_wall_hallway[0], next_right_wall_hallway[1]};
-	    // First wall rear, First wall front, Second wall rear, Second wall front, pivoting point, turning direction, wall to follow rear, wall to follow front
+            intersectiontask = {OBJ2_point_IDs[2], OBJ2_point_IDs[1], next_left_wall_hallway[1], next_left_wall_hallway[0], OBJ2_point_IDs[0], "right", next_right_wall_hallway[0], next_right_wall_hallway[1], OBJ2_point_IDs[3]};
+	    // First wall rear, First wall front, Second wall rear, Second wall front, pivoting point, turning direction, wall to follow rear, wall to follow front, point to determine ellipse width
         } else if (index_dir == 3) {
             next_right_wall_hallway = getWallPointsAwayFromB(OBJ3,OBJ2);
             // disp('Corner/intersection: turn left');
@@ -881,8 +940,8 @@ vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID 
             // disp(['Use node: ', shiftedOBJ2{3}, ' as front wall point']);
             // disp(['Use node: ', shiftedOBJ2{4}, ' as pivot']);
             // disp('-------------------------------');
-            intersectiontask = {OBJ2_point_IDs[1], OBJ2_point_IDs[2], next_right_wall_hallway[0], next_right_wall_hallway[1], OBJ2_point_IDs[3],"left", next_right_wall_hallway[0], next_right_wall_hallway[1] };
-            // First wall rear, First wall front, Second wall rear, Second wall front, pivoting point, turning direction, wall to follow rear, wall to follow front
+            intersectiontask = {OBJ2_point_IDs[1], OBJ2_point_IDs[2], next_right_wall_hallway[0], next_right_wall_hallway[1], OBJ2_point_IDs[3],"left", next_right_wall_hallway[0], next_right_wall_hallway[1], OBJ2_point_IDs[0] };
+            // First wall rear, First wall front, Second wall rear, Second wall front, pivoting point, turning direction, wall to follow rear, wall to follow front, point to determine ellipse width
         } else {
             ROS_INFO("Cannot turn around 2nd or 3rd node");
         }
