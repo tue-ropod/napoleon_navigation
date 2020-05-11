@@ -453,8 +453,8 @@ int j = 0; // - prediction plan
 int m = 0; // - prediction movement
 int u = 0; // - Pred task counter
 int a = 0; //
-double pred_lin_vel_vec[100] = {0.91,0.98,1.05,1.12,1.19,1.26,1.33,1.4,1.47,1.54,1.47,1.54,1.47,1.54,1.47,1.54,1.47,1.54,1.47,1.54,1.47,1.54,1.47,1.54,0.53419,0.607,0.53419,0.607,0.53419,0.607,0.53419,0.607,0.53419,0.59461,0.62285,0.6409,0.64476,0.64774,0.65002,0.65175,0.66,0.6542,0.65514,0.66258,0.6628,0.7329,0.66296,0.73299,0.663,0.733,0.663,0.733,0.663,0.733,0.663,0.733,0.66299,0.73297,0.66294,0.7329,0.66287,0.7328,0.53293,0.59195,0.5092,0.57184,0.61871,0.62538,0.63076,0.64184,0.53386,0.60616,0.63166,0.6275,0.62917,0.62326,0.62373,0.6172,0.61068,0.61081,0.60448,0.5984,0.59262,0.5934,0.5881,0.58313,0.57848,0.57413,0.57007,0.56629,0.4454,0.35565,0.37244,0.41567,0.45008,0.48002,0.51113,0.53277,0.55691,0.57199};
-double pred_ang_vel_vec[100] = {-0.001407,-0.0012244,-0.0010117,-0.00078491,-0.00055471,-0.0042226,-0.0010366,0.0020014,0.0046035,0.0067381,0.0076764,0.0087763,0.0087313,0.0092115,0.0086986,0.0088544,0.0081501,0.0081419,0.0073897,0.0073039,0.006575,0.0064576,0.0057844,0.0056591,0.084441,0.0022306,0.084441,0.0022306,0.084441,0.0022306,0.084441,0.0022306,0.084441,0.18771,0.23941,0.21529,0.18605,0.15961,0.13591,0.11474,0.096882,0.074761,0.051769,0.036338,0.025129,0.018893,0.01065,0.0067501,0.0029387,0.00098226,-0.00026431,-0.00067004,-0.00018968,0,-0.001409,-0.0040853,-0.0065805,-0.010877,-0.013376,-0.018703,-0.02043,-0.02614,-0.10151,-0.20669,-0.26237,-0.31319,-0.30149,-0.26691,-0.23508,-0.20855,-0.089172,-0.049117,-0.10011,-0.14974,-0.19643,-0.23689,-0.27592,-0.30872,-0.338,-0.36811,-0.39206,-0.41353,-0.43281,-0.45495,-0.47094,-0.48535,-0.49836,-0.51013,-0.52079,-0.53047,-0.63444,-0.61899,-0.7374,-0.70979,-0.65826,-0.60613,-0.56133,-0.51151,-0.46936,-0.42428};
+double pred_lin_vel_vec[87] = {0.63,0.7,0.76999,0.83999,0.90999,0.98,1.05,1.12,1.19,1.26,1.33,1.54,1.47,1.54,1.47,1.54,1.54,1.47,1.54,1.47,1.3928,1.33,1.2535,1.19,1.1143,1.0288,0.96435,0.90142,0.83537,0.76753,0.6991,0.62966,0.69983,0.62993,0.69997,0.62999,0.7,0.63,0.7,0.63,0.69992,0.62989,0.7,0.63,0.69999,0.62997,0.69995,0.62993,0.69989,0.62986,0.55591,0.61469,0.53141,0.59857,0.67226,0.61092,0.60854,0.66852,0.59453,0.65292,0.5807,0.63805,0.56786,0.62449,0.55631,0.61243,0.54613,0.60187,0.53727,0.44599,0.4612,0.36982,0.39339,0.47739,0.56894,0.66545,0.76446,0.86355,0.96068,1.0544,1.1439,1.2291,1.3103,1.3881,1.4641,1.5382,1.4694};
+double pred_ang_vel_vec[87] = {-0.00085707,-0.00087825,-0.0067497,-0.005933,-0.0048174,-0.0035752,-0.0022666,-0.00094793,0.00032957,0.001522,0.0025945,0.0049458,0.0045531,0.004549,0.0041291,0.0040815,0.0036088,0.0032327,0.0031627,0.0028245,0.2177,0.0025555,0.19593,0.0022865,0.17416,0.3229,0.2684,0.1918,0.13548,0.094767,0.054561,0.031866,0.023903,0.014155,0.009825,0.0049806,0.0025099,0.0004111,-0.00075142,-0.0011119,-0.016172,-0.01829,-0.0020779,-0.0037012,-0.0066895,-0.0087054,-0.012841,-0.014538,-0.019362,-0.020247,-0.1039,-0.21236,-0.27174,-0.30233,-0.30017,-0.23675,-0.2508,-0.31932,-0.32065,-0.38827,-0.37585,-0.44292,-0.41974,-0.48653,-0.45488,-0.52156,-0.48319,-0.54988,-0.50616,-0.52102,-0.66028,-0.64695,-0.75705,-0.78762,-0.79823,-0.78864,-0.75949,-0.71284,-0.65199,-0.58109,-0.50453,-0.42656,-0.35079,-0.28007,-0.20257,-0.11397,-0.065438};
 int prevstate; // Actually just j-1
 int m_prev;
 int ka_max;  // Assignment length
@@ -1158,8 +1158,7 @@ void computeSteeringAndVelocity()
         if (update_state_points) {
             point_rear = getPointByID(task1[0],pointlist);
             point_front = getPointByID(task1[1],pointlist);
-	    point_pivot = getPointByID(task1[4],pointlist);
-	    //point_front2 = getPointByID(task1[8],pointlist);
+
 	    if (task2[5] == "right") {
 	      if(j==1) printf("Shifting wall for turn");
 	      //TODO: Adjust this to something smarter, so it works for different hallway widths
@@ -1177,11 +1176,9 @@ void computeSteeringAndVelocity()
         }
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-	local_pivot = coordGlobalToRopod(point_pivot, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         if(j==1)
 	{
 	  showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
-	  showPivotPoint(cur_pivot_local, wallmarker_pub);
 	}
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
 	v_des = config.V_ENTRY;
@@ -1193,8 +1190,6 @@ void computeSteeringAndVelocity()
         if (update_state_points) {
             point_rear = getPointByID(task1[0],pointlist);
             point_front = getPointByID(task1[1],pointlist);
-	    point_pivot = getPointByID(task1[4],pointlist);
-	    //point_front2 = getPointByID(task1[8],pointlist);
             glob_wallpoint_front.x = point_front.x;
             glob_wallpoint_front.y = point_front.y;
             glob_wallpoint_rear.x = point_rear.x;
@@ -1203,11 +1198,9 @@ void computeSteeringAndVelocity()
 
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-	local_pivot = coordGlobalToRopod(point_pivot, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         if(j==1) 
 	{
 	  showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
-	  showPivotPoint(cur_pivot_local, wallmarker_pub);
 	}
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
 	v_des = config.V_INTER_TURNING;
@@ -1237,8 +1230,6 @@ void computeSteeringAndVelocity()
         if (update_state_points) {
             point_rear = getPointByID(task1[0],pointlist);
             point_front = getPointByID(task1[1],pointlist);
-	    point_pivot = getPointByID(task1[4],pointlist);
-	    //point_front2 = getPointByID(task1[8],pointlist);
             glob_wallpoint_front.x = point_front.x;
             glob_wallpoint_front.y = point_front.y;
             glob_wallpoint_rear.x = point_rear.x;
@@ -1247,11 +1238,9 @@ void computeSteeringAndVelocity()
 
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-	local_pivot = coordGlobalToRopod(point_pivot, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         if(j==1) 
 	{
 	  showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
-	  showPivotPoint(cur_pivot_local, wallmarker_pub);
 	}
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
 	v_des = config.V_INTER_DEC;
@@ -1277,34 +1266,33 @@ void computeSteeringAndVelocity()
     } else if (pred_state[j] == TURNING) {
         if(j==1) printf("TURNING\n");
         // disp([num2str[j],' - Ropod is at inter, taking the turn']);
-	task2[6] = task2[2];
-	task2[7] = task2[3];
+
         if (update_state_points) {
             point_rear = getPointByID(task2[0],pointlist);
             point_front = getPointByID(task2[1],pointlist);
             point_pivot = getPointByID(task2[4],pointlist);
-	    //point_front2 = getPointByID(task2[8],pointlist);
+	    point_front2 = getPointByID(task2[8],pointlist);
             glob_wallpoint_front.x = point_front.x;
             glob_wallpoint_front.y = point_front.y;
             glob_wallpoint_rear.x = point_rear.x;
             glob_wallpoint_rear.y = point_rear.y;
         }
 	
-	dist = distToEllipse(pred_xy_ropod[j-1], point_pivot, point_front, point_front2);
-	printf("Distance to ellipse %f \n", dist);
+	//dist = distToEllipse(pred_xy_ropod[j-1], point_pivot, point_front, point_front2);
+	//printf("Distance to ellipse %f \n", dist);
         dir_cw = true;
         if (task2[5].compare("left") == 0) {
         //if (strcmp(task2{6},'left')) {
             dir_cw = false; // direction 0 = CCW, 1 = CW
         }
-        
+     
         local_pivot = coordGlobalToRopod(point_pivot, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         if (!sharp_corner[u+1]) {
 	    //printf("No sharp corner\n");
             local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
             local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
             //pred_phi_des[j] = getSteeringTurn(ropod_length, size_side, feeler_size_steering, d_ax, dir_cw, local_pivot, local_wallpoint_front, local_wallpoint_rear,  follow_wall_distance, env_tctw_size, env_trns_size_cornering, env_carrot_size);
-            pred_phi_des[j] = getSteeringTurn(local_pivot, dir_cw, pred_tube_width[j], local_wallpoint_front, local_wallpoint_rear, config.CARROT_LENGTH, config.FEELER_SIZE);
+            pred_phi_des[j] = getSteeringTurn(pred_xy_ropod[j-1], pred_plan_theta[j-1], dir_cw, task2, pointlist, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
         } else {
 	    //printf("Sharp corner\n");
             //pred_phi_des[j] = getSteeringTurnSharp(pred_x_ropod(j-1), pred_y_ropod(j-1), pred_plan_theta[j-1], size_front_ropod, size_side, feeler_size_steering, d_ax, dir_cw, task2, pointlist, follow_wall_distance, env_tctw_size, env_trns_size_cornering, env_carrot_size);
@@ -1371,7 +1359,7 @@ void simulateRobotDuringCurrentPredictionStep()
         pred_theta[m] = wrapToPi(pred_theta[m-1]+pred_thetadot[m-1]*TS);
         pred_v_ropod[m] = pred_v_ropod[m-1]+pred_accel[j]*TS;
 	
-	if (abs(pred_phi[m]-pred_phi[m-1]) > config.DELTA_DOT_LIMIT*TS) {
+	/*if (abs(pred_phi[m]-pred_phi[m-1]) > config.DELTA_DOT_LIMIT*TS) {
         //disp("Delta steering too large, steering saturated");
         pred_phi[m] = pred_phi[m-1] + sgn(pred_phi[m]-pred_phi[m-1])*config.DELTA_DOT_LIMIT*TS;
         // Decrease vel leads to better corners
@@ -1381,7 +1369,7 @@ void simulateRobotDuringCurrentPredictionStep()
             pred_v_ropod[m] = config.V_STEERSATURATION;
         }
         //disp(['In saturation - j: ', num2str(j) ,', Phides: ', num2str(pred_phi_des(j)), ' // Prev phides: ' , num2str(prev_pred_phi_des), ', v_des = ', num2str(v_des)]);
-	}
+	}*/
 	
         pred_xdot[m] = pred_v_ropod[m]*cos(pred_phi[m])*cos(pred_theta[m]);
         pred_ydot[m] = pred_v_ropod[m]*cos(pred_phi[m])*sin(pred_theta[m]);
@@ -1413,8 +1401,10 @@ void simulateRobotDuringCurrentPredictionStep()
 	//printf("Prediction counter: %d \n", m);
 	//printf("Future time stamp index: %f \n", FutureTimeStampIndex);
     }
-    pred_pose_vel.pose.pose.position.x = pred_sim_x_ropod[m];
-    pred_pose_vel.pose.pose.position.y = pred_sim_y_ropod[m];
+    //pred_pose_vel.pose.pose.position.x = pred_sim_x_ropod[m];
+    pred_pose_vel.pose.pose.position.x = pred_x_rearax[m];
+    //pred_pose_vel.pose.pose.position.y = pred_sim_y_ropod[m];
+    pred_pose_vel.pose.pose.position.y = pred_y_rearax[m];
     pred_pose_vel.pose.pose.orientation.z = pred_theta[m];
     pred_pose_vel.twist.twist.linear.x = pred_v_ropod[m]*cos(pred_phi[m]);
     pred_pose_vel.twist.twist.linear.y = t_pred[m];
@@ -2390,7 +2380,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         }
 	
 	//a = a+1;
-	//if (a>110) 
+	//if (a>95) 
 	//  break;
 	
         // Publish ropod points to rostopic

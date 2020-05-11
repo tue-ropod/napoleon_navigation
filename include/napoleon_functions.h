@@ -31,7 +31,7 @@ double distToSegment(Point p, PointID v, PointID w);
 double distToSegment(Point p, Point v, Point w);
 double distToLine(Point p, PointID v, PointID w);
 double distToLine(Point p, Point v, Point w);
-double distToEllipse(Point X, PointID C, PointID semi_major, PointID semi_minor);
+double distToEllipse(Point ropod_pos, Point feeler, std::vector<string> task, vector<PointID> pointlist);
 bool do_lines_intersect(Point p0, Point p1, Point p2, Point p3);
 bool does_line_intersect_shape(Point p0, Point p1, AreaQuad shape);
 bool do_shapes_overlap(Point obj1p0, Point obj1p1, Point obj1p2, Point obj1p3, Point obj2p0, Point obj2p1, Point obj2p2, Point obj2p3);
@@ -49,7 +49,7 @@ vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID 
 vector<string> getWalls(int id_OBJ1, int id_OBJ2, int id_OBJ3, vector<AreaQuadID> arealist);
 
 double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, double tubewidth, double carrot_length, double feeler_size);
-double getSteeringTurn(Point local_pivot, bool dir_cw, double tubewidth, Point local_wallpoint_front, Point local_wallpoint_rear, double carrot_length, double feeler_size);
+double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist, double tubewidth, double carrot_length, double feeler_size);
 double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist, double carrot_length, double feeler_size_steering);
 
 double wrapToPi(double angle);
