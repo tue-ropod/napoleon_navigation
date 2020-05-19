@@ -43,8 +43,8 @@ std::vector<int> assignment;
 
 double ropod_x = 0, ropod_y = 0, ropod_theta = 0;
 double this_amcl_x = 0, this_amcl_y = 0, quaternion_x = 0, quaternion_y = 0, quaternion_z = 0, quaternion_w = 0, this_amcl_theta = 0, siny_cosp = 0, cosy_cosp = 0;
-double odom_xdot_ropod_global = 0, odom_ydot_ropod_global = 0, odom_thetadot_global = 0, odom_phi_local = 0, odom_phi_global = 0, odom_vropod_global = 0;
-double FutureTimeStamp = 0.75;
+double odom_xdot_ropod_global = 0, odom_ydot_ropod_global = 0, odom_thetadot_global = 0, odom_theta_global = 0, odom_phi_local = 0, odom_phi_global = 0, odom_vropod_global = 0;
+double FutureTimeStamp = 1.5;
 int no_obs = 0;
 ed_gui_server::objPosVel current_obstacle;
 double obs_theta = 0.0;
@@ -134,9 +134,12 @@ void getOdomVelCallback(const nav_msgs::Odometry::ConstPtr& odom_vel)
     odom_xdot_ropod_global = odom_vel->twist.twist.linear.x;
     odom_ydot_ropod_global = odom_vel->twist.twist.linear.y;
     odom_thetadot_global = odom_vel->twist.twist.angular.z;
+    odom_theta_global = tf::getYaw(odom_vel->pose.pose.orientation);
     odom_phi_local = atan2(odom_ydot_ropod_global, odom_xdot_ropod_global);
     odom_vropod_global = sqrt(odom_xdot_ropod_global*odom_xdot_ropod_global+odom_ydot_ropod_global*odom_ydot_ropod_global);
     //ROS_INFO("xdot: %f, ydot: %f, vabs: %f", odom_xdot_ropod_global, odom_ydot_ropod_global, odom_vropod_global);
+    //ROS_INFO("phi local: %f, thetadot: %f", odom_phi_local, odom_thetadot_global);
+    //ROS_INFO("theta dot:%f",odom_thetadot_global);
 }
 
 void getAmclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& pose_msg)
@@ -453,8 +456,8 @@ int j = 0; // - prediction plan
 int m = 0; // - prediction movement
 int u = 0; // - Pred task counter
 int a = 0; //
-double pred_lin_vel_vec[87] = {0.63,0.7,0.76999,0.83999,0.90999,0.98,1.05,1.12,1.19,1.26,1.33,1.54,1.47,1.54,1.47,1.54,1.54,1.47,1.54,1.47,1.3928,1.33,1.2535,1.19,1.1143,1.0288,0.96435,0.90142,0.83537,0.76753,0.6991,0.62966,0.69983,0.62993,0.69997,0.62999,0.7,0.63,0.7,0.63,0.69992,0.62989,0.7,0.63,0.69999,0.62997,0.69995,0.62993,0.69989,0.62986,0.55591,0.61469,0.53141,0.59857,0.67226,0.61092,0.60854,0.66852,0.59453,0.65292,0.5807,0.63805,0.56786,0.62449,0.55631,0.61243,0.54613,0.60187,0.53727,0.44599,0.4612,0.36982,0.39339,0.47739,0.56894,0.66545,0.76446,0.86355,0.96068,1.0544,1.1439,1.2291,1.3103,1.3881,1.4641,1.5382,1.4694};
-double pred_ang_vel_vec[87] = {-0.00085707,-0.00087825,-0.0067497,-0.005933,-0.0048174,-0.0035752,-0.0022666,-0.00094793,0.00032957,0.001522,0.0025945,0.0049458,0.0045531,0.004549,0.0041291,0.0040815,0.0036088,0.0032327,0.0031627,0.0028245,0.2177,0.0025555,0.19593,0.0022865,0.17416,0.3229,0.2684,0.1918,0.13548,0.094767,0.054561,0.031866,0.023903,0.014155,0.009825,0.0049806,0.0025099,0.0004111,-0.00075142,-0.0011119,-0.016172,-0.01829,-0.0020779,-0.0037012,-0.0066895,-0.0087054,-0.012841,-0.014538,-0.019362,-0.020247,-0.1039,-0.21236,-0.27174,-0.30233,-0.30017,-0.23675,-0.2508,-0.31932,-0.32065,-0.38827,-0.37585,-0.44292,-0.41974,-0.48653,-0.45488,-0.52156,-0.48319,-0.54988,-0.50616,-0.52102,-0.66028,-0.64695,-0.75705,-0.78762,-0.79823,-0.78864,-0.75949,-0.71284,-0.65199,-0.58109,-0.50453,-0.42656,-0.35079,-0.28007,-0.20257,-0.11397,-0.065438};
+double pred_lin_vel_vec[84] = {0.07,0.14,0.21,0.28,0.35,0.42,0.49,0.56,0.63,0.7,0.77,0.84,0.91,0.98,1.05,1.12,1.19,1.26,1.33,1.4,1.47,1.54,1.47,1.54,1.47,1.54,1.54,1.47,1.54,1.47,1.54,1.47,1.54,1.47,1.4,1.33,1.26,1.19,1.12,1.05,0.98,0.91,0.84,0.7,0.63,0.7,0.7,0.63,0.7,0.63,0.7,0.63,0.7,0.63,0.7,0.63,0.7,0.63,0.7,0.63,0.55724,0.61753,0.53511,0.58045,0.49164,0.52022,0.42858,0.46403,0.51166,0.45687,0.50425,0.45066,0.49783,0.4016,0.41,0.50313,0.60418,0.70963,0.81645,0.92183,1.0236,1.1205,1.2119,1.2981};
+double pred_ang_vel_vec[84] = {-2.0621e-11,-0.00022707,-0.00031507,-0.00036363,-0.00035912,-0.00029073,-0.00015153,6.0981e-05,0.00034467,0.00069295,0.0010952,0.0015378,0.0020044,0.002478,0.0029413,0.003378,0.0037738,0.0041172,0.0043995,0.0046156,0.0047634,0.0048438,0.0044377,0.0044168,0.0039973,0.0039423,0.0034748,0.0031093,0.0030395,0.0027125,0.002646,0.0023574,0.0022966,0.002044,-0.00070508,-0.00060897,-0.00051786,-0.00043953,-0.00037227,-0.0003146,-0.0002652,-0.00022294,-0.00018681,-0.0016089,-0.0011292,-0.00094306,0.00078426,0.00072885,0.00082672,0.00075679,0.00084778,0.00076792,0.00085261,0.00076635,0.00084523,0.0007553,0.00082885,0.00073734,0.00080593,0.00071442,-0.085378,-0.19186,-0.254,-0.37678,-0.41249,-0.54668,-0.55453,-0.65557,-0.73493,-0.66737,-0.74695,-0.67728,-0.75708,-0.74678,-0.87287,-0.89675,-0.89782,-0.87641,-0.83391,-0.77342,-0.6993,-0.61661,-0.53042,-0.44526};
 int prevstate; // Actually just j-1
 int m_prev;
 int ka_max;  // Assignment length
@@ -549,8 +552,8 @@ void dynamicReconfigureCallback(napoleon_navigation::NapoleonNavigationConfig &d
         else
         {
             config.D_AX = config.ROPOD_LENGTH;
-            config.ROPOD_TO_AX = 0.0;
-            config.SIZE_REAR = config.ROPOD_LENGTH / 2.0;
+            config.ROPOD_TO_AX = config.ROPOD_LENGTH / 2.0;
+            config.SIZE_REAR = 0.0; //config.ROPOD_LENGTH / 2.0;
             config.V_OVERTAKE = 0.8 * config.V_CRUISING;
         }
         config.SIZE_FRONT_RAX = (config.ROPOD_TO_AX + config.SIZE_FRONT_ROPOD);
@@ -655,6 +658,7 @@ void initializeAssignment()
                 area_names.push_back(OBJ2TASK[6]);
                 area_names.push_back(OBJ2TASK[7]);
 		area_names.push_back(OBJ2TASK[8]);
+		area_names.push_back(OBJ2TASK[9]);
 
                 obj2wall_p0 = getPointByID(OBJ2TASK[0],pointlist);
                 obj2wall_p1 = getPointByID(OBJ2TASK[1],pointlist);
@@ -1159,20 +1163,20 @@ void computeSteeringAndVelocity()
             point_rear = getPointByID(task1[0],pointlist);
             point_front = getPointByID(task1[1],pointlist);
 
-	    if (task2[5] == "right") {
+	    /*if (task2[5] == "right") {
 	      if(j==1) printf("Shifting wall for turn");
 	      //TODO: Adjust this to something smarter, so it works for different hallway widths
 	      wallang = atan2(point_front.y-point_rear.y,point_front.x-point_rear.x);
-	      glob_wallpoint_front.x = point_front.x+0.5*config.TUBE_WIDTH_C*cos(wallang+M_PI/2);
-	      glob_wallpoint_front.y = point_front.y+0.5*config.TUBE_WIDTH_C*sin(wallang+M_PI/2);
-	      glob_wallpoint_rear.x = point_rear.x+0.5*config.TUBE_WIDTH_C*cos(wallang+M_PI/2);
-	      glob_wallpoint_rear.y = point_rear.y+0.5*config.TUBE_WIDTH_C*sin(wallang+M_PI/2);
-	    } else {
+	      glob_wallpoint_front.x = point_front.x+0.1*config.TUBE_WIDTH_C*cos(wallang+M_PI/2);
+	      glob_wallpoint_front.y = point_front.y+0.1*config.TUBE_WIDTH_C*sin(wallang+M_PI/2);
+	      glob_wallpoint_rear.x = point_rear.x+0.1*config.TUBE_WIDTH_C*cos(wallang+M_PI/2);
+	      glob_wallpoint_rear.y = point_rear.y+0.1*config.TUBE_WIDTH_C*sin(wallang+M_PI/2);
+	    } else {*/
 	      glob_wallpoint_front.x = point_front.x;
 	      glob_wallpoint_front.y = point_front.y;
 	      glob_wallpoint_rear.x = point_rear.x;
 	      glob_wallpoint_rear.y = point_rear.y;
-	    }
+	    //}
         }
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
@@ -1349,7 +1353,16 @@ void simulateRobotDuringCurrentPredictionStep()
     t_pred_prev = t_pred[m];
     t_pred_j[j] = t_pred_prev+F_FSTR*TS;
     double FutureTimeStampIndex = FutureTimeStamp/TS;
-  
+    
+    pred_pose_vel.pose.pose.position.x = pred_sim_x_ropod[m];
+    pred_pose_vel.pose.pose.position.y = pred_sim_y_ropod[m];
+    pred_pose_vel.pose.pose.orientation.z = pred_theta[m];
+    pred_pose_vel.twist.twist.linear.x = pred_v_ropod[m]*cos(pred_phi[m]);
+    pred_pose_vel.twist.twist.linear.y = t_pred[m];
+    pred_pose_vel.twist.twist.angular.z = pred_thetadot[m];
+    pred_pose_vel.header.stamp = ros::Time::now();;
+    pred_pose_vel_pub.publish(pred_pose_vel);
+    
     // Simulate ropod motion with current plan (Simulation is done faster than controller sample time)
     for (int q = 1; q <= F_FSTR; ++q) { // q = [1, 2, ..., F_FSTR]
         m = m_prev+q;           // Current iteration
@@ -1369,24 +1382,19 @@ void simulateRobotDuringCurrentPredictionStep()
             pred_v_ropod[m] = config.V_STEERSATURATION;
         }
         //disp(['In saturation - j: ', num2str(j) ,', Phides: ', num2str(pred_phi_des(j)), ' // Prev phides: ' , num2str(prev_pred_phi_des), ', v_des = ', num2str(v_des)]);
+	}
+
+	if (abs(pred_v_ropod[m]-pred_v_ropod[m-1]) > config.A_MAX*TS) {
+	    pred_v_ropod[m] = pred_v_ropod[m-1]+sgn(pred_v_ropod[m]-pred_v_ropod[m-1])*config.A_MAX*TS;
 	}*/
-	
+    
         pred_xdot[m] = pred_v_ropod[m]*cos(pred_phi[m])*cos(pred_theta[m]);
         pred_ydot[m] = pred_v_ropod[m]*cos(pred_phi[m])*sin(pred_theta[m]);
         pred_thetadot[m] = pred_v_ropod[m]*1/config.D_AX*sin(pred_phi[m]);
-      
         pred_x_rearax[m] = pred_x_rearax[m-1]+pred_xdot[m]*TS;
         pred_y_rearax[m] = pred_y_rearax[m-1]+pred_ydot[m]*TS;
 	pred_sim_x_ropod[m] = pred_x_rearax[m]+config.D_AX*cos(pred_theta[m]);
         pred_sim_y_ropod[m] = pred_y_rearax[m]+config.D_AX*sin(pred_theta[m]);
-	
-	/*pred_pose_vel.pose.pose.position.x = pred_sim_x_ropod[m];
-	pred_pose_vel.pose.pose.position.y = pred_sim_y_ropod[m];
-	pred_pose_vel.twist.twist.linear.x = pred_v_ropod[m]*cos(pred_phi[m]);
-	pred_pose_vel.twist.twist.linear.y = t_pred[m];
-	pred_pose_vel.twist.twist.angular.z = pred_thetadot[m];
-	pred_pose_vel.header.stamp = ros::Time::now();;
-	pred_pose_vel_pub.publish(pred_pose_vel);*/
 	
 	//Check if prediction index is equal to the desired future heading time
 	//And if so, publish it.
@@ -1398,19 +1406,7 @@ void simulateRobotDuringCurrentPredictionStep()
 	  //printf("Predicted theta: %f \n", pred_theta[m]);  
 	  //printf("Timestamp - counter: %f \n", m - FutureTimeStampIndex);
 	}
-	//printf("Prediction counter: %d \n", m);
-	//printf("Future time stamp index: %f \n", FutureTimeStampIndex);
     }
-    //pred_pose_vel.pose.pose.position.x = pred_sim_x_ropod[m];
-    pred_pose_vel.pose.pose.position.x = pred_x_rearax[m];
-    //pred_pose_vel.pose.pose.position.y = pred_sim_y_ropod[m];
-    pred_pose_vel.pose.pose.position.y = pred_y_rearax[m];
-    pred_pose_vel.pose.pose.orientation.z = pred_theta[m];
-    pred_pose_vel.twist.twist.linear.x = pred_v_ropod[m]*cos(pred_phi[m]);
-    pred_pose_vel.twist.twist.linear.y = t_pred[m];
-    pred_pose_vel.twist.twist.angular.z = pred_thetadot[m];
-    pred_pose_vel.header.stamp = ros::Time::now();;
-    pred_pose_vel_pub.publish(pred_pose_vel);
 }
 
 Rectangle computeGlobalFreeArea(Rectangle local_freeNavArea, double rw_angle)
@@ -1648,12 +1644,12 @@ void createFreeNavigationBoundingBox()
     local_freeNavArea.y = 0.5*local_freeNavArea.width + config.TURN_OFFSET;
     freeNavigationRightLane_T = computeGlobalFreeArea(local_freeNavArea, rw_angle);
 
-    if (((pred_state[j] == ENTRY_BEFORE_TURN_ON_INTERSECTION || pred_state[j] == ACCELERATE_ON_INTERSECTION || pred_state[j] == ALIGN_AXIS_AT_INTERSECTION) && task2[5] == "right") || pred_state[j] == EXIT_TURN_RIGHT)
+    /*if (((pred_state[j] == ENTRY_BEFORE_TURN_ON_INTERSECTION || pred_state[j] == ACCELERATE_ON_INTERSECTION || pred_state[j] == ALIGN_AXIS_AT_INTERSECTION) && task2[5] == "right") || pred_state[j] == EXIT_TURN_RIGHT)
     {
 	if (j==1) printf("Driving lane shifted for turn\n");
 	freeNavigationRightLaneRight = freeNavigationRightLane_T;
     } 
-    else if (freeNavigationRightLane_R.width >= freeNavigationRightLane_C.width)
+    else*/ if (freeNavigationRightLane_R.width >= freeNavigationRightLane_C.width)
     {
         freeNavigationRightLaneRight = freeNavigationRightLane_R;
     }
@@ -2117,18 +2113,22 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             //ROS_INFO("xdot: %f \t ydot: %f", odom_xdot_ropod_global, odom_ydot_ropod_global);
 
             // Initialize prediction with latest sim values
-            pred_phi[0] = odom_phi_local; // On ropod
+            //pred_phi[0] = odom_phi_local; // On ropod
             pred_theta[0] = ropod_theta;
             pred_v_ropod[0] = control_v;
+	    pred_thetadot[0] = odom_thetadot_global;
+	    pred_phi[0] = asin(pred_thetadot[0]*config.D_AX/pred_v_ropod[0]);
             if (abs(odom_vropod_global-abs(control_v)) > 0.5) {
 	      ROS_INFO("Difference between control and actual velocity > 0.5, correcting now.");
               pred_v_ropod[0] = odom_vropod_global;
             }
             pred_xdot[0] = pred_v_ropod[0]*cos(pred_phi[0])*cos(ropod_theta);   // xdot of rearaxle in global frame
             pred_ydot[0] = pred_v_ropod[0]*cos(pred_phi[0])*sin(ropod_theta);   // ydot of rearaxle in global frame
-            pred_thetadot[0] = pred_v_ropod[0]*1/config.D_AX*sin(pred_phi[0]);
+            //pred_thetadot[0] = pred_v_ropod[0]*1/config.D_AX*sin(pred_phi[0]);
             pred_x_rearax[0] = ropod_x-config.D_AX*cos(ropod_theta);
             pred_y_rearax[0] = ropod_y-config.D_AX*sin(ropod_theta);
+	    pred_sim_x_ropod[0] = ropod_x;
+	    pred_sim_y_ropod[0] = ropod_y;
             pred_xy_ropod[0].x = ropod_x;
             pred_xy_ropod[0].y = ropod_y;
             prev_pred_phi_des = prev_sim_phi_des;
@@ -2317,8 +2317,6 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         else
         {
             control_v = pred_v_ropod[0]+pred_accel[1]*1/F_PLANNER;
-	    v_ax = cos(pred_phi_des[1])*control_v;
-            theta_dot = control_v/config.D_AX*sin(pred_phi_des[1]);
         }
         // Compute v_ax and theta_dot from v_des and phi
 
@@ -2342,8 +2340,8 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         //     publishZeroVelocity();
         // }
         if (control_v > 0) {
-            //v_ax = cos(pred_phi_des[1])*control_v;
-            //theta_dot = control_v/config.D_AX*sin(pred_phi_des[1]);
+            v_ax = cos(pred_phi_des[1])*control_v;
+            theta_dot = control_v/config.D_AX*sin(pred_phi_des[1]);
             geometry_msgs::Twist cmd_vel;
 	    cmd_vel.linear.x = v_ax;
             //cmd_vel.linear.x = pred_lin_vel_vec[a];
@@ -2352,18 +2350,12 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             cmd_vel.angular.z = theta_dot;
 	    //cmd_vel.angular.z = pred_ang_vel_vec[a];
             vel_pub.publish(cmd_vel);
-	    //printf("a %d \n", a);
-	    //printf("Lin vel from pred %f\n", pred_lin_vel_vec[a]);
-	    //printf("Ang vel from pred %f\n", pred_ang_vel_vec[a]);
         } else {
-	    //v_ax = cos(pred_phi_des[1])*control_v;
             geometry_msgs::Twist cmd_vel;
-	    //cmd_vel.linear.x = pred_lin_vel_vec[a];
-            cmd_vel.linear.x = v_ax;
+            cmd_vel.linear.x = 0.0;
             cmd_vel.linear.y = 0.0;
 	    cmd_vel.angular.x = ros::Time::now().toSec(); // Crappy way to send ros timestamp with this topic
 	    cmd_vel.angular.z = 0.0;
-	    //cmd_vel.angular.z = pred_ang_vel_vec[a];
             vel_pub.publish(cmd_vel);
         }
         if (prev_sim_task_counter == (ka_max-1) ) {
@@ -2380,7 +2372,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         }
 	
 	//a = a+1;
-	//if (a>95) 
+	//if (a>87) 
 	//  break;
 	
         // Publish ropod points to rostopic
