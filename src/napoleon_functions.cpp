@@ -249,7 +249,7 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
 	  dist_right = -sqrt(dist2(local_fr, onEllipse_local));
 	}
 	dist = dist_right;
-	//printf("Distance right side to ellipse %f\n", dist_right);
+
         // to_middle_size = tubewidth/2-dist_ropod_center_to_wall;
     }
     Point tangent = ellipseTangentAngle(points_on_ellipse[0], task, pointlist, frac);
@@ -437,17 +437,22 @@ vector<Point> closestPointToEllipse(Point ropod_pos, double ropod_angle, Point f
     
     
     
-    double a,b;
-    /*if (task[5]=="right"){
+    double a,b, a_max;
+    if (task[5]=="right"){
       a = config.ROPOD_LENGTH+config.FEELER_SIZE_STEERING+config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING;
       b = 2.0*config.SIZE_SIDE+2.0*(config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING);
+      
+      a_max = dist2(semi_majornoid, ellipse_center_noid);
+      if( a*a > a_max){
+	a = sqrt(a_max);
+      }
     } else {
       a = sqrt(dist2(semi_majornoid, ellipse_center_noid));
       b = sqrt(dist2(semi_minornoid, ellipse_center_noid));
-    }*/
+    }
     
-    a = sqrt(dist2(semi_majornoid, ellipse_center_noid));
-    b = sqrt(dist2(semi_minornoid, ellipse_center_noid));
+    //a = sqrt(dist2(semi_majornoid, ellipse_center_noid));
+    //b = sqrt(dist2(semi_minornoid, ellipse_center_noid));
     
     double t = atan2(feeler_local_ellipse.y, feeler_local_ellipse.x);
     double  x, y, ex, ey, rx, ry, qx, qy, r, q, delta_c, delta_t;
@@ -500,16 +505,16 @@ Point ellipseTangentAngle(Point onEllipse, std::vector<string> task, vector<Poin
     Point origin(0,0);
     
     double a,b;
-    /*if (task[5]=="right"){
+    if (task[5]=="right"){
       a = config.ROPOD_LENGTH+config.FEELER_SIZE_STEERING+config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING;
       b = 2.0*config.SIZE_SIDE+2.0*(config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING);
     } else {
       a = sqrt(dist2(semi_majornoid, ellipse_center_noid));
       b = sqrt(dist2(semi_minornoid, ellipse_center_noid));
-    }*/
+    }
     
-    a = sqrt(dist2(semi_majornoid, ellipse_center_noid));
-    b = sqrt(dist2(semi_minornoid, ellipse_center_noid));
+    //a = sqrt(dist2(semi_majornoid, ellipse_center_noid));
+    //b = sqrt(dist2(semi_minornoid, ellipse_center_noid));
     
     Point tangent_point, tangent_point_global;
     double tangent_angle;

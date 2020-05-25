@@ -1187,7 +1187,6 @@ void computeSteeringAndVelocity()
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
 	v_des = config.V_ENTRY;
         //v_des = config.V_ENTRY + ((config.V_CRUISING - config.V_ENTRY)/config.ENTRY_LENGTH)*local_pivot.x;
-	if(j==1) printf("Desired speed: %f \n", v_des);
     } else if (pred_state[j] == ACCELERATE_ON_INTERSECTION) {
         if(j==1) printf("ACCELERATE_ON_INTERSECTION\n");
         // disp([num2str[j],' - Ropod is at inter, driving forward']);
@@ -1841,11 +1840,11 @@ void checkForCollisions()
         Point rw_p_front_noid(rw_p_front.x,rw_p_front.y);
         double distance_point_to_line = -distToLine(pred_xy_ropod[j-1], rw_p_rear, rw_p_front);
         bool ropod_intersect_wall = does_line_intersect_shape(rw_p_rear_noid, rw_p_front_noid, robot_footprint);
-        if (distance_point_to_line > 0 && ropod_intersect_wall == false)
+        if (distance_point_to_line < 0 && ropod_intersect_wall == false)
         {
             robot_left_side_wall_first_time = true;
         }
-        if (distance_point_to_line > 0 && robot_left_side_wall_first_time) // if ropod is at the right side of the wall and ropod did not start colliding virtual wall (allow to recover)
+        if (distance_point_to_line < 0 && robot_left_side_wall_first_time) // if ropod is at the right side of the wall and ropod did not start colliding virtual wall (allow to recover)
 	{ 
             ropod_colliding_wall = does_line_intersect_shape(rw_p_rear_noid, rw_p_front_noid, robot_footprint);
         }
