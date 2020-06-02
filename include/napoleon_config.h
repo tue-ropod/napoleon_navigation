@@ -55,7 +55,9 @@ struct NapoleonConfig
     double OBS_AVOID_MARGIN; // Margin between ropod and obstacles at full speed [m]
     double OBS_AVOID_MARGIN_FRONT; // Margin between ropod front and obstacles at full speed [m]
     double DILATE_ROPOD_ALIGNING; // Dilation from center (so actually this value -size_side if measured from side of vehicle) [m]
-    double TURN_OFFSET; // Offset from wall when taking a right turn
+    double SHIFT_BEFORE_TURN; // Offset from wall when taking a right turn
+    
+    bool HURRIED; // Extra state for the robot, determining velocities
     double EXIT_TURN_THRES; // Threshold when robot is far enough from previous turn
 
     // Fictional hallway width. Ropod will work with lanes of this/2 [m], starting from the wall.

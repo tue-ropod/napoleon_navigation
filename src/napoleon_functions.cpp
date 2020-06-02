@@ -210,7 +210,7 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
     Point center_ellipse = center_to_ellipse[1];
     Point center_ellipse_local = coordGlobalToRopod(center_ellipse, ropod_pos, ropod_angle);
     double dist_ropod_center_to_wall = sqrt(dist2(origin, center_ellipse_local));
-    
+
     double dist_left, dist_right;
     double dist_pivot_ellipse, dist_pivot_feeler, dist_to_ellipse;
     vector<Point> points_on_ellipse;
@@ -220,7 +220,8 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
     if (dir_cw) { // CW
         // Follow left wall if too close to wall when turning right
         // to_middle_size = dist_ropod_center_to_wall-tubewidth/2;
-        to_middle_size = dist_ropod_center_to_wall-config.FOLLOW_WALL_DIST_TURNING;
+        //to_middle_size = dist_ropod_center_to_wall-config.FOLLOW_WALL_DIST_TURNING;
+	to_middle_size = dist_ropod_center_to_wall-config.FOLLOW_WALL_DIST_TURNING;
 	points_on_ellipse = closestPointToEllipse(ropod_pos, ropod_angle, local_fl, task, pointlist, frac); //Get closest point on ellipse
 	onEllipse = points_on_ellipse[1];
 	onEllipse_local = coordGlobalToRopod(onEllipse, ropod_pos, ropod_angle);
@@ -233,6 +234,16 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
 	}
 	
 	dist = dist_left;
+	
+	//If the feeler is already in the next hallway, steering angle is not computed with tangent to ellipse anymore
+	//but with angle of next wall to follow
+	if (points_on_ellipse[0].y > 0) {
+	  Point tangent = ellipseTangentAngle(points_on_ellipse[0], task, pointlist, frac);
+	  Point tangent_local = coordGlobalToRopod(tangent, ropod_pos, ropod_angle);
+	  local_wall_angle = atan2(tangent_local.y-onEllipse_local.y,tangent_local.x-onEllipse_local.x);
+	} else {
+	  local_wall_angle = atan2(local_wallpoint_front.y-local_wallpoint_rear.y,local_wallpoint_front.x-local_wallpoint_rear.x);
+	}
         //to_middle_size = config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_wall;
     } else { //CCW
         // Follow right wall if too close to wall when turning left
@@ -249,12 +260,19 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
 	  dist_right = -sqrt(dist2(local_fr, onEllipse_local));
 	}
 	dist = dist_right;
-
+	
+	//If the feeler is already in the next hallway, steering angle is not computed with tangent to ellipse anymore
+	//but with angle of next wall to follow
+	if (points_on_ellipse[0].x > 0) {
+	  Point tangent = ellipseTangentAngle(points_on_ellipse[0], task, pointlist, frac);
+	  Point tangent_local = coordGlobalToRopod(tangent, ropod_pos, ropod_angle);
+	  local_wall_angle = atan2(tangent_local.y-onEllipse_local.y,tangent_local.x-onEllipse_local.x);
+	} else {
+	  local_wall_angle = atan2(local_wallpoint_front.y-local_wallpoint_rear.y,local_wallpoint_front.x-local_wallpoint_rear.x);
+	}
         // to_middle_size = tubewidth/2-dist_ropod_center_to_wall;
     }
-    Point tangent = ellipseTangentAngle(points_on_ellipse[0], task, pointlist, frac);
-    Point tangent_local = coordGlobalToRopod(tangent, ropod_pos, ropod_angle);
-    local_wall_angle = atan2(tangent_local.y-onEllipse_local.y,tangent_local.x-onEllipse_local.x);
+    
     Point to_middle_vec(to_middle_size*-sin(local_wall_angle),to_middle_size*cos(local_wall_angle));
     Point to_front_vec(carrot_length*cos(local_wall_angle), carrot_length*sin(local_wall_angle));  // Vector from middle of road to a point further on the road
     Point steer_vec(to_front_vec.x + to_middle_vec.x, to_front_vec.y + to_middle_vec.y);
@@ -405,8 +423,6 @@ vector<Point> closestPointToEllipse(Point ropod_pos, double ropod_angle, Point f
     // semi_major is corner point to the left/right of pivot, defining semi_major axis
     PointID semi_major = getPointByID(task[8],pointlist);
     PointID semi_minor = getPointByID(task[9],pointlist);
-    //printf("Semi minor x no shift %f\n",semi_minor.x);
-    //printf("Semi minor y no shift %f\n",semi_minor.y);
     PointID ellipse_center = getPointByID(task[4],pointlist);
     
     Point semi_majornoid((frac*semi_major.x+(1-frac)*ellipse_center.x),(frac*semi_major.y+(1-frac)*ellipse_center.y));
@@ -414,10 +430,6 @@ vector<Point> closestPointToEllipse(Point ropod_pos, double ropod_angle, Point f
     Point semi_minornoid((frac*semi_minor.x+(1-frac)*ellipse_center.x),(frac*semi_minor.y+(1-frac)*ellipse_center.y));
     Point ellipse_center_noid(ellipse_center.x,ellipse_center.y);
     
-    //printf("Semi major x %f\n",semi_majornoid.x);
-    //printf("Semi major y %f\n",semi_majornoid.y);
-    //printf("Semi minor x %f\n",semi_minornoid.x);
-    //printf("Semi_minor y %f\n",semi_minornoid.y);
     //TODO: point to check distance with might need to change to feeler instead of ropod center
     // translate point so ellipse center is origin
     double local_ellipse_angle = atan2(semi_major.y - ellipse_center.y, semi_major.x - ellipse_center.x);
@@ -431,16 +443,18 @@ vector<Point> closestPointToEllipse(Point ropod_pos, double ropod_angle, Point f
     pivot_local_ropod.y = pivot_to_ropod.x*-sin(local_ellipse_angle) + pivot_to_ropod.y*cos(local_ellipse_angle);
     Point feeler_local_ellipse;
     feeler_local_ellipse.x = pivot_local_ropod.x + feeler.x*cos(ropod_angle-local_ellipse_angle) + feeler.y*-sin(ropod_angle-local_ellipse_angle);
-    feeler_local_ellipse.y = pivot_local_ropod.y + feeler.x*sin(ropod_angle-local_ellipse_angle) + feeler.y*cos(ropod_angle-local_ellipse_angle);
-    //printf("Local ellipse feeler x %f\n",feeler_local_ellipse.x);
-    //printf("Local ellipse feeler y %f\n",feeler_local_ellipse.y);
-    
-    
+    feeler_local_ellipse.y = pivot_local_ropod.y + feeler.x*sin(ropod_angle-local_ellipse_angle) + feeler.y*cos(ropod_angle-local_ellipse_angle); 
     
     double a,b, a_max;
     if (task[5]=="right"){
-      a = config.ROPOD_LENGTH+config.FEELER_SIZE_STEERING+config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING;
-      b = 2.0*config.SIZE_SIDE+2.0*(config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING);
+      /*if (config.HURRIED) {
+	a = 0.75*sqrt(dist2(semi_majornoid, ellipse_center_noid));
+      } else {
+	a = 0.5*sqrt(dist2(semi_majornoid, ellipse_center_noid));
+      }*/
+      //a = config.ROPOD_LENGTH+0.5+config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING+2.0*config.SHIFT_BEFORE_TURN-config.START_STEERING_EARLY_RIGHT; //+config.FEELER_SIZE_STEERING
+      a = 2.0*config.SIZE_SIDE+2.0*(config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING);
+      b = 2.0*config.SIZE_SIDE+(config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING)+config.SHIFT_BEFORE_TURN;
       
       a_max = dist2(semi_majornoid, ellipse_center_noid);
       if( a*a > a_max){
@@ -450,9 +464,6 @@ vector<Point> closestPointToEllipse(Point ropod_pos, double ropod_angle, Point f
       a = sqrt(dist2(semi_majornoid, ellipse_center_noid));
       b = sqrt(dist2(semi_minornoid, ellipse_center_noid));
     }
-    
-    //a = sqrt(dist2(semi_majornoid, ellipse_center_noid));
-    //b = sqrt(dist2(semi_minornoid, ellipse_center_noid));
     
     double t = atan2(feeler_local_ellipse.y, feeler_local_ellipse.x);
     double  x, y, ex, ey, rx, ry, qx, qy, r, q, delta_c, delta_t;
