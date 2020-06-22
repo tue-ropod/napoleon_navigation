@@ -175,6 +175,8 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
     // Feelers in front of the ropod
     Point local_lt(config.ROPOD_LENGTH/2, config.SIZE_SIDE);
     Point local_rt(config.ROPOD_LENGTH/2,-config.SIZE_SIDE);
+    Point local_lb(-config.ROPOD_LENGTH/2, config.SIZE_SIDE);
+    Point local_rb(-config.ROPOD_LENGTH/2, -config.SIZE_SIDE);
     Point origin(0,0);
     double dist = 0, phi = 0, to_middle_size = 0;
     
@@ -211,6 +213,7 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
     Point center_ellipse_local = coordGlobalToRopod(center_ellipse, ropod_pos, ropod_angle);
     double dist_ropod_center_to_wall = sqrt(dist2(origin, center_ellipse_local));
 
+    double dist_right_inner, local_wall_angle_prev;
     double dist_left, dist_right;
     double dist_pivot_ellipse, dist_pivot_feeler, dist_to_ellipse;
     vector<Point> points_on_ellipse;
@@ -231,6 +234,21 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
 	  dist_left = sqrt(dist2(local_fl, onEllipse_local));
 	} else {
 	  dist_left = -sqrt(dist2(local_fl, onEllipse_local));
+	}
+	
+	// When turning right in a hurried state add a feeler on the back to measure distance to inside wall
+	if(config.HURRIED) {
+	  PointID point_rear_prev = getPointByID(task[10],pointlist);
+	  PointID point_front_prev = getPointByID(task[11],pointlist);
+
+	  Point local_wallpoint_rear_prev = coordGlobalToRopod(point_rear_prev, ropod_pos, ropod_angle);
+	  Point local_wallpoint_front_prev = coordGlobalToRopod(point_front_prev, ropod_pos, ropod_angle);
+	  Point local_frb(config.FEELER_SIZE_BACK*cos(phi_0), config.FEELER_SIZE_BACK*sin(phi_0));
+	  local_frb = local_frb.add(local_rb);
+	  local_wall_angle_prev = atan2(local_wallpoint_front_prev.y-local_wallpoint_rear_prev.y,local_wallpoint_front_prev.x-local_wallpoint_rear_prev.x);
+	  Point fr_inner_env_0 = rotate_point(origin, -local_wall_angle_prev, local_frb); // Feeler right back @ env at theta = 0
+	  Point rb_prev_env_0 = rotate_point(origin, -local_wall_angle_prev, local_wallpoint_rear_prev); // Wall at right side @ env at theta = 0
+	  dist_right_inner = fr_inner_env_0.y-rb_prev_env_0.y; // Y distance from feeler on the back to previous right wall (neg if beyond wall)
 	}
 	
 	dist = dist_left;
@@ -282,8 +300,20 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
     // In the transition zone we will do a combination of Phi_0 and Phi_tctw
     // phi_0 = 0;
     double phi_tctw = atan2(steer_vec.y,steer_vec.x); // Determine the angle of this steering vector
-
-    if (dist < config.ENV_TCTW_SIZE) {
+    
+    if (local_pivot.x < 0 && dist_right_inner < config.ENV_TCTW_SIZE && dir_cw && config.HURRIED){
+      to_middle_vec = {to_middle_size*-sin(local_wall_angle_prev),to_middle_size*cos(local_wall_angle_prev)};
+      to_front_vec = {carrot_length*cos(local_wall_angle_prev), carrot_length*sin(local_wall_angle_prev)};  // Vector from middle of road to a point further on the road
+      steer_vec = {to_front_vec.x + to_middle_vec.x, to_front_vec.y + to_middle_vec.y};
+      phi_tctw = atan2(steer_vec.y,steer_vec.x);
+    } else if(local_pivot.x < 0 && dist_right_inner < config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE && dir_cw && config.HURRIED){
+      double frac_in_trans = 1-(dist_right_inner-config.ENV_TCTW_SIZE)/config.ENV_TRNS_SIZE;
+      to_middle_vec = {to_middle_size*-sin(local_wall_angle_prev),to_middle_size*cos(local_wall_angle_prev)};
+      to_front_vec = {carrot_length*cos(local_wall_angle_prev), carrot_length*sin(local_wall_angle_prev)};  // Vector from middle of road to a point further on the road
+      steer_vec = {to_front_vec.x + to_middle_vec.x, to_front_vec.y + to_middle_vec.y};
+      phi_tctw = atan2(steer_vec.y,steer_vec.x);
+      phi = frac_in_trans*phi_tctw+(1-frac_in_trans)*phi_0;
+    } else if (dist < config.ENV_TCTW_SIZE) {
         //ROS_INFO("Ropod is too close to wall, steer back to middle\n");
         phi = phi_tctw;
 	
@@ -453,8 +483,8 @@ vector<Point> closestPointToEllipse(Point ropod_pos, double ropod_angle, Point f
 	a = 0.5*sqrt(dist2(semi_majornoid, ellipse_center_noid));
       }*/
       //a = config.ROPOD_LENGTH+0.5+config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING+2.0*config.SHIFT_BEFORE_TURN-config.START_STEERING_EARLY_RIGHT; //+config.FEELER_SIZE_STEERING
-      a = 2.0*config.SIZE_SIDE+2.0*(config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING);
-      b = 2.0*config.SIZE_SIDE+(config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING)+config.SHIFT_BEFORE_TURN;
+      a = config.D_AX+2.0*(config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING);
+      b = 2.0*config.SIZE_SIDE+2.0*(config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING)+config.SHIFT_BEFORE_TURN;
       
       a_max = dist2(semi_majornoid, ellipse_center_noid);
       if( a*a > a_max){
@@ -1078,8 +1108,8 @@ vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID 
             // disp(['Use node: ', shiftedOBJ2{2}, ' as front wall point']);
             // disp(['Use node: ', shiftedOBJ2{1}, ' as pivot']);
             // disp('-------------------------------');
-            intersectiontask = {OBJ2_point_IDs[2], OBJ2_point_IDs[1], next_left_wall_hallway[1], next_left_wall_hallway[0], OBJ2_point_IDs[0], "right", next_right_wall_hallway[0], next_right_wall_hallway[1], OBJ2_point_IDs[1], OBJ2_point_IDs[3]};
-	    // First wall rear, First wall front, Second wall rear, Second wall front, pivoting point, turning direction, wall to follow rear, wall to follow front, ellipse semi major, ellipse semi minor
+            intersectiontask = {OBJ2_point_IDs[2], OBJ2_point_IDs[1], next_left_wall_hallway[1], next_left_wall_hallway[0], OBJ2_point_IDs[0], "right", next_right_wall_hallway[0], next_right_wall_hallway[1], OBJ2_point_IDs[1], OBJ2_point_IDs[3], OBJ1TASK[0], OBJ1TASK[1]};
+	    // First wall rear, First wall front, Second wall rear, Second wall front, pivoting point, turning direction, wall to follow rear, wall to follow front, ellipse semi major, ellipse semi minor, previous wall rear, previous wall front
         } else if (index_dir == 3) {
             next_right_wall_hallway = getWallPointsAwayFromB(OBJ3,OBJ2);
             // disp('Corner/intersection: turn left');

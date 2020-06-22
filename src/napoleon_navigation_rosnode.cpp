@@ -524,6 +524,7 @@ void dynamicReconfigureCallback(napoleon_navigation::NapoleonNavigationConfig &d
         config.SIZE_FRONT_ROPOD = config.ROPOD_LENGTH / 2.0;
         config.FEELER_SIZE = dyn_config.feeler_size;
         config.FEELER_SIZE_STEERING = dyn_config.feeler_size_steering;
+	config.FEELER_SIZE_BACK = dyn_config.feeler_size_back;
         config.ENV_TCTW_SIZE = dyn_config.env_tctw_size;
         config.ENV_TRNS_SIZE = dyn_config.env_trns_size;
         config.CARROT_LENGTH = config.FEELER_SIZE + dyn_config.carrot_length_feeler_offset;
@@ -668,6 +669,10 @@ void initializeAssignment()
                 area_names.push_back(OBJ2TASK[7]);
 		area_names.push_back(OBJ2TASK[8]);
 		area_names.push_back(OBJ2TASK[9]);
+		if(OBJ2TASK[5].compare("right") == 0) {
+		  area_names.push_back(OBJ2TASK[10]);
+		  area_names.push_back(OBJ2TASK[11]);
+		}
 
                 obj2wall_p0 = getPointByID(OBJ2TASK[0],pointlist);
                 obj2wall_p1 = getPointByID(OBJ2TASK[1],pointlist);
@@ -835,8 +840,9 @@ void updateStateAndTask()
                 {
 		  if(j==1)printf("Will turn right");
 		  if (config.HURRIED) {
-                    standard_steering_offset =  0.0;/*fmin( 0.0, fabs(cur_pivot_local.y)
-                                    - (sqrt(dist2(getPoint(point_right_entry_next_wall), getPoint(point_pivot)))) - config.TUBE_WIDTH_C/2.0) + config.ROPOD_TO_AX;*/
+                    standard_steering_offset =  fabs(fmin( 0.0, fabs(cur_pivot_local.y)
+                                  - (sqrt(dist2(getPoint(point_right_entry_next_wall), getPoint(point_pivot))) - config.TUBE_WIDTH_C/2.0)
+                                   + config.ROPOD_TO_AX));
                     steering_offset[j] = config.START_STEERING_EARLY_RIGHT;//standard_steering_offset + config.START_STEERING_EARLY_RIGHT;
 		  } else {
 		    steering_offset[j] = 0.0;
@@ -854,7 +860,7 @@ void updateStateAndTask()
 		    steering_offset[j] = standard_steering_offset;
 		  }
                 }
-		if(j==1)printf("Standard steering offset %f \n",steering_offset[j]);
+		if(j==1)printf("Standard steering offset %f \n",standard_steering_offset);
         } else if (cur_pivot_local.x < config.SIZE_FRONT_RAX + steering_offset[1] && pred_state[prevstate] == ENTRY_BEFORE_TURN_ON_INTERSECTION) {
             // If in entry and the y position of the ropod exceeds the y
             // position of the intersection
@@ -1020,7 +1026,6 @@ void updateStateAndTask()
             current_obs_in_ropod_frame_pos = coordGlobalToRopod(obs_center_global, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
             //disp(['Obs is ',num2str(obs_in_ropod_frame_pos.x), ' m in front of ropod']);
             if (current_obs_in_ropod_frame_pos.x+current_obstacle.rectangle.depth/2+config.D_AX+config.SIZE_REAR < 0) {
-		if(j==1) printf("obstacle avoided 1");
                 pred_state[j] = CRUISING;
                 update_state_points = true;
                 pred_tube_width[j] = config.TUBE_WIDTH_C;
@@ -1033,7 +1038,6 @@ void updateStateAndTask()
             // Ropod doesn't see obs anymore, return cruising.
             // When obs disappears depends on the setting how long it takes before obs disappears after not seeing it (entity-timeout)
             // It can be found in /catkin_workspace/src/applications/ropod_navigation_test/config/model-example-ropod-navigation-ED.yaml
-	    if(j==1) printf("obstacle avoided 2");
             pred_state[j] = CRUISING;
             update_state_points = true;
             pred_tube_width[j] = config.TUBE_WIDTH_C;
@@ -1408,22 +1412,6 @@ void simulateRobotDuringCurrentPredictionStep()
         pred_phi[m] = (1-lpf)*pred_phi[m-1]+lpf*pred_phi_des[j];
         pred_theta[m] = wrapToPi(pred_theta[m-1]+pred_thetadot[m-1]*TS);
         pred_v_ropod[m] = pred_v_ropod[m-1]+pred_accel[j]*TS;
-	
-	/*if (abs(pred_phi[m]-pred_phi[m-1]) > config.DELTA_DOT_LIMIT*TS) {
-        //disp("Delta steering too large, steering saturated");
-        pred_phi[m] = pred_phi[m-1] + sgn(pred_phi[m]-pred_phi[m-1])*config.DELTA_DOT_LIMIT*TS;
-        // Decrease vel leads to better corners
-        // The velocity is already decreased in the state machine, but this is just a harsh backup
-        // pred_steer_rate_saturation[j] = 1;
-        if (pred_v_ropod[m] > config.V_STEERSATURATION) {
-            pred_v_ropod[m] = config.V_STEERSATURATION;
-        }
-        //disp(['In saturation - j: ', num2str(j) ,', Phides: ', num2str(pred_phi_des(j)), ' // Prev phides: ' , num2str(prev_pred_phi_des), ', v_des = ', num2str(v_des)]);
-	}
-
-	if (abs(pred_v_ropod[m]-pred_v_ropod[m-1]) > config.A_MAX*TS) {
-	    pred_v_ropod[m] = pred_v_ropod[m-1]+sgn(pred_v_ropod[m]-pred_v_ropod[m-1])*config.A_MAX*TS;
-	}*/
     
         pred_xdot[m] = pred_v_ropod[m]*cos(pred_phi[m])*cos(pred_theta[m]);
         pred_ydot[m] = pred_v_ropod[m]*cos(pred_phi[m])*sin(pred_theta[m]);
@@ -1437,10 +1425,12 @@ void simulateRobotDuringCurrentPredictionStep()
 	//And if so, publish it.
 	if(abs(m - FutureTimeStampIndex) < 0.5) //Inequality because we're comparing a double to an integer
 	{
+	  Point pred_sim_ropod(pred_sim_x_ropod[m], pred_sim_y_ropod[m]);
+	  Point fut_point_local = coordGlobalToRopod(pred_sim_ropod, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
 	  future_point.pose.pose.position.x = ropod_x;
 	  future_point.pose.pose.position.y = ropod_y;
-	  future_point.twist.twist.linear.x = pred_sim_x_ropod[m];
-	  future_point.twist.twist.linear.y = pred_sim_y_ropod[m];
+	  future_point.twist.twist.linear.x = fut_point_local.x;
+	  future_point.twist.twist.linear.y = fut_point_local.y;
 	  fut_point_pub.publish(future_point);
 	  //ROS_WARN("Predicted theta & timestamp counter");
 	  //printf("Predicted theta: %f \n", pred_theta[m]);  
@@ -1788,10 +1778,10 @@ void overtakeStateMachine()
             pred_tube_width[j] = freeNavigationRightLaneRight.width;
             if (j == 1) ROS_INFO("No overtake necessary, but tube size scaled down");
         } 
-        else if (freeNavigationLeftLaneLeft.width > 2*(config.SIZE_SIDE+config.OBS_AVOID_MARGIN)) {
+        else if (freeNavigationCenter.width > 2*(config.SIZE_SIDE+config.OBS_AVOID_MARGIN)) {
             if (j == 1) ROS_INFO("Can overtake on left side, there should be enough space there");
             // Start overtake
-            if (freeNavigationLeftLaneLeft.width < 2*(config.SIZE_SIDE+config.ENV_TRNS_SIZE)) 
+            if (freeNavigationCenter.width < 2*(config.SIZE_SIDE+config.ENV_TRNS_SIZE)) 
 	    {
                 if (j == 1) ROS_INFO("Tight overtake");
                 pred_state[j] = TIGHT_OVERTAKE;
@@ -1802,10 +1792,10 @@ void overtakeStateMachine()
                 pred_state[j] = SPACIOUS_OVERTAKE;
                 // TODO: for now obstacle angle is aligned with wall (from bounding box) So only width is looked at
             }
-            Point wall_pos(freeNavigationLeftLaneLeft.x, freeNavigationLeftLaneLeft.y);
+            Point wall_pos(freeNavigationCenter.x, freeNavigationCenter.y);
             double distAreatoWall = -distToLine(wall_pos, rw_p_rear, rw_p_front);
-            shift_wall = distAreatoWall - freeNavigationLeftLaneLeft.width/2 + config.OBS_AVOID_MARGIN;
-            pred_tube_width[j] = freeNavigationLeftLaneLeft.width;
+            shift_wall = distAreatoWall - freeNavigationCenter.width/2 + config.OBS_AVOID_MARGIN;
+            pred_tube_width[j] = freeNavigationCenter.width;
         } 
         else 
 	{
@@ -1881,11 +1871,11 @@ void checkForCollisions()
         Point rw_p_front_noid(rw_p_front.x,rw_p_front.y);
         double distance_point_to_line = -distToLine(pred_xy_ropod[j-1], rw_p_rear, rw_p_front);
         bool ropod_intersect_wall = does_line_intersect_shape(rw_p_rear_noid, rw_p_front_noid, robot_footprint);
-        if (distance_point_to_line < 0 && ropod_intersect_wall == false)
+        if (distance_point_to_line > 0 && ropod_intersect_wall == false)
         {
             robot_left_side_wall_first_time = true;
         }
-        if (distance_point_to_line < 0 && robot_left_side_wall_first_time) // if ropod is at the right side of the wall and ropod did not start colliding virtual wall (allow to recover)
+        if (distance_point_to_line > 0 && robot_left_side_wall_first_time) // if ropod is at the right side of the wall and ropod did not start colliding virtual wall (allow to recover)
 	{ 
             ropod_colliding_wall = does_line_intersect_shape(rw_p_rear_noid, rw_p_front_noid, robot_footprint);
         }

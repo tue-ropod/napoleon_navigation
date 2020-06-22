@@ -15,6 +15,7 @@ struct NapoleonConfig
 
     double FEELER_SIZE; // Size of feeler [m] - used to predict where ropod goes suppose it would go straight
     double FEELER_SIZE_STEERING; // Size of feeler when steering [m]
+    double FEELER_SIZE_BACK; // Size of feeler on the back when steering [m]
     double ENV_TCTW_SIZE; // Too close too wall area size [m]
     double ENV_TRNS_SIZE; // Transition area size [m]
     double CARROT_LENGTH; // How far ahead point lies where ropod steers towards when too close to a wall [m]
