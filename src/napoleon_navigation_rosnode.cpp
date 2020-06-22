@@ -536,10 +536,20 @@ void dynamicReconfigureCallback(napoleon_navigation::NapoleonNavigationConfig &d
 	{
 	  config.V_INTER_TURNING = dyn_config.v_inter_turning*1.5;
 	  config.SHIFT_BEFORE_TURN = 0.5*config.TUBE_WIDTH_C;
+	  config.V_OVERTAKE = config.V_CRUISING + 0.5;
 
+	} else if (dyn_config.is_load_attached){
+	  config.D_AX = dyn_config.d_ax;
+	  config.ROPOD_TO_AX = config.D_AX;
+	  config.SIZE_REAR = dyn_config.size_rear;
+	  config.V_OVERTAKE = dyn_config.v_overtake;
 	} else {
 	  config.V_INTER_TURNING = dyn_config.v_inter_turning;
 	  config.SHIFT_BEFORE_TURN = 0.0;
+	  config.D_AX = config.ROPOD_LENGTH;
+	  config.ROPOD_TO_AX = config.ROPOD_LENGTH / 2.0;
+	  config.SIZE_REAR = 0.0;//config.ROPOD_LENGTH / 2.0;
+	  config.V_OVERTAKE = 0.8*config.V_CRUISING;
 	}
 	
 	config.V_INTER_ACC = config.V_INTER_TURNING;
@@ -555,20 +565,6 @@ void dynamicReconfigureCallback(napoleon_navigation::NapoleonNavigationConfig &d
         config.START_STEERING_EARLY_LEFT = dyn_config.start_steering_early_left;
         config.ROTATED_ENOUGH_THRES = dyn_config.rotated_enough_thres;
 	
-        if (dyn_config.is_load_attached)
-        {
-            config.D_AX = dyn_config.d_ax;
-            config.ROPOD_TO_AX = config.D_AX;
-            config.SIZE_REAR = dyn_config.size_rear;
-            config.V_OVERTAKE = dyn_config.v_overtake;
-        }
-        else
-        {
-            config.D_AX = config.ROPOD_LENGTH;
-            config.ROPOD_TO_AX = config.ROPOD_LENGTH / 2.0;
-            config.SIZE_REAR = 0.0;//config.ROPOD_LENGTH / 2.0;
-            config.V_OVERTAKE = 0.8 * config.V_CRUISING;
-        }
         config.SIZE_FRONT_RAX = (config.ROPOD_TO_AX + config.SIZE_FRONT_ROPOD);
         config.FOLLOW_WALL_DIST_TURNING = sqrt((config.ROPOD_LENGTH * 2.0*config.SIZE_SIDE) / 2.0) + config.ENV_TCTW_SIZE + config.ENV_TRNS_SIZE;
         config.T_MIN_PRED = dyn_config.t_min_pred;
