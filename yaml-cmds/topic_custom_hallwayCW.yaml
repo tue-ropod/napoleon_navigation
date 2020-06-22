@@ -1,0 +1,807 @@
+rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
+    -
+      id: '1004'
+      name: 'H_RLD'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+         name: 'H2_1'
+         id: '104'
+         floor_number: 0
+         type: ''
+         capacity: 0
+         waypoint_pose:
+           position:
+             x: 0.0
+             y: 0.0
+             z: 0.0
+           orientation:
+             x: 0.0
+             y: 0.0
+             z: 0.0
+             w: 0.0
+         geometry:
+           vertices:
+             -
+               x: -2.75
+               y: 8.95
+               id: 4
+             -
+               x: 5.75
+               y: 8.85
+               id: 0
+             -
+               x: 5.6
+               y: 12.9
+               id: 3
+             -
+               x: -2.71
+               y: 13.0
+               id: 5
+         right:
+           point1:
+             x: 0
+             y: 0
+             id: 0
+           point2:
+             x: 0
+             y: 0
+             id: 0
+         left:
+           point1:
+             x: 0
+             y: 0
+             id: 0
+           point2:
+             x: 0
+             y: 0
+             id: 0
+         turn_point:
+           x: 0.0
+           y: 0.0
+           id: 0
+    -
+      id: '1012'
+      name: 'J_RLD3'
+      type: 'junction'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'J1_10'
+          id: '112'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: 9.13
+                y: 8.74
+                id: 1
+              -
+                x: 9.08
+                y: 13
+                id: 2
+              -
+                x: 5.6
+                y: 12.9
+                id: 3
+              -
+                x: 5.75
+                y: 8.88
+                id: 0
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '1110'
+      name: 'H_RLD2'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'H2_2'
+          id: '111'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: 9.0
+                y: 2.9
+                id: 21
+              -
+                x: 9.13
+                y: 8.74
+                id: 1
+              -
+                x: 5.75
+                y: 8.88
+                id: 0
+              -
+                x: 5.59
+                y: 2.7
+                id: 23
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '1100'
+      name: 'J_OP_J_RLD2'
+      type: 'junction'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'J2_1'
+          id: '110'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: 9.09
+                y: -0.768
+                id: 20
+              -
+                x: 9.0
+                y: 2.9
+                id: 21
+              -
+                x: 5.59
+                y: 2.7
+                id: 23
+              -
+                x: 5.5
+                y: -0.813
+                id: 22
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '1009'
+      name: 'H_OP_RLD_ALD2'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'H3_1'
+          id: '109'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: 12.3
+                y: -0.797
+                id: 19
+              -
+                x: 12.4
+                y: 2.96
+                id: 18
+              -
+                x: 9.0
+                y: 2.9
+                id: 21
+              -
+                x: 9.09
+                y: -0.768
+                id: 20
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '1008'
+      name: 'J_C_ALD'
+      type: 'junction'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'J_C_ALD_1'
+          id: '108'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: 16.0
+                y: -0.993
+                id: 16
+              -
+                x: 16.0
+                y: 3.01
+                id: 17
+              -
+                x: 12.4
+                y: 2.96
+                id: 18
+              -
+                x: 12.3
+                y: -0.797
+                id: 19
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '1007'
+      name: 'C_ALD'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'H_RLD_ALD_2'
+          id: '107'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: 16.0
+                y: -3.31
+                id: 15
+              -
+                x: 16.0
+                y: -0.993
+                id: 16
+              -
+                x: 12.3
+                y: -0.797
+                id: 19
+              -
+                x: 12.2
+                y: -3.3
+                id: 12
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '1006'
+      name: 'J_ALD'
+      type: 'junction'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'J_ALD_1'
+          id: '106'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: 16.0
+                y: -7.15
+                id: 14
+              -
+                x: 16.0
+                y: -3.31
+                id: 15
+              -
+                x: 12.2
+                y: -3.3
+                id: 12
+              -
+                x: 12.1
+                y: -7.19
+                id: 13
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '1005'
+      name: 'H_RLD_ALD'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'H_RLD_ALD_1'
+          id: '105'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: 12.1
+                y: -7.19
+                id: 13
+              -
+                x: 12.2
+                y: -3.3
+                id: 12
+              -
+                x: -2.9
+                y: -3.19
+                id: 10
+              -
+                x: -2.86
+                y: -7.29
+                id: 11
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '1001'
+      name: 'J_RLD'
+      type: 'junction'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'J1_1'
+          id: '101'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: -2.86
+                y: -7.29
+                id: 11
+              -
+                x: -2.9
+                y: -3.19
+                id: 10
+              -
+                x: -7.67
+                y: -3.08
+                id: 8
+              -
+                x: -7.66
+                y: -7.24
+                id: 9
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '1002'
+      name: 'H_RLD2'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: 'H2_2'
+          id: '102'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              -
+                x: -2.9
+                y: -3.19
+                id: 10
+              -
+                x: -2.75
+                y: 8.95
+                id: 4
+              -
+                x: -7.7
+                y: 8.68
+                id: 7
+              -
+                x: -7.67
+                y: -3.08
+                id: 8
+          right: 
+            point1: 
+              x: 0
+              y: 0
+              id: 0
+            point2: 
+              x: 0
+              y: 0
+              id: 0
+          left: 
+            point1: 
+              x: 0
+              y: 0
+              id: 0
+            point2: 
+              x: 0
+              y: 0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    - 
+      id: '1003'
+      name: 'J_OP_J_RLD'
+      type: 'junction'
+      floor_number: 0
+      sub_areas: 
+        - 
+          name: 'J2_2'
+          id: '103'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose: 
+            position: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation: 
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry: 
+            vertices: 
+              -
+                x: -2.75
+                y: 8.95
+                id: 4
+              -
+                x: -2.71
+                y: 13
+                id: 5
+              -
+                x: -7.75
+                y: 12.8
+                id: 6
+              -
+                x: -7.7
+                y: 8.68
+                id: 7
+          right: 
+            point1: 
+              x: 0
+              y: 0
+              id: 0
+            point2: 
+              x: 0
+              y: 0
+              id: 0
+          left: 
+            point1: 
+              x: 0
+              y: 0
+              id: 0
+            point2: 
+              x: 0
+              y: 0
+              id: 0
+          turn_point: 
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '1004'
+      name: 'H_RLD'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+         name: 'H2_1'
+         id: '104'
+         floor_number: 0
+         type: ''
+         capacity: 0
+         waypoint_pose:
+           position:
+             x: 0.0
+             y: 0.0
+             z: 0.0
+           orientation:
+             x: 0.0
+             y: 0.0
+             z: 0.0
+             w: 0.0
+         geometry:
+           vertices:
+             -
+               x: -2.75
+               y: 8.95
+               id: 4
+             -
+               x: 5.75
+               y: 8.85
+               id: 0
+             -
+               x: 5.6
+               y: 12.9
+               id: 3
+             -
+               x: -2.71
+               y: 13.0
+               id: 5
+         right:
+           point1:
+             x: 0
+             y: 0
+             id: 0
+           point2:
+             x: 0
+             y: 0
+             id: 0
+         left:
+           point1:
+             x: 0
+             y: 0
+             id: 0
+           point2:
+             x: 0
+             y: 0
+             id: 0
+         turn_point:
+           x: 0.0
+           y: 0.0
+           id: 0" -1
