@@ -498,6 +498,9 @@ PointID point_pivot;
 Point local_wallpoint_front, local_wallpoint_rear;
 Point local_pivot;
 
+double observer = 14.5; // Value for simulations, to get good camera view
+bool start_cam_move = false;
+
 double dist;
 
 bool sharp_corner[100] = {false}; // quick but dirty fix! - now size is fixed to 100 since we don't
@@ -532,29 +535,18 @@ void dynamicReconfigureCallback(napoleon_navigation::NapoleonNavigationConfig &d
 	config.TUBE_WIDTH_C = 2.0 * (config.SIZE_SIDE + config.ENV_TCTW_SIZE + fmax(config.ENV_TRNS_SIZE, config.OBS_AVOID_MARGIN));
 	config.HURRIED = dyn_config.hurried;
         config.V_CRUISING = dyn_config.v_cruising;
-	if (config.HURRIED)
+
+	/*if (config.HURRIED)
 	{
 	  config.V_INTER_TURNING = dyn_config.v_inter_turning*1.5;
 	  config.SHIFT_BEFORE_TURN = 0.5*config.TUBE_WIDTH_C;
-	  config.V_OVERTAKE = config.V_CRUISING + 0.5;
-
-	} else if (dyn_config.is_load_attached){
-	  config.D_AX = dyn_config.d_ax;
-	  config.ROPOD_TO_AX = config.D_AX;
-	  config.SIZE_REAR = dyn_config.size_rear;
-	  config.V_OVERTAKE = dyn_config.v_overtake;
 	} else {
 	  config.V_INTER_TURNING = dyn_config.v_inter_turning;
 	  config.SHIFT_BEFORE_TURN = 0.0;
-	  config.D_AX = config.ROPOD_LENGTH;
-	  config.ROPOD_TO_AX = config.ROPOD_LENGTH / 2.0;
-	  config.SIZE_REAR = 0.0;//config.ROPOD_LENGTH / 2.0;
-	  config.V_OVERTAKE = 0.8*config.V_CRUISING;
-	}
+	}*/
 	
-	config.V_INTER_ACC = config.V_INTER_TURNING;
-	config.V_INTER_DEC = config.V_INTER_TURNING;
-	config.V_ENTRY = config.V_INTER_TURNING;
+	
+
 	config.V_STEERSATURATION = dyn_config.v_steersaturation;
         config.DELTA_DOT_LIMIT = dyn_config.delta_dot_limit;
         config.A_MAX = dyn_config.a_max;
@@ -565,6 +557,41 @@ void dynamicReconfigureCallback(napoleon_navigation::NapoleonNavigationConfig &d
         config.START_STEERING_EARLY_LEFT = dyn_config.start_steering_early_left;
         config.ROTATED_ENOUGH_THRES = dyn_config.rotated_enough_thres;
 	
+	if (dyn_config.is_load_attached)
+        {
+            config.D_AX = dyn_config.d_ax;
+            config.ROPOD_TO_AX = config.D_AX - config.ROPOD_LENGTH/2.0;
+            config.SIZE_REAR = dyn_config.size_rear;
+	    if (config.HURRIED) {
+	      config.V_INTER_TURNING = dyn_config.v_inter_turning*1.2;
+	      config.SHIFT_BEFORE_TURN = 0.5*config.TUBE_WIDTH_C;
+	      config.V_OVERTAKE = 0.8*config.V_CRUISING;      
+	    } else {
+	      config.V_INTER_TURNING = dyn_config.v_inter_turning;
+	      config.SHIFT_BEFORE_TURN = 0.0;
+	      config.V_OVERTAKE = dyn_config.v_overtake;
+	    }
+        }
+        else
+        {
+            config.D_AX = config.ROPOD_LENGTH;
+            config.ROPOD_TO_AX = config.ROPOD_LENGTH / 2.0;
+            config.SIZE_REAR = 0.0;
+	    if (config.HURRIED) {
+	      config.V_INTER_TURNING = config.V_CRUISING;
+	      config.SHIFT_BEFORE_TURN = 0.5*config.TUBE_WIDTH_C;
+	      config.V_OVERTAKE = config.V_CRUISING+0.5;
+	    } else {
+	      config.V_INTER_TURNING = dyn_config.v_inter_turning;
+	      config.SHIFT_BEFORE_TURN = 0.0;
+	      config.V_OVERTAKE = 0.9*config.V_CRUISING;
+	    }
+        }
+        
+        config.V_INTER_ACC = config.V_INTER_TURNING;
+	config.V_INTER_DEC = config.V_INTER_TURNING;
+	config.V_ENTRY = config.V_INTER_TURNING;
+        
         config.SIZE_FRONT_RAX = (config.ROPOD_TO_AX + config.SIZE_FRONT_ROPOD);
         config.FOLLOW_WALL_DIST_TURNING = sqrt((config.ROPOD_LENGTH * 2.0*config.SIZE_SIDE) / 2.0) + config.ENV_TCTW_SIZE + config.ENV_TRNS_SIZE;
         config.T_MIN_PRED = dyn_config.t_min_pred;
@@ -783,12 +810,7 @@ void updateStateAndTask()
 
     // Taking a turn on an intersection
     if (!task2[5].empty()) {
-        /*if (real_time_est <= 1) {       // First second is reserved for departure, in which a backwards movement is made.
-            pred_state[j] = DEPARTURE;  // Smarter statement is needed, so departure can also happen after ropod has stopped for some time and starts moving again
-        //printf("Ropod entry hall task2[5] non empty: %d\n",(int)pred_ropod_on_entry_hall[j]);
-        } else if (real_time_est >= 1 && pred_state[prevstate] == DEPARTURE){
-            pred_state[j] = CRUISING;
-        } else*/ if (pred_ropod_on_entry_hall[j] && (pred_state[prevstate] == DEPARTURE || pred_state[prevstate] == CRUISING || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == TIGHT_OVERTAKE) ){                
+        if (pred_ropod_on_entry_hall[j] && (pred_state[prevstate] == CRUISING || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == TIGHT_OVERTAKE) ){                
             pred_state[j] = pred_state[prevstate];
             //disp([num2str(i), ': Here we can switch to the next hallway']);
             u = u+1;
@@ -822,7 +844,7 @@ void updateStateAndTask()
             next_second_area = getAreaByID(area3ID,arealist);
 
 
-        } else if (pred_ropod_on_entry_inter[j] && (pred_state[prevstate] == DEPARTURE || pred_state[prevstate] == CRUISING || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == TIGHT_OVERTAKE) ) {
+        } else if (pred_ropod_on_entry_inter[j] && (pred_state[prevstate] == CRUISING || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == TIGHT_OVERTAKE) ) {
                 // If cruising and the y position of the ropod exceeds the y
                 // position of the entry
                 if(j==1)printf("Entry detected to turn intersection u = %d\n",u);
@@ -869,10 +891,6 @@ void updateStateAndTask()
         } else if (cur_pivot_local.x <= -config.ROPOD_TO_AX + steering_offset[1] && pred_state[prevstate] == ALIGN_AXIS_AT_INTERSECTION) {
             // If rearaxle is aligned with the pivot minus sse
             if(j==1)printf("Turning on  u = %d\n",u+1);
-	    if(j==1)printf("Local pivot x %f\n", cur_pivot_local.x);
-	    if(j==1)printf("Current pivot x %f\n", current_pivot.x);
-	    if(j==1)printf("Standard steering offset %f \n",steering_offset[j]);
-	    if(j==1)printf("Front ropod + steering offset %f \n",-config.ROPOD_TO_AX + steering_offset[j]);
             pred_state[j] = TURNING;
 
         } else if (-config.ROTATED_ENOUGH_THRES < cur_next_hallway_angle && cur_next_hallway_angle < config.ROTATED_ENOUGH_THRES && pred_state[prevstate] == TURNING) {
@@ -919,12 +937,7 @@ void updateStateAndTask()
         }
     // Going straight on an intersection / or between hallways
     } else if (!task2[1].empty()) {      
-	/*if (real_time_est <= 1) {       // First second is reserved for departure, in which a backwards movement is made.
-            pred_state[j] = DEPARTURE;  // Smarter statement is needed, so departure can also happen after ropod has stopped for some time and starts moving again
-        //printf("Ropod entry hall task2[5] non empty: %d\n",(int)pred_ropod_on_entry_hall[j]);
-        } else if (real_time_est >= 1 && pred_state[prevstate] == DEPARTURE){
-            pred_state[j] = CRUISING;
-	} else*/ if (pred_ropod_on_entry_hall[j] && pred_state[prevstate] == CRUISING) {
+	if (pred_ropod_on_entry_hall[j] && pred_state[prevstate] == CRUISING) {
             pred_state[j] = CRUISING;
             //disp([num2str(i), ': Here we can switch to the next hallway']);
             u = u+1;
@@ -1017,11 +1030,10 @@ void updateStateAndTask()
     }
 
     if (pred_state[prevstate] == TIGHT_OVERTAKE || pred_state[prevstate] == SPACIOUS_OVERTAKE) {
-	if(j==1)printf("No obs counter: %d \n", no_obs);
         if (no_obs > 0) {
             current_obs_in_ropod_frame_pos = coordGlobalToRopod(obs_center_global, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
             //disp(['Obs is ',num2str(obs_in_ropod_frame_pos.x), ' m in front of ropod']);
-            if (current_obs_in_ropod_frame_pos.x+current_obstacle.rectangle.depth/2+config.D_AX+config.SIZE_REAR < 0) {
+	    if (current_obs_in_ropod_frame_pos.x+current_obstacle.rectangle.depth/2 +config.D_AX+config.SIZE_REAR < 0) {
                 pred_state[j] = CRUISING;
                 update_state_points = true;
                 pred_tube_width[j] = config.TUBE_WIDTH_C;
@@ -1089,21 +1101,9 @@ ros::Publisher freeAreaOL_marker_pub;
 void computeSteeringAndVelocity()
 {
     // Perform the appropriate action according to finite state machine
-    if (pred_state[j] == DEPARTURE || pred_state[j] == CRUISING || pred_state[j] == GOING_STRAIGHT_ON_INTERSECTION || pred_state[j] == TIGHT_OVERTAKE || pred_state[j] == SPACIOUS_OVERTAKE) {
+    if (pred_state[j] == CRUISING || pred_state[j] == GOING_STRAIGHT_ON_INTERSECTION || pred_state[j] == TIGHT_OVERTAKE || pred_state[j] == SPACIOUS_OVERTAKE || pred_state[j] == DEFER) {
         // disp([num2str[j],' - Ropod is now cruising']);
-        if (pred_state[j] == DEPARTURE) { // Departure
-            if (j==1) printf("DEPARTURE\n");
-            if (update_state_points) {
-                point_rear = getPointByID(task1[0],pointlist);
-                point_front = getPointByID(task1[1],pointlist);
-                wallang = atan2(point_front.y-point_rear.y,point_front.x-point_rear.x);
-                glob_wallpoint_front.x = point_front.x+shift_wall*cos(wallang+M_PI/2);
-                glob_wallpoint_front.y = point_front.y+shift_wall*sin(wallang+M_PI/2);
-                glob_wallpoint_rear.x = point_rear.x+shift_wall*cos(wallang+M_PI/2);
-                glob_wallpoint_rear.y = point_rear.y+shift_wall*sin(wallang+M_PI/2);
-            }
-            v_des = -config.V_CRUISING;                
-        } else if (pred_state[j] == CRUISING) {   // Cruising up
+	if (pred_state[j] == CRUISING) {   // Cruising up
             if(j==1) printf("CRUISING\n");
             if (update_state_points) {
                 point_rear = getPointByID(task1[0],pointlist);
@@ -1162,7 +1162,19 @@ void computeSteeringAndVelocity()
             glob_wallpoint_rear.x = point_rear.x+shift_wall*cos(wallang+M_PI/2);
             glob_wallpoint_rear.y = point_rear.y+shift_wall*sin(wallang+M_PI/2);
             v_des = config.V_OVERTAKE;
-        }
+	} else if (pred_state[j] == DEFER) {
+	    if (j==1) printf("DEFER\n");
+	  
+	    point_rear = getPointByID(task1[0],pointlist);
+	    point_front = getPointByID(task1[1],pointlist);
+	    wallang = atan2(point_front.y-point_rear.y, point_front.x-point_rear.x);
+	    glob_wallpoint_front.x = point_front.x+shift_wall*cos(wallang+M_PI/2);
+            glob_wallpoint_front.y = point_front.y+shift_wall*sin(wallang+M_PI/2);
+            glob_wallpoint_rear.x = point_rear.x+shift_wall*cos(wallang+M_PI/2);
+            glob_wallpoint_rear.y = point_rear.y+shift_wall*sin(wallang+M_PI/2);
+            v_des = config.V_OVERTAKE*0.4;
+	}
+	    
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         if(j==1) showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
@@ -1173,8 +1185,7 @@ void computeSteeringAndVelocity()
             //if(j==1) printf("DECREASE CARROT\n");
             //carrot_length = 0.3*CARROT_LENGTH; // this increases sharpness of corrections
         }
-
-        pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], carrot_length, config.FEELER_SIZE );
+	pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], carrot_length, config.FEELER_SIZE );
     } else if (pred_state[j] == ENTRY_BEFORE_TURN_ON_INTERSECTION || pred_state[j] == ENTRY_BEFORE_GOING_STRAIGHT_ON_INTERSECTION) {
         if(j==1) printf("ENTRY_BEFORE_INTERSECTION\n");
         // disp([num2str[j],' - Ropod is now in entry']);
@@ -1351,6 +1362,7 @@ void computeSteeringAndVelocity()
     if (abs(pred_phi_des[j]-prev_pred_phi_des) > config.DELTA_DOT_LIMIT/(double)F_PLANNER) {
         //disp("Delta steering too large, steering saturated");
         pred_phi_des[j] = prev_pred_phi_des + sgn(pred_phi_des[j]-prev_pred_phi_des)*config.DELTA_DOT_LIMIT/(double)F_PLANNER;
+	if(j==1)printf("Steering saturated");
         // Decrease vel leads to better corners
         // The velocity is already decreased in the state machine, but this is just a harsh backup
         // pred_steer_rate_saturation[j] = 1;
@@ -1393,12 +1405,23 @@ void simulateRobotDuringCurrentPredictionStep()
     
     pred_pose_vel.pose.pose.position.x = pred_sim_x_ropod[m];
     pred_pose_vel.pose.pose.position.y = pred_sim_y_ropod[m];
+    pred_pose_vel.pose.pose.position.z = observer;
     pred_pose_vel.pose.pose.orientation.z = pred_theta[m];
     pred_pose_vel.twist.twist.linear.x = pred_v_ropod[m]*cos(pred_phi[m]);
     pred_pose_vel.twist.twist.linear.y = t_pred[m];
     pred_pose_vel.twist.twist.angular.z = pred_thetadot[m];
     pred_pose_vel.header.stamp = ros::Time::now();;
     pred_pose_vel_pub.publish(pred_pose_vel);
+    
+    if (pred_state[j] == TURNING) {
+      start_cam_move = true;
+    }
+    
+    if (start_cam_move) {
+    //  observer = observer - 0.001;
+    //} else if (start_cam_move && !config.HURRIED) {
+      observer = observer - 0.0015;
+    }
     
     // Simulate ropod motion with current plan (Simulation is done faster than controller sample time)
     for (int q = 1; q <= F_FSTR; ++q) { // q = [1, 2, ..., F_FSTR]
@@ -1428,9 +1451,6 @@ void simulateRobotDuringCurrentPredictionStep()
 	  future_point.twist.twist.linear.x = fut_point_local.x;
 	  future_point.twist.twist.linear.y = fut_point_local.y;
 	  fut_point_pub.publish(future_point);
-	  //ROS_WARN("Predicted theta & timestamp counter");
-	  //printf("Predicted theta: %f \n", pred_theta[m]);  
-	  //printf("Timestamp - counter: %f \n", m - FutureTimeStampIndex);
 	}
     }
 }
@@ -1568,7 +1588,7 @@ void visualizeGlobalFreeArea(Rectangle freeNavArea, double rw_angle, int vis_id)
 std::vector<bool> laser_point_in_context;
 void createFreeNavigationBoundingBox()
 {
-    double minFreeSpaceDepth = 5; //(config.ROPOD_TO_AX + config.SIZE_FRONT_ROPOD + config.MIN_DIST_TO_OVERTAKE);//+ 3.11*v_obs_sq+1.81);   // config.MIN_DIST_TO_OVERTAKE); // TODO: Add later + ROPOD_LENGTH + config.OBS_AVOID_MARGIN_FRONT so robot fits also while overtaking?
+    double minFreeSpaceDepth = config.MIN_DIST_TO_OVERTAKE; //(config.ROPOD_TO_AX + config.SIZE_FRONT_ROPOD + config.MIN_DIST_TO_OVERTAKE);//+ 3.11*v_obs_sq+1.81);  // TODO: Add later + ROPOD_LENGTH + config.OBS_AVOID_MARGIN_FRONT so robot fits also while overtaking?
     //printf("Free space depth %f \n", minFreeSpaceDepth);
     double distance_point_to_line_max = 0;
     double distance_point_to_line_min = 100.0;
@@ -1670,12 +1690,7 @@ void createFreeNavigationBoundingBox()
     local_freeNavArea.y = 0.5*local_freeNavArea.width + config.SHIFT_BEFORE_TURN;
     freeNavigationRightLane_T = computeGlobalFreeArea(local_freeNavArea, rw_angle);
 
-    /*if (((pred_state[j] == ENTRY_BEFORE_TURN_ON_INTERSECTION || pred_state[j] == ACCELERATE_ON_INTERSECTION || pred_state[j] == ALIGN_AXIS_AT_INTERSECTION) && task2[5] == "right") || pred_state[j] == EXIT_TURN_RIGHT)
-    {
-	if (j==1) printf("Driving lane shifted for turn\n");
-	freeNavigationRightLaneRight = freeNavigationRightLane_T;
-    } 
-    else*/ if (freeNavigationRightLane_R.width >= freeNavigationRightLane_C.width)
+    if (freeNavigationRightLane_R.width >= freeNavigationRightLane_C.width)
     {
         freeNavigationRightLaneRight = freeNavigationRightLane_R;
     }
@@ -1721,7 +1736,7 @@ void considerOvertaking()
     // TODO: Add freeNavigationLeftLaneLeft;
     // TODO: This function might not be necessary
     overtake_on_current_hallway = false;
-    if (u < ka_max-1) 
+    if (u <= ka_max) 
     {
         if (curr_area.type == "hallway")
 	{
@@ -1755,13 +1770,10 @@ void overtakeStateMachine()
         lw_p_rear = getPointByID(areaIDs[3],pointlist);
         lw_p_front = getPointByID(areaIDs[2],pointlist);
         // TODO: Add freeNavigationLeftLaneLeft;
-
-        if (freeNavigationRightLaneRight.width >= config.TUBE_WIDTH_C) 
+		
+	if (freeNavigationRightLaneRight.width >= config.TUBE_WIDTH_C) 
 	{
             if (j == 1) ROS_INFO("No overtake necessary, passing on right should be possible");
-	    //printf("RightlaneRight width %f \n", freeNavigationRightLaneRight.width);
-	    //printf("RightlaneRight depth %f \n", freeNavigationRightLaneRight.depth);
-	    //printf("Tube width %f \n", config.TUBE_WIDTH_C);
             shift_wall = 0;
         } 
         else if (freeNavigationRightLaneRight.width > 2*(config.SIZE_SIDE+config.OBS_AVOID_MARGIN)) 
@@ -1779,25 +1791,41 @@ void overtakeStateMachine()
             // Start overtake
             if (freeNavigationCenter.width < 2*(config.SIZE_SIDE+config.ENV_TRNS_SIZE)) 
 	    {
-                if (j == 1) ROS_INFO("Tight overtake");
-                pred_state[j] = TIGHT_OVERTAKE;
+	      pred_state[j] = TIGHT_OVERTAKE;
             } 
             else 
 	    {
-                if (j == 1) ROS_INFO("Spacious overtake");
-                pred_state[j] = SPACIOUS_OVERTAKE;
-                // TODO: for now obstacle angle is aligned with wall (from bounding box) So only width is looked at
+	      pred_state[j] = SPACIOUS_OVERTAKE;
+	      // TODO: for now obstacle angle is aligned with wall (from bounding box) So only width is looked at
             }
             Point wall_pos(freeNavigationCenter.x, freeNavigationCenter.y);
             double distAreatoWall = -distToLine(wall_pos, rw_p_rear, rw_p_front);
             shift_wall = distAreatoWall - freeNavigationCenter.width/2 + config.OBS_AVOID_MARGIN;
             pred_tube_width[j] = freeNavigationCenter.width;
         } 
-        else 
+        else if (!config.HURRIED)
 	{
-            if (j == 1) ROS_INFO("No overtake possible, stuck behind this obstacle");
-            shift_wall = 0;
+	    if (j == 1) ROS_INFO("No overtake possible, deferring");
+	    pred_state[j] = DEFER;
+	    
+	    Point wall_pos(freeNavigationCenter.x, freeNavigationCenter.y);
+            double distAreatoWall = -distToLine(wall_pos, rw_p_rear, rw_p_front);
+            shift_wall = 0.25*(distAreatoWall - freeNavigationCenter.width/2 + config.OBS_AVOID_MARGIN);
+            pred_tube_width[j] = freeNavigationCenter.width;
         }
+        else
+	{
+	    if (j == 1) ROS_INFO("No overtake possible, stuck behind this obstacle");
+            shift_wall = 0;
+	}
+	
+	if (pred_state[j] == DEFER) { //If the predicted state is deferring, override all overtake states before that to also be deferring.
+	  for (int i = 0; i < j; i++) {
+	    if (pred_state[i] == SPACIOUS_OVERTAKE || pred_state[i] == TIGHT_OVERTAKE) {
+	      pred_state[i] = DEFER;
+	    }
+	  }
+	}
     }
 }
 
@@ -2340,6 +2368,9 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         {
             control_v = 0.0; // Force stop if even smallest scale failed
         }
+        else if (control_v < 0.0 && pred_state[j] == DEFER) {
+	    control_v = 0.0; // Force robot to stand still when speed has decreased enough and state is deferring
+	}
         else
         {
             control_v = pred_v_ropod[0]+pred_accel[1]*1/F_PLANNER;
@@ -2379,13 +2410,14 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
 	    //cmd_vel.angular.z = pred_ang_vel_vec[a];
             vel_pub.publish(cmd_vel);
         } else {
-            geometry_msgs::Twist cmd_vel;
+	    geometry_msgs::Twist cmd_vel;
             cmd_vel.linear.x = 0.0;
             cmd_vel.linear.y = 0.0;
 	    cmd_vel.angular.x = ros::Time::now().toSec(); // Crappy way to send ros timestamp with this topic
 	    cmd_vel.angular.z = 0.0;
             vel_pub.publish(cmd_vel);
-        }
+	}
+	  
         if (prev_sim_task_counter == (ka_max-1) ) {
 
             point_rear = getPointByID(task1[0],pointlist);
