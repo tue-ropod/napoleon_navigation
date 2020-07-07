@@ -31,8 +31,8 @@ double distToSegment(Point p, PointID v, PointID w);
 double distToSegment(Point p, Point v, Point w);
 double distToLine(Point p, PointID v, PointID w);
 double distToLine(Point p, Point v, Point w);
-vector<Point> closestPointToEllipse(Point ropod_pos, double ropod_angle, Point feeler, std::vector<string> task, vector<PointID> pointlist, double frac);
-Point ellipseTangentAngle(Point onEllipse, std::vector<string> task, vector<PointID> pointlist, double frac);
+vector<Point> closestPointToEllipse(Point ropod_pos, double ropod_angle, Point feeler, std::vector<string> task, vector<PointID> pointlist);
+Point ellipseTangentAngle(Point onEllipse, std::vector<string> task, vector<PointID> pointlist);
 bool do_lines_intersect(Point p0, Point p1, Point p2, Point p3);
 bool does_line_intersect_shape(Point p0, Point p1, AreaQuad shape);
 bool do_shapes_overlap(Point obj1p0, Point obj1p1, Point obj1p2, Point obj1p3, Point obj2p0, Point obj2p1, Point obj2p2, Point obj2p3);
@@ -71,8 +71,7 @@ enum{
     GOING_STRAIGHT_ON_INTERSECTION,
     TIGHT_OVERTAKE,     // (follow left wall)
     SPACIOUS_OVERTAKE,   // (shift right wall to left virtually)
-    DEPARTURE,
-    EXIT_TURN_RIGHT
+    DEFER
 };
 
 #endif
