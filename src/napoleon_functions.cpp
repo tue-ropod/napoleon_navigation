@@ -298,6 +298,7 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
     double phi_tctw = atan2(steer_vec.y,steer_vec.x); // Determine the angle of this steering vector
     
     if (local_pivot.x < 0 && dist_right_inner < config.ENV_TCTW_SIZE && dir_cw && config.HURRIED){
+      double frac_in_trans = 1;
       to_middle_vec = {to_middle_size*-sin(local_wall_angle_prev),to_middle_size*cos(local_wall_angle_prev)};
       to_front_vec = {carrot_length*cos(local_wall_angle_prev), carrot_length*sin(local_wall_angle_prev)};  // Vector from middle of road to a point further on the road
       steer_vec = {to_front_vec.x + to_middle_vec.x, to_front_vec.y + to_middle_vec.y};
@@ -458,7 +459,6 @@ vector<Point> closestPointToEllipse(Point ropod_pos, double ropod_angle, Point f
     //TODO: point to check distance with might need to change to feeler instead of ropod center
     // translate point so ellipse center is origin
     double local_ellipse_angle = atan2(semi_major.y - ellipse_center.y, semi_major.x - ellipse_center.x);
-    //printf("Local ellipse angle %f\n",local_ellipse_angle);
     
     Point pivot_to_ropod;
     pivot_to_ropod.x = ropod_pos.x - ellipse_center_noid.x;
@@ -472,11 +472,6 @@ vector<Point> closestPointToEllipse(Point ropod_pos, double ropod_angle, Point f
     
     double a,b, a_max;
     if (task[5]=="right"){
-      /*if (config.HURRIED) {
-	a = 0.75*sqrt(dist2(semi_majornoid, ellipse_center_noid));
-      } else {
-	a = 0.5*sqrt(dist2(semi_majornoid, ellipse_center_noid));
-      }*/
       //a = config.ROPOD_LENGTH+0.5+config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING+2.0*config.SHIFT_BEFORE_TURN-config.START_STEERING_EARLY_RIGHT; //+config.FEELER_SIZE_STEERING
       a = config.D_AX+2.0*(config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING);
       b = 2.0*(config.SIZE_SIDE + config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING)+config.SHIFT_BEFORE_TURN;
@@ -1236,163 +1231,216 @@ vector<string> getWalls(int id_OBJ1, int id_OBJ2, int id_OBJ3, vector<AreaQuadID
     return wallsABC;
 }
 
-double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist, double carrot_length, double feeler_size_steering) {
+double getSteeringTurnSharp(Point ropod_pos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist, double carrot_length, double feeler_size) {
     // NOT IN LOCAL COORDINATES (YET)
     // Function to determine steering action while rotating around a point
     // aka taking a turn, this time with a sharp angle.
     // In the special case of a sharp corner we also need to take the wall
     // from the next hallway into account.
     // dir: direction 0 = CCW, 1 = CW rotation
-    PointID obj2wall_p0 = getPointByID(task[0],pointlist);
-    PointID obj2wall_p1 = getPointByID(task[1],pointlist);
-    PointID obj3wall_p0 = getPointByID(task[2],pointlist);
-    PointID obj3wall_p1 = getPointByID(task[3],pointlist);
-    Point obj2wall_p0_idless (obj2wall_p0.x, obj2wall_p0.y);
-    Point obj3wall_p0_idless (obj3wall_p0.x, obj3wall_p0.y);
-
-    double obj2wall_angle = atan2(obj2wall_p1.y-obj2wall_p0.y, obj2wall_p1.x-obj2wall_p0.x);
-    double obj3wall_angle = atan2(obj3wall_p1.y-obj3wall_p0.y, obj3wall_p1.x-obj3wall_p0.x);
-    // ROS_INFO("Sharp steering obj2ang: %f / obj3ang: %f", obj2wall_angle, obj3wall_angle);
+    PointID obj2wall_rear = getPointByID(task[0],pointlist);
+    PointID obj2wall_front = getPointByID(task[1],pointlist);
+    PointID obj3wall_rear = getPointByID(task[2],pointlist);
+    PointID obj3wall_front = getPointByID(task[3],pointlist);
     PointID pivot = getPointByID(task[4],pointlist);
+    Point obj2wall_rear_idless (obj2wall_rear.x, obj2wall_rear.y);
+    Point obj3wall_rear_idless (obj3wall_rear.x, obj3wall_rear.y);
+    
+    Point local_obj2wall_rear = coordGlobalToRopod(obj2wall_rear, ropod_pos, ropod_angle);
+    Point local_obj2wall_front = coordGlobalToRopod(obj2wall_front, ropod_pos, ropod_angle);
+    Point local_obj3wall_rear = coordGlobalToRopod(obj3wall_rear, ropod_pos, ropod_angle);
+    Point local_obj3wall_front = coordGlobalToRopod(obj3wall_front, ropod_pos, ropod_angle);
+    
+    
+    double a, a_max;
+    
+    Point local_pivot = coordGlobalToRopod(pivot, ropod_pos, ropod_angle);
+    a = config.D_AX+2.0*(config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING);
+    a_max = dist2(local_obj3wall_rear, local_pivot);
+    // Shift the tube along the next wall inwards as well
+    if (a*a < a_max && dir_cw){
+      double next_hallway_entry_angle_local = atan2(local_obj3wall_rear.y-local_pivot.y, local_obj3wall_rear.x-local_pivot.x);
+      Point local_obj3wall_rear_shift(local_pivot.x+a*cos(next_hallway_entry_angle_local),local_pivot.y+a*sin(next_hallway_entry_angle_local));
+      double dist_shift_orig = sqrt(dist2(local_obj3wall_rear, local_obj3wall_rear_shift));
+      local_obj3wall_rear.x = local_obj3wall_rear_shift.x;
+      local_obj3wall_rear.y = local_obj3wall_rear_shift.y;
+      local_obj3wall_front.x = local_obj3wall_front.x-dist_shift_orig*cos(next_hallway_entry_angle_local);
+      local_obj3wall_front.y = local_obj3wall_front.y-dist_shift_orig*sin(next_hallway_entry_angle_local);     
+    }
+    
+    double local_obj2wall_angle = atan2(local_obj2wall_front.y-local_obj2wall_rear.y, local_obj2wall_front.x-local_obj2wall_rear.x);
+    double local_obj3wall_angle = atan2(local_obj3wall_front.y-local_obj3wall_rear.y, local_obj3wall_front.x-local_obj3wall_rear.x);
 
     // Determine steering around point
-    Point local_pivot = coordGlobalToRopod(pivot, ropodpos, ropod_angle);
     double phi_0 = steerAroundPoint(local_pivot, dir_cw); //dir: 0 = CCW, 1 = CW rotation
-
-    double x_rearax = ropodpos.x - config.D_AX*cos(ropod_angle); // X position of center of rear axle [m]
-    double y_rearax = ropodpos.y - config.D_AX*sin(ropod_angle); // Y position of center of rear axle [m]
-    Point rt(x_rearax+(config.D_AX+config.SIZE_FRONT_ROPOD)*cos(ropod_angle)+config.SIZE_SIDE*cos(ropod_angle-M_PI/2),
-             y_rearax+(config.D_AX+config.SIZE_FRONT_ROPOD)*sin(ropod_angle)+config.SIZE_SIDE*sin(ropod_angle-M_PI/2));
-    Point lt(x_rearax+(config.D_AX+config.SIZE_FRONT_ROPOD)*cos(ropod_angle)+config.SIZE_SIDE*cos(ropod_angle+M_PI/2),
-             y_rearax+(config.D_AX+config.SIZE_FRONT_ROPOD)*sin(ropod_angle)+config.SIZE_SIDE*sin(ropod_angle+M_PI/2));
-    Point fr(feeler_size_steering*cos(ropod_angle+phi_0),feeler_size_steering*sin(ropod_angle+phi_0));
-    Point fl(feeler_size_steering*cos(ropod_angle+phi_0),feeler_size_steering*sin(ropod_angle+phi_0));
-    fr = fr.add(rt); fl = fl.add(lt);
-
-    Point obj3_wall_to_fl = rotate_point(obj3wall_p0_idless, -obj3wall_angle, fl);
-    Point obj2_wall_to_fl = rotate_point(obj2wall_p0_idless, -obj2wall_angle, fl);
-    Point obj3_wall_to_fr = rotate_point(obj3wall_p0_idless, -obj3wall_angle, fr);
-    Point obj2_wall_to_fr = rotate_point(obj2wall_p0_idless, -obj2wall_angle, fr);
-    obj3_wall_to_fl = obj3_wall_to_fl.sub(obj3wall_p0);
-    obj2_wall_to_fl = obj2_wall_to_fl.sub(obj2wall_p0);
-    obj3_wall_to_fr = obj3_wall_to_fr.sub(obj3wall_p0);
-    obj2_wall_to_fr = obj2_wall_to_fr.sub(obj2wall_p0);
-
-    double obj3_wall_to_feeler, obj2_wall_to_feeler;
-    // Pick feeler that is closest to wall (and thus most in 'danger')
-    if (abs(obj3_wall_to_fl.y) < abs(obj3_wall_to_fr.y)) {
-        obj3_wall_to_feeler = obj3_wall_to_fl.y;
-    } else {
-        obj3_wall_to_feeler = obj3_wall_to_fr.y;
-    }
-    if (abs(obj2_wall_to_fl.y) < abs(obj2_wall_to_fr.y)) {
-        obj2_wall_to_feeler = obj2_wall_to_fl.y;
-    } else {
-        obj2_wall_to_feeler = obj2_wall_to_fr.y;
-    }
-
+    
+    // Feelers in front of the ropod
+    Point local_lt(config.ROPOD_LENGTH/2, config.SIZE_SIDE);
+    Point local_rt(config.ROPOD_LENGTH/2,-config.SIZE_SIDE);
+    Point local_lb(-config.ROPOD_LENGTH/2, config.SIZE_SIDE);
+    Point local_rb(-config.ROPOD_LENGTH/2, -config.SIZE_SIDE);
+    Point origin(0,0);
+    double dist = 0, phi = 0, to_middle_size = 0;
+    
+    Point local_fl(feeler_size*cos(phi_0),feeler_size*sin(phi_0));
+    Point local_fr(feeler_size*cos(phi_0),feeler_size*sin(phi_0));
+    local_fl = local_fl.add(local_lt);
+    local_fr = local_fr.add(local_rt);   
+    
+    Point obj3wall_fl_env_0 = rotate_point(origin, -local_obj3wall_angle, local_fl); // Feeler left @ env at theta = 0, second wall
+    Point obj2wall_fl_env_0 = rotate_point(origin, -local_obj2wall_angle, local_fl); // Feeler left @ env at theta = 0, first wall
+    Point obj3wall_fr_env_0 = rotate_point(origin, -local_obj3wall_angle, local_fr); // Feeler right @ env at theta = 0, second wall
+    Point obj2wall_fr_env_0 = rotate_point(origin, -local_obj2wall_angle, local_fr); // Feeler right @ env at theta = 0, first wall
+    Point rb_env_0 = rotate_point(origin, -local_obj3wall_angle, local_obj3wall_rear);
+    double dist_left_wall = rb_env_0.y - obj3wall_fl_env_0.y;
+    double dist_right_wall = obj3wall_fr_env_0.y - rb_env_0.y;
+    double dist_ropod_center_to_wall = -rb_env_0.y;
+    
+    // Distance of ropod center to elliptical tube
+    vector<Point> center_to_ellipse = closestPointToEllipse(ropod_pos, ropod_angle, origin, task, pointlist);
+    Point center_ellipse = center_to_ellipse[1];
+    Point center_ellipse_local = coordGlobalToRopod(center_ellipse, ropod_pos, ropod_angle);
+    double dist_ropod_center_to_ell = sqrt(dist2(origin, center_ellipse_local));
+    
+    double dist_right_inner, local_wall_angle_prev;
+    double dist_left, dist_right;
+    double dist_pivot_ellipse, dist_pivot_feeler, dist_to_ellipse;
+    vector<Point> points_on_ellipse;
+    Point onEllipse, onEllipse_local;
+    vector<Point> tangentPoints;
+    Point local_tangent_front, local_tangent_rear;
+    
+    double dist_left_ell, dist_right_ell;
     double frac_in_trans;
     Point to_middle_vec, to_front_vec;
 
     if (task[5].compare("right") == 0) {
-        if (obj3_wall_to_feeler > -config.ENV_TCTW_SIZE) {
+	points_on_ellipse = closestPointToEllipse(ropod_pos, ropod_angle, local_fl, task, pointlist); //Get closest point on ellipse
+	onEllipse = points_on_ellipse[1];
+	onEllipse_local = coordGlobalToRopod(onEllipse, ropod_pos, ropod_angle);
+	dist_pivot_ellipse = dist2(local_pivot, onEllipse_local);
+	dist_pivot_feeler = dist2(local_pivot, local_fl);
+	if (dist_pivot_ellipse > dist_pivot_feeler) { 
+	  dist_left_ell = sqrt(dist2(local_fl, onEllipse_local));
+	} else {
+	  dist_left_ell = -sqrt(dist2(local_fl, onEllipse_local));
+	}
+	
+	if(config.HURRIED) {
+	  PointID point_rear_prev = getPointByID(task[10],pointlist);
+	  PointID point_front_prev = getPointByID(task[11],pointlist);
+
+	  Point local_wallpoint_rear_prev = coordGlobalToRopod(point_rear_prev, ropod_pos, ropod_angle);
+	  Point local_wallpoint_front_prev = coordGlobalToRopod(point_front_prev, ropod_pos, ropod_angle);
+	  Point local_frb(config.FEELER_SIZE_BACK*cos(phi_0), config.FEELER_SIZE_BACK*sin(phi_0));
+	  local_frb = local_frb.add(local_rb);
+	  local_wall_angle_prev = atan2(local_wallpoint_front_prev.y-local_wallpoint_rear_prev.y,local_wallpoint_front_prev.x-local_wallpoint_rear_prev.x);
+	  Point fr_inner_env_0 = rotate_point(origin, -local_wall_angle_prev, local_frb); // Feeler right back @ env at theta = 0
+	  Point rb_prev_env_0 = rotate_point(origin, -local_wall_angle_prev, local_wallpoint_rear_prev); // Wall at right side @ env at theta = 0
+	  dist_right_inner = fr_inner_env_0.y-rb_prev_env_0.y; // Y distance from feeler on the back to previous right wall (neg if beyond wall)
+	}
+	if (local_pivot.x < 0 && dist_right_inner < config.ENV_TCTW_SIZE && config.HURRIED){
+	  double frac_in_trans = 1;
+	  to_middle_vec.x = to_middle_size*-sin(local_wall_angle_prev);
+	  to_middle_vec.y = to_middle_size*cos(local_wall_angle_prev);
+	  to_front_vec.x = carrot_length*cos(local_wall_angle_prev);
+	  to_front_vec.y = carrot_length*sin(local_wall_angle_prev);  // Vector from middle of road to a point further on the road
+	} else if(local_pivot.x < 0 && dist_right_inner < config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE && config.HURRIED){
+	  double frac_in_trans = 1-(dist_right_inner-config.ENV_TCTW_SIZE)/config.ENV_TRNS_SIZE;
+	  to_middle_vec.x = to_middle_size*-sin(local_wall_angle_prev);
+	  to_middle_vec.y = to_middle_size*cos(local_wall_angle_prev);
+	  to_front_vec.x = carrot_length*cos(local_wall_angle_prev);
+	  to_front_vec.y = carrot_length*sin(local_wall_angle_prev);  // Vector from middle of road to a point further on the road
+	} else if (dist_left_wall < config.ENV_TCTW_SIZE) {
             //disp('tctw obj3');
             //Point rotate_point(Point c, double angle, Point p);
-            Point obj3_wall_to_ropod = rotate_point(obj3wall_p0_idless, -obj3wall_angle, ropodpos);
-            obj3_wall_to_ropod = obj3_wall_to_ropod.sub(obj3wall_p0_idless);
-            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*-sin(obj3wall_angle);
-            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*cos(obj3wall_angle);
-            to_front_vec.x = carrot_length*cos(obj3wall_angle);
-            to_front_vec.y = carrot_length*sin(obj3wall_angle);
+            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_wall)*-sin(local_obj3wall_angle);
+            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_wall)*cos(local_obj3wall_angle);
+            to_front_vec.x = carrot_length*cos(local_obj3wall_angle);
+            to_front_vec.y = carrot_length*sin(local_obj3wall_angle);
             frac_in_trans = 1;
-        } else if (obj2_wall_to_feeler > -config.ENV_TCTW_SIZE) {
+        } else if (dist_left_ell < config.ENV_TCTW_SIZE) {
             //disp('tctw obj2');
-            Point obj2_wall_to_ropod = rotate_point(obj2wall_p0_idless, -obj2wall_angle, ropodpos);
-            obj2_wall_to_ropod = obj2_wall_to_ropod.sub(obj2wall_p0_idless);
-            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*-sin(obj2wall_angle);
-            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*cos(obj2wall_angle);
-            to_front_vec.x = carrot_length*cos(obj2wall_angle);
-            to_front_vec.y = carrot_length*sin(obj2wall_angle);
+            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_ell)*-sin(local_obj2wall_angle);
+            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_ell)*cos(local_obj2wall_angle);
+            to_front_vec.x = carrot_length*cos(local_obj2wall_angle);
+            to_front_vec.y = carrot_length*sin(local_obj2wall_angle);
             frac_in_trans = 1;
-        } else if (obj3_wall_to_feeler > -(config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING)) {
+        } else if (dist_left_wall < (config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING)) {
             //disp('trans obj3');
-            Point obj3_wall_to_ropod = rotate_point(obj3wall_p0_idless, -obj3wall_angle, ropodpos);
-            obj3_wall_to_ropod = obj3_wall_to_ropod.sub(obj3wall_p0_idless);
-            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*-sin(obj3wall_angle);
-            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*cos(obj3wall_angle);
-            to_front_vec.x = carrot_length*cos(obj3wall_angle);
-            to_front_vec.y = carrot_length*sin(obj3wall_angle);
-            frac_in_trans = 1-(-obj3_wall_to_feeler-config.ENV_TCTW_SIZE)/config.ENV_TRNS_SIZE_CORNERING;
-        } else if (obj2_wall_to_feeler > -(config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING)) {
+            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_wall)*-sin(local_obj3wall_angle);
+            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_wall)*cos(local_obj3wall_angle);
+            to_front_vec.x = carrot_length*cos(local_obj3wall_angle);
+            to_front_vec.y = carrot_length*sin(local_obj3wall_angle);
+            frac_in_trans = 1-(dist_left_wall-config.ENV_TCTW_SIZE)/config.ENV_TRNS_SIZE_CORNERING;
+        } else if (dist_left_ell < (config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING)) {
             //disp('trans obj2');
-            Point obj2_wall_to_ropod = rotate_point(obj2wall_p0_idless, -obj2wall_angle, ropodpos);
-            obj2_wall_to_ropod = obj2_wall_to_ropod.sub(obj2wall_p0_idless);
-            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*-sin(obj2wall_angle);
-            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*cos(obj2wall_angle);
-            to_front_vec.x = carrot_length*cos(obj2wall_angle);
-            to_front_vec.y = carrot_length*sin(obj2wall_angle);
-            frac_in_trans = 1-(-obj2_wall_to_feeler-config.ENV_TCTW_SIZE)/config.ENV_TRNS_SIZE_CORNERING;
+            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_ell)*-sin(local_obj2wall_angle);
+            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_ell)*cos(local_obj2wall_angle);
+            to_front_vec.x = carrot_length*cos(local_obj2wall_angle);
+            to_front_vec.y = carrot_length*sin(local_obj2wall_angle);
+            frac_in_trans = 1-(dist_left_ell-config.ENV_TCTW_SIZE)/config.ENV_TRNS_SIZE_CORNERING;
         } else {
             //disp('normal cornering');
-            Point obj3_wall_to_ropod = rotate_point(obj3wall_p0_idless, -obj3wall_angle, ropodpos);
-            obj3_wall_to_ropod = obj3_wall_to_ropod.sub(obj3wall_p0_idless);
-            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*-sin(obj3wall_angle);
-            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*cos(obj3wall_angle);
-            to_front_vec.x = carrot_length*cos(obj3wall_angle);
-            to_front_vec.y = carrot_length*sin(obj3wall_angle);
+            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_wall)*-sin(local_obj3wall_angle);
+            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_wall)*cos(local_obj3wall_angle);
+            to_front_vec.x = carrot_length*cos(local_obj3wall_angle);
+            to_front_vec.y = carrot_length*sin(local_obj3wall_angle);
             frac_in_trans = 0;
         }
     } else {
-        if (obj3_wall_to_feeler < config.ENV_TCTW_SIZE) {
+	points_on_ellipse = closestPointToEllipse(ropod_pos, ropod_angle, local_fr, task, pointlist); //Get closest point on ellipse
+	onEllipse = points_on_ellipse[1];
+	onEllipse_local = coordGlobalToRopod(onEllipse, ropod_pos, ropod_angle);
+	dist_pivot_ellipse = dist2(local_pivot, onEllipse_local);
+	dist_pivot_feeler = dist2(local_pivot, local_fr);
+	if (dist_pivot_ellipse > dist_pivot_feeler) { 
+	  dist_right_ell = sqrt(dist2(local_fr, onEllipse_local));
+	} else {
+	  dist_right_ell = -sqrt(dist2(local_fr, onEllipse_local));
+	}
+	
+        if (dist_right_wall < config.ENV_TCTW_SIZE) {
             //disp('tctw obj3');
-            Point obj3_wall_to_ropod = rotate_point(obj3wall_p0_idless, -obj3wall_angle, ropodpos);
-            obj3_wall_to_ropod = obj3_wall_to_ropod.sub(obj3wall_p0_idless);
-            to_middle_vec.x = (config.FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*-sin(obj3wall_angle);
-            to_middle_vec.y = (config.FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*cos(obj3wall_angle);
-            to_front_vec.x = carrot_length*cos(obj3wall_angle);
-            to_front_vec.y = carrot_length*sin(obj3wall_angle);
+            //Point rotate_point(Point c, double angle, Point p);
+            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_wall)*-sin(local_obj3wall_angle);
+            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_wall)*cos(local_obj3wall_angle);
+            to_front_vec.x = carrot_length*cos(local_obj3wall_angle);
+            to_front_vec.y = carrot_length*sin(local_obj3wall_angle);
             frac_in_trans = 1;
-        } else if (obj2_wall_to_feeler < config.ENV_TCTW_SIZE) {
+        } else if (dist_right_ell < config.ENV_TCTW_SIZE) {
             //disp('tctw obj2');
-            Point obj2_wall_to_ropod = rotate_point(obj2wall_p0_idless, -obj2wall_angle, ropodpos);
-            obj2_wall_to_ropod = obj2_wall_to_ropod.sub(obj2wall_p0_idless);
-            to_middle_vec.x = (config.FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*-sin(obj2wall_angle);
-            to_middle_vec.y = (config.FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*cos(obj2wall_angle);
-            to_front_vec.x = carrot_length*cos(obj2wall_angle);
-            to_front_vec.y = carrot_length*sin(obj2wall_angle);
+            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_ell)*-sin(local_obj2wall_angle);
+            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_ell)*cos(local_obj2wall_angle);
+            to_front_vec.x = carrot_length*cos(local_obj2wall_angle);
+            to_front_vec.y = carrot_length*sin(local_obj2wall_angle);
             frac_in_trans = 1;
-        } else if (obj3_wall_to_feeler < (config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING)) {
+        } else if (dist_right_wall < (config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING)) {
             //disp('trans obj3');
-            Point obj3_wall_to_ropod = rotate_point(obj3wall_p0_idless, -obj3wall_angle, ropodpos);
-            obj3_wall_to_ropod = obj3_wall_to_ropod.sub(obj3wall_p0_idless);
-            to_middle_vec.x = (config.FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*-sin(obj3wall_angle);
-            to_middle_vec.y = (config.FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*cos(obj3wall_angle);
-            to_front_vec.x = carrot_length*cos(obj3wall_angle);
-            to_front_vec.y = carrot_length*sin(obj3wall_angle);
-            frac_in_trans = 1-(obj3_wall_to_feeler-config.ENV_TCTW_SIZE)/config.ENV_TRNS_SIZE_CORNERING;
-        } else if (obj2_wall_to_feeler < (config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING)) {
+            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_wall)*-sin(local_obj3wall_angle);
+            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_wall)*cos(local_obj3wall_angle);
+            to_front_vec.x = carrot_length*cos(local_obj3wall_angle);
+            to_front_vec.y = carrot_length*sin(local_obj3wall_angle);
+            frac_in_trans = 1-(dist_right_wall-config.ENV_TCTW_SIZE)/config.ENV_TRNS_SIZE_CORNERING;
+        } else if (dist_right_ell < (config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE_CORNERING)) {
             //disp('trans obj2');
-            Point obj2_wall_to_ropod = rotate_point(obj2wall_p0_idless, -obj2wall_angle, ropodpos);
-            obj2_wall_to_ropod = obj2_wall_to_ropod.sub(obj2wall_p0_idless);
-            to_middle_vec.x = (config.FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*-sin(obj2wall_angle);
-            to_middle_vec.y = (config.FOLLOW_WALL_DIST_TURNING-obj2_wall_to_ropod.y)*cos(obj2wall_angle);
-            to_front_vec.x = carrot_length*cos(obj2wall_angle);
-            to_front_vec.y = carrot_length*sin(obj2wall_angle);
-            frac_in_trans = 1-(obj2_wall_to_feeler-config.ENV_TCTW_SIZE)/config.ENV_TRNS_SIZE_CORNERING;
+            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_ell)*-sin(local_obj2wall_angle);
+            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_ell)*cos(local_obj2wall_angle);
+            to_front_vec.x = carrot_length*cos(local_obj2wall_angle);
+            to_front_vec.y = carrot_length*sin(local_obj2wall_angle);
+            frac_in_trans = 1-(dist_right_ell-config.ENV_TCTW_SIZE)/config.ENV_TRNS_SIZE_CORNERING;
         } else {
             //disp('normal cornering');
-            Point obj3_wall_to_ropod = rotate_point(obj3wall_p0_idless, -obj3wall_angle, ropodpos);
-            obj3_wall_to_ropod = obj3_wall_to_ropod.sub(obj3wall_p0_idless);
-            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*-sin(obj3wall_angle);
-            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-obj3_wall_to_ropod.y)*cos(obj3wall_angle);
-            to_front_vec.x = carrot_length*cos(obj3wall_angle);
-            to_front_vec.y = carrot_length*sin(obj3wall_angle);
+            to_middle_vec.x = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_wall)*-sin(local_obj3wall_angle);
+            to_middle_vec.y = (-config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_wall)*cos(local_obj3wall_angle);
+            to_front_vec.x = carrot_length*cos(local_obj3wall_angle);
+            to_front_vec.y = carrot_length*sin(local_obj3wall_angle);
             frac_in_trans = 0;
         }
     }
 
     Point tctw_steer_vec = to_middle_vec.add(to_front_vec);
-    double phi_tctw = atan2(tctw_steer_vec.y,tctw_steer_vec.x)-ropod_angle;
+    double phi_tctw = atan2(tctw_steer_vec.y,tctw_steer_vec.x);
     return frac_in_trans*phi_tctw+(1-frac_in_trans)*phi_0;
 }
 
