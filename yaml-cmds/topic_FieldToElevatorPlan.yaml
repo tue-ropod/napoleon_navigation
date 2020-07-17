@@ -1,4 +1,4 @@
-rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas: 
+rostopic pub /ropod_tue_2/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas: 
     - 
       id: '1000'
       name: 'H1'
@@ -90,12 +90,12 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: 0.799481
                 id: 2
               -
-                x: 4.20596
-                y: -0.0657012
+                x: 3.94
+                y: 0.0566
                 id: 6
               -
-                x: 4.71307
-                y: 2.09019
+                x: 4.41
+                y: 2.13
                 id: 7
               -
                 x: 2.25611
@@ -148,12 +148,12 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
           geometry: 
             vertices: 
               -
-                x: 4.71307
-                y: 2.09019
+                x: 4.41
+                y: 2.13
                 id: 7
               -
-                x: 5.70505
-                y: 7.06909
+                x: 5.4
+                y: 7.09
                 id: 8
               -
                 x: 3.56271
@@ -210,8 +210,8 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
           geometry: 
             vertices: 
               -
-                x: 5.70505
-                y: 7.06909
+                x: 5.4
+                y: 7.09
                 id: 8
               -
                 x: 6.18012
@@ -272,8 +272,8 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
           geometry: 
             vertices: 
               -
-                x: 5.70505
-                y: 7.06909
+                x: 5.4
+                y: 7.09
                 id: 8
               -
                 x: 10.4967

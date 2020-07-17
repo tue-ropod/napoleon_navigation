@@ -198,11 +198,11 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
     Point fl_env_0 = rotate_point(origin, -local_wall_angle, local_fl);     // Feeler left @ env at theta = 0
     Point rm_env_0 = rotate_point(origin, -local_wall_angle, local_wallpoint_front);   // Wall at left side @ env at theta = 0
     rm_env_0.y += tubewidth;
-    //double dist_left = rm_env_0.y-fl_env_0.y;    // Y distance from feeler left to the wall (neg if beyond wall)
+    double dist_left = rm_env_0.y-fl_env_0.y;    // Y distance from feeler left to the wall (neg if beyond wall)
 
     Point fr_env_0 = rotate_point(origin, -local_wall_angle, local_fr);     // Feeler right @ env at theta = 0
     Point rb_env_0 = rotate_point(origin, -local_wall_angle, local_wallpoint_rear);   // Wall at right side @ env at theta = 0
-    //double dist_right = fr_env_0.y-rb_env_0.y;  // Y distance from feeler right to the wall (neg if beyond wall)
+    double dist_right = fr_env_0.y-rb_env_0.y;  // Y distance from feeler right to the wall (neg if beyond wall)
     //double dist_ropod_center_to_wall = -rb_env_0.y;      // Y distance from ropod center to right wall
     vector<Point> center_to_ellipse = closestPointToEllipse(ropod_pos, ropod_angle, origin, task, pointlist);
     Point center_ellipse = center_to_ellipse[1];
@@ -210,7 +210,7 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
     double dist_ropod_center_to_wall = sqrt(dist2(origin, center_ellipse_local));
 
     double dist_right_inner, local_wall_angle_prev;
-    double dist_left, dist_right;
+    double dist_left_ell, dist_right_ell;
     double dist_pivot_ellipse, dist_pivot_feeler, dist_to_ellipse;
     vector<Point> points_on_ellipse;
     Point onEllipse, onEllipse_local;
@@ -227,9 +227,9 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
 	dist_pivot_ellipse = dist2(local_pivot, onEllipse_local);
 	dist_pivot_feeler = dist2(local_pivot, local_fl);
 	if (dist_pivot_ellipse > dist_pivot_feeler) { 
-	  dist_left = sqrt(dist2(local_fl, onEllipse_local));
+	  dist_left_ell = sqrt(dist2(local_fl, onEllipse_local));
 	} else {
-	  dist_left = -sqrt(dist2(local_fl, onEllipse_local));
+	  dist_left_ell = -sqrt(dist2(local_fl, onEllipse_local));
 	}
 	
 	// When turning right in a hurried state add a feeler on the back to measure distance to inside wall
@@ -247,17 +247,23 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
 	  dist_right_inner = fr_inner_env_0.y-rb_prev_env_0.y; // Y distance from feeler on the back to previous right wall (neg if beyond wall)
 	}
 	
-	dist = dist_left;
+	if(dist_left < dist_left_ell) {
+	  dist = dist_left;
+	  local_wall_angle = atan2(local_wallpoint_front.y-local_wallpoint_rear.y,local_wallpoint_front.x-local_wallpoint_rear.x);
+	} else {
+	  dist = dist_left_ell;
+	  if (points_on_ellipse[0].y > 0) {
+	    Point tangent = ellipseTangentAngle(points_on_ellipse[0], task, pointlist);
+	    Point tangent_local = coordGlobalToRopod(tangent, ropod_pos, ropod_angle);
+	    local_wall_angle = atan2(tangent_local.y-onEllipse_local.y,tangent_local.x-onEllipse_local.x);
+	  } else {
+	    local_wall_angle = atan2(local_wallpoint_front.y-local_wallpoint_rear.y,local_wallpoint_front.x-local_wallpoint_rear.x);
+	  }
+	}
 	
 	//If the feeler is already in the next hallway, steering angle is not computed with tangent to ellipse anymore
 	//but with angle of next wall to follow
-	if (points_on_ellipse[0].y > 0) {
-	  Point tangent = ellipseTangentAngle(points_on_ellipse[0], task, pointlist);
-	  Point tangent_local = coordGlobalToRopod(tangent, ropod_pos, ropod_angle);
-	  local_wall_angle = atan2(tangent_local.y-onEllipse_local.y,tangent_local.x-onEllipse_local.x);
-	} else {
-	  local_wall_angle = atan2(local_wallpoint_front.y-local_wallpoint_rear.y,local_wallpoint_front.x-local_wallpoint_rear.x);
-	}
+	
         //to_middle_size = config.FOLLOW_WALL_DIST_TURNING-dist_ropod_center_to_wall;
     } else { //CCW
         // Follow right wall if too close to wall when turning left
@@ -273,7 +279,20 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
 	} else {
 	  dist_right = -sqrt(dist2(local_fr, onEllipse_local));
 	}
-	dist = dist_right;
+	
+	if(dist_right < dist_right_ell) {
+	  dist = dist_right;
+	  local_wall_angle = atan2(local_wallpoint_front.y-local_wallpoint_rear.y,local_wallpoint_front.x-local_wallpoint_rear.x);
+	} else {
+	  dist = dist_right_ell;
+	  if (points_on_ellipse[0].y > 0) {
+	    Point tangent = ellipseTangentAngle(points_on_ellipse[0], task, pointlist);
+	    Point tangent_local = coordGlobalToRopod(tangent, ropod_pos, ropod_angle);
+	    local_wall_angle = atan2(tangent_local.y-onEllipse_local.y,tangent_local.x-onEllipse_local.x);
+	  } else {
+	    local_wall_angle = atan2(local_wallpoint_front.y-local_wallpoint_rear.y,local_wallpoint_front.x-local_wallpoint_rear.x);
+	  }
+	}
 	
 	//If the feeler is already in the next hallway, steering angle is not computed with tangent to ellipse anymore
 	//but with angle of next wall to follow

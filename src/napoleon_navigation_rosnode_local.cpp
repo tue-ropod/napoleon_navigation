@@ -240,7 +240,7 @@ void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ro
     //ROS_INFO_STREAM("showWallPoints (" << local_wallpoint_front.x  << ", " << local_wallpoint_front.y << "), ("
     //        << local_wallpoint_rear.x << ", " << local_wallpoint_rear.y << ")");
     visualization_msgs::Marker vis_wall;
-    vis_wall.header.frame_id = "ropod/base_link";
+    vis_wall.header.frame_id = "ropod_tue_2/base_link";
     vis_wall.header.stamp = ros::Time::now();
     // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
     vis_wall.action = visualization_msgs::Marker::ADD;
@@ -269,7 +269,7 @@ void showPivotPoint(Point local_wallpoint_front, ros::Publisher &pub) {
     //ROS_INFO_STREAM("showWallPoints (" << local_wallpoint_front.x  << ", " << local_wallpoint_front.y << "), ("
     //        << local_wallpoint_rear.x << ", " << local_wallpoint_rear.y << ")");
     visualization_msgs::Marker vis_wall;
-    vis_wall.header.frame_id = "ropod/base_link";
+    vis_wall.header.frame_id = "ropod_tue_2/base_link";
     vis_wall.header.stamp = ros::Time::now();
     // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
     vis_wall.action = visualization_msgs::Marker::ADD;
@@ -2141,7 +2141,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         try
         {
             tf::StampedTransform t_ropod_pose;
-            tf_listener_->lookupTransform("map", "/ropod/base_link", ros::Time(0), t_ropod_pose);
+            tf_listener_->lookupTransform("map", "/ropod_tue_2/base_link", ros::Time(0), t_ropod_pose);
 
             ropod_x = t_ropod_pose.getOrigin().getX();
             ropod_y = t_ropod_pose.getOrigin().getY();
@@ -2607,8 +2607,8 @@ int main(int argc, char** argv)
 
     ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
     ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, getAmclPoseCallback);
-    ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, getOdomVelCallback);
-    ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe<ropod_ros_msgs::RoutePlannerResult>("/ropod/debug_route_plan", 1, getDebugRoutePlanCallback);
+    ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod_tue_2/odom", 100, getOdomVelCallback);
+    ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe<ropod_ros_msgs::RoutePlannerResult>("/ropod_tue_2/debug_route_plan", 1, getDebugRoutePlanCallback);
     ros::Subscriber FutureTimeStamp = nroshndl.subscribe<std_msgs::Float64>("/MO/future_time_stamp", 1, getFutureTimeStampCallback);
 
     ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);

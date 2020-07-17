@@ -36,8 +36,8 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: -4.6
                 id: 4
               -
-                x: -3.71
-                y: -4.58
+                x: -3.82
+                y: -4.54
                 id: 3
           right:
             point1:
@@ -98,8 +98,8 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: -7.64
                 id: 6
               -
-                x: -3.71
-                y: -4.58
+                x: -3.82
+                y: -4.54
                 id: 3
           right:
             point1:
@@ -156,8 +156,8 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: -4.61
                 id: 2
               -
-                x: -3.71
-                y: -4.58
+                x: -3.82
+                y: -4.54
                 id: 3
               -
                 x: -3.69

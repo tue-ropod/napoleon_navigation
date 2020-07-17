@@ -1,4 +1,4 @@
-rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
+rostopic pub /ropod_tue_2/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
     -
       id: '1004'
       name: 'H_OP_RLD_ALD'
@@ -98,8 +98,8 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: 9.17959
                 id: 5
               -
-                x: 3.56271
-                y: 7.38183
+                x: 3.64271
+                y: 7.35183
                 id: 4
           right: 
             point1: 
@@ -156,11 +156,11 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: 7.06909
                 id: 8
               -
-                x: 3.56271
-                y: 7.38183
+                x: 3.64271
+                y: 7.35183
                 id: 4
               -
-                x: 2.25611
+                x: 2.42611
                 y: 2.41123
                 id: 3
           right:
@@ -222,7 +222,7 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: 2.09019
                 id: 7
               -
-                x: 2.25611
+                x: 2.42611
                 y: 2.41123
                 id: 3
           right:
@@ -338,7 +338,7 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: -1.5
                 id: 15
               -
-                x: 11.4
+                x: 11.2
                 y: 0.0
                 id: 14
               -
@@ -408,7 +408,7 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: 0.3
                 id: 12
               -
-                x: 11.4
+                x: 11.2
                 y: 0.0
                 id: 14
           right:
@@ -594,8 +594,8 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: 9.17959
                 id: 5
               -
-                x: 3.56271
-                y: 7.38183
+                x: 3.64271
+                y: 7.35183
                 id: 4
           right: 
             point1: 
@@ -652,11 +652,11 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: 7.06909
                 id: 8
               -
-                x: 3.56271
-                y: 7.38183
+                x: 3.64271
+                y: 7.35183
                 id: 4
               -
-                x: 2.25611
+                x: 2.42611
                 y: 2.41123
                 id: 3
           right:
@@ -718,7 +718,7 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: 2.09019
                 id: 7
               -
-                x: 2.25611
+                x: 2.42611
                 y: 2.41123
                 id: 3
           right:
@@ -834,7 +834,7 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: -1.5
                 id: 15
               -
-                x: 11.4
+                x: 11.2
                 y: 0.0
                 id: 14
               -
@@ -904,7 +904,7 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: 0.3
                 id: 12
               -
-                x: 11.4
+                x: 11.2
                 y: 0.0
                 id: 14
           right:
@@ -1090,8 +1090,8 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: 9.17959
                 id: 5
               -
-                x: 3.56271
-                y: 7.38183
+                x: 3.64271
+                y: 7.35183
                 id: 4
           right: 
             point1: 
@@ -1148,11 +1148,11 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: 7.06909
                 id: 8
               -
-                x: 3.56271
-                y: 7.38183
+                x: 3.64271
+                y: 7.35183
                 id: 4
               -
-                x: 2.25611
+                x: 2.42611
                 y: 2.41123
                 id: 3
           right:
