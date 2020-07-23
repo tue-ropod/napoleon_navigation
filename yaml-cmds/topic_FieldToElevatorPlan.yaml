@@ -152,8 +152,8 @@ rostopic pub /ropod_tue_2/debug_route_plan ropod_ros_msgs/RoutePlannerResult "ar
                 y: 2.13
                 id: 7
               -
-                x: 5.4
-                y: 7.09
+                x: 5.57505
+                y: 7.06909
                 id: 8
               -
                 x: 3.56271
@@ -210,8 +210,8 @@ rostopic pub /ropod_tue_2/debug_route_plan ropod_ros_msgs/RoutePlannerResult "ar
           geometry: 
             vertices: 
               -
-                x: 5.4
-                y: 7.09
+                x: 5.57505
+                y: 7.06909
                 id: 8
               -
                 x: 6.18012
@@ -272,8 +272,8 @@ rostopic pub /ropod_tue_2/debug_route_plan ropod_ros_msgs/RoutePlannerResult "ar
           geometry: 
             vertices: 
               -
-                x: 5.4
-                y: 7.09
+                x: 5.57505
+                y: 7.06909
                 id: 8
               -
                 x: 10.4967

@@ -198,11 +198,12 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
     Point fl_env_0 = rotate_point(origin, -local_wall_angle, local_fl);     // Feeler left @ env at theta = 0
     Point rm_env_0 = rotate_point(origin, -local_wall_angle, local_wallpoint_front);   // Wall at left side @ env at theta = 0
     rm_env_0.y += tubewidth;
-    double dist_left = rm_env_0.y-fl_env_0.y;    // Y distance from feeler left to the wall (neg if beyond wall)
+    
 
     Point fr_env_0 = rotate_point(origin, -local_wall_angle, local_fr);     // Feeler right @ env at theta = 0
     Point rb_env_0 = rotate_point(origin, -local_wall_angle, local_wallpoint_rear);   // Wall at right side @ env at theta = 0
     double dist_right = fr_env_0.y-rb_env_0.y;  // Y distance from feeler right to the wall (neg if beyond wall)
+    double dist_left = rb_env_0.y-fl_env_0.y;    // Y distance from feeler left to the wall (neg if beyond wall)
     //double dist_ropod_center_to_wall = -rb_env_0.y;      // Y distance from ropod center to right wall
     vector<Point> center_to_ellipse = closestPointToEllipse(ropod_pos, ropod_angle, origin, task, pointlist);
     Point center_ellipse = center_to_ellipse[1];
@@ -233,7 +234,7 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
 	}
 	
 	// When turning right in a hurried state add a feeler on the back to measure distance to inside wall
-	if(config.HURRIED) {
+	/*if(config.HURRIED) {
 	  PointID point_rear_prev = getPointByID(task[10],pointlist);
 	  PointID point_front_prev = getPointByID(task[11],pointlist);
 
@@ -245,7 +246,7 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
 	  Point fr_inner_env_0 = rotate_point(origin, -local_wall_angle_prev, local_frb); // Feeler right back @ env at theta = 0
 	  Point rb_prev_env_0 = rotate_point(origin, -local_wall_angle_prev, local_wallpoint_rear_prev); // Wall at right side @ env at theta = 0
 	  dist_right_inner = fr_inner_env_0.y-rb_prev_env_0.y; // Y distance from feeler on the back to previous right wall (neg if beyond wall)
-	}
+	}*/
 	
 	if(dist_left < dist_left_ell) {
 	  dist = dist_left;
@@ -285,7 +286,7 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
 	  local_wall_angle = atan2(local_wallpoint_front.y-local_wallpoint_rear.y,local_wallpoint_front.x-local_wallpoint_rear.x);
 	} else {
 	  dist = dist_right_ell;
-	  if (points_on_ellipse[0].y > 0) {
+	  if (points_on_ellipse[0].x > 0) {
 	    Point tangent = ellipseTangentAngle(points_on_ellipse[0], task, pointlist);
 	    Point tangent_local = coordGlobalToRopod(tangent, ropod_pos, ropod_angle);
 	    local_wall_angle = atan2(tangent_local.y-onEllipse_local.y,tangent_local.x-onEllipse_local.x);

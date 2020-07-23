@@ -858,9 +858,9 @@ void updateStateAndTask()
                 {
 		  if(j==1)printf("Will turn right");
 		  if (config.HURRIED) {
-                    standard_steering_offset =  fabs(fmin( 0.0, fabs(cur_pivot_local.y)
+                    standard_steering_offset =  fmin( 0.0, fabs(cur_pivot_local.y)
                                   - (sqrt(dist2(getPoint(point_right_entry_next_wall), getPoint(point_pivot))) - config.TUBE_WIDTH_C/2.0)
-                                   + config.ROPOD_TO_AX));
+                                   + config.ROPOD_TO_AX);
                     steering_offset[j] = config.START_STEERING_EARLY_RIGHT;//standard_steering_offset + config.START_STEERING_EARLY_RIGHT;
 		  } else {
 		    steering_offset[j] = 0.0;
@@ -869,7 +869,8 @@ void updateStateAndTask()
 		  if(j==1)printf("Will turn left");
 		  if (config.HURRIED) {
                     standard_steering_offset = fmin( 0.0, fabs(cur_pivot_local.y)
-                                    - (sqrt(dist2(getPoint(point_right_entry_next_wall), getPoint(point_pivot)))) - config.TUBE_WIDTH_C/2.0) + config.ROPOD_TO_AX;
+                                  - (sqrt(dist2(getPoint(point_right_entry_next_wall), getPoint(point_pivot))) - config.TUBE_WIDTH_C/2.0)
+                                   + config.ROPOD_TO_AX);
                     steering_offset[j] = 0.0;//config.START_STEERING_EARLY_LEFT + standard_steering_offset;
 		  } else {
 		    standard_steering_offset = fmin( 0.0, fabs(cur_pivot_local.y)
@@ -2179,8 +2180,8 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             pred_xdot[0] = pred_v_ropod[0]*cos(pred_phi[0])*cos(ropod_theta);   // xdot of rearaxle in global frame
             pred_ydot[0] = pred_v_ropod[0]*cos(pred_phi[0])*sin(ropod_theta);   // ydot of rearaxle in global frame
             //pred_thetadot[0] = pred_v_ropod[0]*1/config.D_AX*sin(pred_phi[0]);
-            pred_x_rearax[0] = ropod_x-config.D_AX*cos(ropod_theta);
-            pred_y_rearax[0] = ropod_y-config.D_AX*sin(ropod_theta);
+            pred_x_rearax[0] = ropod_x-0.5*config.D_AX*cos(ropod_theta);
+            pred_y_rearax[0] = ropod_y-0.5*config.D_AX*sin(ropod_theta);
 	    pred_sim_x_ropod[0] = ropod_x;
 	    pred_sim_y_ropod[0] = ropod_y;
             pred_xy_ropod[0].x = ropod_x;
