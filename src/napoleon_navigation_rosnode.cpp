@@ -456,8 +456,6 @@ int j = 0; // - prediction plan
 int m = 0; // - prediction movement
 int u = 0; // - Pred task counter
 int a = 0; //
-double pred_lin_vel_vec[84] = {0.07,0.14,0.21,0.28,0.35,0.42,0.49,0.56,0.63,0.7,0.77,0.84,0.91,0.98,1.05,1.12,1.19,1.26,1.33,1.4,1.47,1.54,1.47,1.54,1.47,1.54,1.54,1.47,1.54,1.47,1.54,1.47,1.54,1.47,1.4,1.33,1.26,1.19,1.12,1.05,0.98,0.91,0.84,0.7,0.63,0.7,0.7,0.63,0.7,0.63,0.7,0.63,0.7,0.63,0.7,0.63,0.7,0.63,0.7,0.63,0.55724,0.61753,0.53511,0.58045,0.49164,0.52022,0.42858,0.46403,0.51166,0.45687,0.50425,0.45066,0.49783,0.4016,0.41,0.50313,0.60418,0.70963,0.81645,0.92183,1.0236,1.1205,1.2119,1.2981};
-double pred_ang_vel_vec[84] = {-2.0621e-11,-0.00022707,-0.00031507,-0.00036363,-0.00035912,-0.00029073,-0.00015153,6.0981e-05,0.00034467,0.00069295,0.0010952,0.0015378,0.0020044,0.002478,0.0029413,0.003378,0.0037738,0.0041172,0.0043995,0.0046156,0.0047634,0.0048438,0.0044377,0.0044168,0.0039973,0.0039423,0.0034748,0.0031093,0.0030395,0.0027125,0.002646,0.0023574,0.0022966,0.002044,-0.00070508,-0.00060897,-0.00051786,-0.00043953,-0.00037227,-0.0003146,-0.0002652,-0.00022294,-0.00018681,-0.0016089,-0.0011292,-0.00094306,0.00078426,0.00072885,0.00082672,0.00075679,0.00084778,0.00076792,0.00085261,0.00076635,0.00084523,0.0007553,0.00082885,0.00073734,0.00080593,0.00071442,-0.085378,-0.19186,-0.254,-0.37678,-0.41249,-0.54668,-0.55453,-0.65557,-0.73493,-0.66737,-0.74695,-0.67728,-0.75708,-0.74678,-0.87287,-0.89675,-0.89782,-0.87641,-0.83391,-0.77342,-0.6993,-0.61661,-0.53042,-0.44526};
 int prevstate; // Actually just j-1
 int m_prev;
 int ka_max;  // Assignment length
@@ -536,17 +534,6 @@ void dynamicReconfigureCallback(napoleon_navigation::NapoleonNavigationConfig &d
 	config.HURRIED = dyn_config.hurried;
         config.V_CRUISING = dyn_config.v_cruising;
 
-	/*if (config.HURRIED)
-	{
-	  config.V_INTER_TURNING = dyn_config.v_inter_turning*1.5;
-	  config.SHIFT_BEFORE_TURN = 0.5*config.TUBE_WIDTH_C;
-	} else {
-	  config.V_INTER_TURNING = dyn_config.v_inter_turning;
-	  config.SHIFT_BEFORE_TURN = 0.0;
-	}*/
-	
-	
-
 	config.V_STEERSATURATION = dyn_config.v_steersaturation;
         config.DELTA_DOT_LIMIT = dyn_config.delta_dot_limit;
         config.A_MAX = dyn_config.a_max;
@@ -578,7 +565,7 @@ void dynamicReconfigureCallback(napoleon_navigation::NapoleonNavigationConfig &d
             config.ROPOD_TO_AX = config.ROPOD_LENGTH / 2.0;
             config.SIZE_REAR = 0.0;
 	    if (config.HURRIED) {
-	      config.V_INTER_TURNING = config.V_CRUISING;
+	      config.V_INTER_TURNING = config.V_CRUISING*0.75;
 	      config.SHIFT_BEFORE_TURN = 0.5*config.TUBE_WIDTH_C;
 	      config.V_OVERTAKE = config.V_CRUISING;
 	    } else {
@@ -2368,11 +2355,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         if(ropod_colliding_obs || ropod_colliding_wall)
         {
             control_v = 0.0; // Force stop if even smallest scale failed
-        }
-        else if (control_v < 0.0 && pred_state[j] == DEFER) {
-	    control_v = 0.0; // Force robot to stand still when speed has decreased enough and state is deferring
-	}
-        else
+        } else
         {
             control_v = pred_v_ropod[0]+pred_accel[1]*1/F_PLANNER;
         }
@@ -2404,11 +2387,9 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             theta_dot = control_v/config.D_AX*sin(pred_phi_des[1]);
             geometry_msgs::Twist cmd_vel;
 	    cmd_vel.linear.x = v_ax;
-            //cmd_vel.linear.x = pred_lin_vel_vec[a];
             cmd_vel.linear.y = 0.0;
 	    cmd_vel.angular.x = ros::Time::now().toSec(); // Crappy way to send ros timestamp with this topic
             cmd_vel.angular.z = theta_dot;
-	    //cmd_vel.angular.z = pred_ang_vel_vec[a];
             vel_pub.publish(cmd_vel);
         } else {
 	    geometry_msgs::Twist cmd_vel;
@@ -2431,10 +2412,6 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                 ROS_INFO("Ropod has reached its target, yay!");
             }
         }
-	
-	//a = a+1;
-	//if (a>87) 
-	//  break;
 	
         // Publish ropod points to rostopic
         vis_points.id = 2;

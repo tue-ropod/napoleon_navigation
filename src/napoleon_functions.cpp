@@ -276,9 +276,9 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
 	dist_pivot_ellipse = dist2(local_pivot, onEllipse_local);
 	dist_pivot_feeler = dist2(local_pivot, local_fr);
 	if (dist_pivot_ellipse > dist_pivot_feeler) { 
-	  dist_right = sqrt(dist2(local_fr, onEllipse_local));
+	  dist_right_ell = sqrt(dist2(local_fr, onEllipse_local));
 	} else {
-	  dist_right = -sqrt(dist2(local_fr, onEllipse_local));
+	  dist_right_ell = -sqrt(dist2(local_fr, onEllipse_local));
 	}
 	
 	if(dist_right < dist_right_ell) {
@@ -317,20 +317,20 @@ double getSteeringTurn(Point ropod_pos, double ropod_angle, bool dir_cw, std::ve
     // phi_0 = 0;
     double phi_tctw = atan2(steer_vec.y,steer_vec.x); // Determine the angle of this steering vector
     
-    if (local_pivot.x < 0 && dist_right_inner < config.ENV_TCTW_SIZE && dir_cw && config.HURRIED){
+    /*if (local_pivot.x > 0 && dist_right_inner < config.ENV_TCTW_SIZE && dir_cw && config.HURRIED){
       double frac_in_trans = 1;
       to_middle_vec = {to_middle_size*-sin(local_wall_angle_prev),to_middle_size*cos(local_wall_angle_prev)};
       to_front_vec = {carrot_length*cos(local_wall_angle_prev), carrot_length*sin(local_wall_angle_prev)};  // Vector from middle of road to a point further on the road
       steer_vec = {to_front_vec.x + to_middle_vec.x, to_front_vec.y + to_middle_vec.y};
       phi_tctw = atan2(steer_vec.y,steer_vec.x);
-    } else if(local_pivot.x < 0 && dist_right_inner < config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE && dir_cw && config.HURRIED){
+    } else if(local_pivot.x > 0 && dist_right_inner < config.ENV_TCTW_SIZE+config.ENV_TRNS_SIZE && dir_cw && config.HURRIED){
       double frac_in_trans = 1-(dist_right_inner-config.ENV_TCTW_SIZE)/config.ENV_TRNS_SIZE;
       to_middle_vec = {to_middle_size*-sin(local_wall_angle_prev),to_middle_size*cos(local_wall_angle_prev)};
       to_front_vec = {carrot_length*cos(local_wall_angle_prev), carrot_length*sin(local_wall_angle_prev)};  // Vector from middle of road to a point further on the road
       steer_vec = {to_front_vec.x + to_middle_vec.x, to_front_vec.y + to_middle_vec.y};
       phi_tctw = atan2(steer_vec.y,steer_vec.x);
       phi = frac_in_trans*phi_tctw+(1-frac_in_trans)*phi_0;
-    } else if (dist < config.ENV_TCTW_SIZE) {
+    } else*/ if (dist < config.ENV_TCTW_SIZE) {
         //ROS_INFO("Ropod is too close to wall, steer back to middle\n");
         phi = phi_tctw;
 	
