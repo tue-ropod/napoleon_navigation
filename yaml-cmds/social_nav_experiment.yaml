@@ -1,0 +1,187 @@
+rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
+    -
+      id: '1007'
+      name: 'C_ALD'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'C_ALD_1'
+          id: '107'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: 12.7
+                y: 5.6
+                id: 16
+              -
+                x: 10.7
+                y: 5.9
+                id: 10
+              -
+                x: 9.5
+                y: 0.8
+                id: 12
+              -
+                x: 11.4
+                y: 0.0
+                id: 14
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '1006'
+      name: 'J_ALD'
+      type: 'junction'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'J_ALD_1'
+          id: '106'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: 11
+                y: -1.5
+                id: 15
+              -
+                x: 11.4
+                y: 0.0
+                id: 14
+              -
+                x: 9.5
+                y: 0.8
+                id: 12
+              -
+                x: 9
+                y: -1.1
+                id: 13
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '1005'
+      name: 'H_RLD_ALD'
+      type: 'corridor'
+      floor_number: 0
+      sub_areas:
+        -
+          name: 'H_RLD_ALD_1'
+          id: '105'
+          floor_number: 0
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+            vertices:
+              -
+                x: 9.5
+                y: 0.8
+                id: 12
+              -
+                x: -1.75
+                y: 3.25
+                id: 7
+              -
+                x: -2.25
+                y: 1.24
+                id: 6
+              -
+                x: 9
+                y: -1.1
+                id: 13               
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0" -1

@@ -797,7 +797,7 @@ void updateStateAndTask()
 
     // Taking a turn on an intersection
     if (!task2[5].empty()) {
-        if (pred_ropod_on_entry_hall[j] && (pred_state[prevstate] == CRUISING || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == TIGHT_OVERTAKE) ){                
+        if (pred_ropod_on_entry_hall[j] && (pred_state[prevstate] == CRUISING || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == TIGHT_OVERTAKE || pred_state[prevstate] == DEFER) ){                
             pred_state[j] = pred_state[prevstate];
             //disp([num2str(i), ': Here we can switch to the next hallway']);
             u = u+1;
@@ -831,7 +831,7 @@ void updateStateAndTask()
             next_second_area = getAreaByID(area3ID,arealist);
 
 
-        } else if (pred_ropod_on_entry_inter[j] && (pred_state[prevstate] == CRUISING || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == TIGHT_OVERTAKE) ) {
+        } else if (pred_ropod_on_entry_inter[j] && (pred_state[prevstate] == CRUISING || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == TIGHT_OVERTAKE || pred_state[prevstate] == DEFER) ) {
                 // If cruising and the y position of the ropod exceeds the y
                 // position of the entry
                 if(j==1)printf("Entry detected to turn intersection u = %d\n",u);
@@ -1017,7 +1017,7 @@ void updateStateAndTask()
         u = ka_max-1;
     }
 
-    if (pred_state[prevstate] == TIGHT_OVERTAKE || pred_state[prevstate] == SPACIOUS_OVERTAKE) {
+    if (pred_state[prevstate] == TIGHT_OVERTAKE || pred_state[prevstate] == SPACIOUS_OVERTAKE || pred_state[prevstate] == DEFER) {
         if (no_obs > 0) {
             current_obs_in_ropod_frame_pos = coordGlobalToRopod(obs_center_global, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
             //disp(['Obs is ',num2str(obs_in_ropod_frame_pos.x), ' m in front of ropod']);
@@ -1804,7 +1804,11 @@ void overtakeStateMachine()
         else
 	{
 	    if (j == 1) ROS_INFO("No overtake possible, stuck behind this obstacle");
-            shift_wall = 0;
+	    pred_state[j] = pred_state[prevstate];
+	    Point wall_pos(freeNavigationCenter.x, freeNavigationCenter.y);
+	    double distAreatoWall = -distToLine(wall_pos, rw_p_rear, rw_p_front);
+            shift_wall = distAreatoWall - freeNavigationCenter.width/2 + config.OBS_AVOID_MARGIN;
+	    pred_tube_width[j] = freeNavigationCenter.width;
 	}
 	
 	if (pred_state[j] == DEFER) { //If the predicted state is deferring, override all overtake states before that to also be deferring.
