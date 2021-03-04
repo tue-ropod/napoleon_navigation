@@ -17,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   tf
   costmap_2d
-  maneuver_planner
+#  maneuver_planner
   pluginlib
   nav_core
   ed  
@@ -43,7 +43,9 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   # LIBRARIES napoleon_navigation
-  CATKIN_DEPENDS  message_runtime std_msgs geometry_msgs nav_msgs roscpp  tf costmap_2d maneuver_planner actionlib_msgs ropod_ros_msgs
+
+#  CATKIN_DEPENDS  message_runtime std_msgs geometry_msgs nav_msgs roscpp  tf costmap_2d maneuver_planner actionlib_msgs ropod_ros_msgs
+  CATKIN_DEPENDS  message_runtime std_msgs geometry_msgs nav_msgs roscpp  tf costmap_2d actionlib_msgs ropod_ros_msgs
   # DEPENDS system_lib
 )
 
