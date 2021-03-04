@@ -20,11 +20,17 @@ find_package(catkin REQUIRED COMPONENTS
 #  maneuver_planner
   pluginlib
   nav_core
-  ed  
-  ed_gui_server
   actionlib_msgs
   ropod_ros_msgs
   dynamic_reconfigure
+)
+
+add_message_files(
+  FILES
+    circleProperties.msg
+    rectangleProperties.msg
+    objPosVel.msg
+    objsPosVel.msg
 )
 
 

@@ -22,8 +22,8 @@
 #include <fstream>
 #include <ctime>
 
-#include <ed_gui_server/objPosVel.h>
-#include <ed_gui_server/objsPosVel.h>
+#include <napoleon_navigation/objPosVel.h>
+#include <napoleon_navigation/objsPosVel.h>
 
 #include <actionlib/server/simple_action_server.h>
 #include <ropod_ros_msgs/GoToAction.h>
@@ -44,7 +44,7 @@ double ropod_x = 0, ropod_y = 0, ropod_theta = 0;
 double this_amcl_x = 0, this_amcl_y = 0, quaternion_x = 0, quaternion_y = 0, quaternion_z = 0, quaternion_w = 0, this_amcl_theta = 0, siny_cosp = 0, cosy_cosp = 0;
 double odom_xdot_ropod_global = 0, odom_ydot_ropod_global = 0, odom_thetadot_global = 0, odom_phi_local = 0, odom_phi_global = 0, odom_vropod_global = 0;
 int no_obs = 0;
-ed_gui_server::objPosVel current_obstacle;
+napoleon_navigation::objPosVel current_obstacle;
 double obs_theta = 0.0;
 Point obs_center_global;
 Rectangle freeNavigationRightLaneRight;
@@ -63,7 +63,7 @@ ropod_ros_msgs::RoutePlannerResult debug_route_planner_result_;
 
 struct NapoleonConfig config;
 
-void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray)
+void getObstaclesCallback(const napoleon_navigation::objsPosVel::ConstPtr& obsarray)
 {
     //#define RECTANGULAR_MARGIN 0.25
     //#define RECTANGULAR_DESIRED_DIM 1.0
@@ -80,7 +80,7 @@ void getObstaclesCallback(const ed_gui_server::objsPosVel::ConstPtr& obsarray)
 
     //for(unsigned int iObs = 0; iObs < obsarray->objects.size(); iObs++)
     //{
-        //ed_gui_server::objPosVel candidate_obstacle = obsarray->objects[iObs];
+        //napoleon_navigation::objPosVel candidate_obstacle = obsarray->objects[iObs];
 
         //bool check1 =  candidate_obstacle.rectangle.probability > 0.5 ;
         //bool check2 =  std::fabs(candidate_obstacle.rectangle.width - RECTANGULAR_DESIRED_DIM) < RECTANGULAR_MARGIN ;
@@ -784,7 +784,7 @@ void updateStateAndTask()
             // If in entry and the y position of the ropod exceeds the y
             // position of the intersection
             pred_state[j] = ACCELERATE_ON_INTERSECTION;
-            
+
 
 
         } else if (cur_pivot_local.x <= config.SIZE_FRONT_RAX + steering_offset && pred_state[prevstate] == ACCELERATE_ON_INTERSECTION) {
@@ -1361,7 +1361,7 @@ void createFreeNavigationBoundingBox()
         // consider only points within defined areas
         if(j == 1)
         {
-            if ( 
+            if (
             (curr_area.type == "hallway" && isPointOnLeftSide(task1[0], task1[1], pointlist, laser_point, 2.0*config.TUBE_WIDTH_C) )
             || ( next_area.type == "hallway" && isPointOnLeftSide(task2[0], task2[1], pointlist, laser_point, 2.0*config.TUBE_WIDTH_C) )
             || ( next_second_area.type == "hallway" ) && isPointOnLeftSide(task3[0], task3[1], pointlist, laser_point, 2.0*config.TUBE_WIDTH_C) )
@@ -1372,7 +1372,7 @@ void createFreeNavigationBoundingBox()
             {
                 laser_point_in_context.push_back(false);
             }
-            
+
         }
         if (laser_point_in_context[iScan])
         {
@@ -2290,7 +2290,7 @@ int main(int argc, char** argv)
     ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, getOdomVelCallback);
     ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod/debug_route_plan", 1, getDebugRoutePlanCallback);
 
-    ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
+    ros::Subscriber obstacle_sub = nroshndl.subscribe<napoleon_navigation::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
 
     // Visualize map nodes and robot
