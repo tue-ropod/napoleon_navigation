@@ -8,7 +8,7 @@
 	<!--<arg name="map_file" default="$(find ropod_navigation_test)/config/amk-f064/map.yaml"/>-->
         <!--<arg name="map_file" default="/home/cesar/ropod-project-software/catkin_workspace/src/applications/occupancy_grids/tue/lab-level/map.yaml"/>-->
 
-         <arg name="map_file" default="$(find ed_object_models)/models/tue_hallway_RLtoAL/walls/shape/map.yaml" />
+         <arg name="map_file" default="$(find ropod_sim_model)/maps/tue_hallway_RLtoAL/map.yaml" />
 
       <!-- <arg name="map_file" default="/home/ropod/ropod-project-software/catkin_workspace/src/applications/occupancy_grids/brsu/brsu-c-floor0_osm/map.yaml" />  -->
  
