@@ -62,9 +62,9 @@
 
         <!-- initial pose of the robot in TU/e hallway-->
 
-        <param name="initial_pose_x" value="9.1"/>
-        <param name="initial_pose_y" value="7.3"/>
-        <param name="initial_pose_a" value="-3.14"/>
+        <param name="initial_pose_x" value="7.33"/>
+        <param name="initial_pose_y" value="7.41"/>
+        <param name="initial_pose_a" value="2.91"/>
 
 
         <!-- initial pose of the robot in BRSU-->
