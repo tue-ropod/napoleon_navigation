@@ -1,4 +1,4 @@
-rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
+rostopic pub /ropod_tue_2/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
     -
       id: '1004'
       name: 'H_OP_RLD_ALD'

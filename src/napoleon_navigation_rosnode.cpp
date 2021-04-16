@@ -40,6 +40,8 @@ std::vector<PointID> pointlist;
 std::vector<AreaQuadID> arealist;
 std::vector<int> assignment;
 
+std::string robotname;
+
 double ropod_x = 0, ropod_y = 0, ropod_theta = 0;
 double this_amcl_x = 0, this_amcl_y = 0, quaternion_x = 0, quaternion_y = 0, quaternion_z = 0, quaternion_w = 0, this_amcl_theta = 0, siny_cosp = 0, cosy_cosp = 0;
 double odom_xdot_ropod_global = 0, odom_ydot_ropod_global = 0, odom_thetadot_global = 0, odom_phi_local = 0, odom_phi_global = 0, odom_vropod_global = 0;
@@ -1850,7 +1852,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         try
         {
             tf::StampedTransform t_ropod_pose;
-            tf_listener_->lookupTransform("map", "/ropod/base_link", ros::Time(0), t_ropod_pose);
+            tf_listener_->lookupTransform("map", robotname + "/base_link", ros::Time(0), t_ropod_pose);
 
             ropod_x = t_ropod_pose.getOrigin().getX();
             ropod_y = t_ropod_pose.getOrigin().getY();
@@ -2285,10 +2287,22 @@ int main(int argc, char** argv)
     ros::NodeHandle nroshndl("~");
     ros::Rate rate(F_PLANNER);
 
-    ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>("/route_navigation/simple_goal", 10, simpleGoalCallback);
-    ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", 10, getAmclPoseCallback);
-    ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>("/ropod/odom", 100, getOdomVelCallback);
-    ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >("/ropod/debug_route_plan", 1, getDebugRoutePlanCallback);
+    robotname = ros::this_node::getNamespace();
+    int index = robotname.find("//");
+    if (index != -1 ) // ugly check for // at beginning
+    {
+        if(index == 0)
+        {
+                robotname.erase(index, index + 1);   
+        }
+    } 
+  
+    std::cout << "Napoleon: robotname = " << robotname << std::endl;
+
+    ros::Subscriber goal_cmd_sub = nroshndl.subscribe<geometry_msgs::PoseStamped>(robotname + "/route_navigation/simple_goal", 10, simpleGoalCallback);
+    ros::Subscriber amcl_pose_sub = nroshndl.subscribe<geometry_msgs::PoseWithCovarianceStamped>(robotname + "/amcl_pose", 10, getAmclPoseCallback);
+    ros::Subscriber ropod_odom_sub = nroshndl.subscribe<nav_msgs::Odometry>(robotname + "/odom", 100, getOdomVelCallback);
+    ros::Subscriber ropod_debug_plan_sub = nroshndl.subscribe< ropod_ros_msgs::RoutePlannerResult >(robotname + "/debug_route_plan", 1, getDebugRoutePlanCallback);
 
     ros::Subscriber obstacle_sub = nroshndl.subscribe<ed_gui_server::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
