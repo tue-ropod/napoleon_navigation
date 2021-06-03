@@ -11,14 +11,14 @@
          <arg name="map_file" default="$(find ropod_sim_model)/maps/tue_hallway_RLtoAL/map.yaml" />
 
       <!-- <arg name="map_file" default="/home/ropod/ropod-project-software/catkin_workspace/src/applications/occupancy_grids/brsu/brsu-c-floor0_osm/map.yaml" />  -->
- 
+
    <!-- Run the map server -->
      <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
 
     <!--- Run AMCL -->
     <node pkg="amcl" type="amcl" name="amcl">
         <remap from="scan" to="/$(arg robotName)/$(arg laser1_name)/scan"/>
-        
+
         <!-- <remap from="scan" to="/projected_scan_front"/> --> <!-- for BRSU ropod -->
 
         <!--- Odometery model parameters  -->
@@ -30,7 +30,7 @@
         <param name="odom_alpha5" value="7.0"/>
         <param name="odom_frame_id" value="$(arg robotName)/odom"/>
         <param name="base_frame_id" value="$(arg robotName)/base_link"/>
-        <param name="global_frame_id" value="/map"/>
+        <param name="global_frame_id" value="map"/>
 
         <!-- Overall filter parameters -->
         <param name="min_particles" value="200"/>
@@ -62,13 +62,13 @@
 
         <!-- initial pose of the robot in TU/e hallway-->
 
-        <param name="initial_pose_x" value="7.33"/>
-        <param name="initial_pose_y" value="7.41"/>
-        <param name="initial_pose_a" value="2.91"/>
+        <param name="initial_pose_x" value="3.7"/>
+        <param name="initial_pose_y" value="3.75"/>
+        <param name="initial_pose_a" value="-1.86"/>
 
 
         <!-- initial pose of the robot in BRSU-->
-        <!--       
+        <!--
         <param name="initial_pose_x" value="59.74"/>
         <param name="initial_pose_y" value="32.36"/>
         <param name="initial_pose_a" value="-3.14"/>
@@ -90,13 +90,20 @@
         <param name="default_ropod_load_navigation_param_file" value ="$(find napoleon_navigation)/config/footprint_local_planner_params_ropod_load.yaml"/>
 
         <!-- In Gazebo: -->
-        <remap from="/napoleon_navigation/cmd_vel" to="/load/cmd_vel"/>
+        <!-- <remap from="/napoleon_navigation/cmd_vel" to="/$(arg robotName)/load/cmd_vel"/> -->
+         <remap from="/napoleon_navigation/cmd_vel" to="/load/cmd_vel"/>
         <!-- On ropod: -->
         <!--<remap from="/napoleon_navigation/cmd_vel" to="/ropod_tue_1/cmd_vel"/>-->
         <remap from="/napoleon_navigation/odom" to="/$(arg robotName)/odom"/>
         <remap from="/napoleon_navigation/scan" to="/$(arg robotName)/$(arg laser1_name)/scan"/>
 
     </node>
-
+    <node name="config_switcher" pkg="napoleon_navigation" type="config_switcher" output="screen">
+        <param name="ropod_config_file" value="$(find napoleon_navigation)/config/napoleon_navigation_ropod.yaml"/>
+        <param name="load_config_file" value="$(find napoleon_navigation)/config/napoleon_navigation_load.yaml"/>
+        <param name="navigation_node_name" value="napoleon_navigation"/>
+        <param name="loop_rate" value="0.2" type="double" />
+        <remap from="~load_topic" to="/route_navigation/set_load_attached" />
+    </node>
 
 </launch>

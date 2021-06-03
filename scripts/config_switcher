@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
 # based on https://github.com/b-it-bots/mas_common_robotics/tree/kinetic/mcr_common/mcr_dynamic_reconfigure_client
@@ -16,6 +16,7 @@ class ConfigSwitcher(object):
 
         self.ropod_config = yaml.load(open(self.ropod_config_file_name, 'r'))
         self.load_config = yaml.load(open(self.load_config_file_name, 'r'))
+        self.set_node_parameters(self.ropod_config) #  Default
 
         # Node cycle rate (in hz)
         self.loop_rate = rospy.Rate(rospy.get_param('~loop_rate', 0.2))
@@ -45,7 +46,7 @@ class ConfigSwitcher(object):
 
         try:
             client = dynamic_reconfigure.client.Client(self.navigation_node_name, timeout=1.5)
-        except Exception, e:
+        except Exception as e:
             rospy.logerr("Service {0} does not exist".format(self.navigation_node_name + '/set_parameters'))
             return False
         try:

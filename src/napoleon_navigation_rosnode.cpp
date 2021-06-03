@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <nav_msgs/Path.h>
 #include <nav_msgs/Odometry.h>
+#include <geometry_msgs/PolygonStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Pose.h>
@@ -267,7 +268,7 @@ visualization_msgs::Marker vis_plan;
 void initializeVisualizationMarkers()
 {
     // Visualize map nodes
-    vis_points.header.frame_id = "/map";
+    vis_points.header.frame_id = "map";
     vis_points.header.stamp = ros::Time::now();
     // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
     vis_points.action = visualization_msgs::Marker::ADD;
@@ -291,7 +292,7 @@ void initializeVisualizationMarkers()
     // End visualize map nodes
 
     // Visualize wall the ropod is following
-    vis_wall.header.frame_id = "/map";
+    vis_wall.header.frame_id = "map";
     vis_wall.header.stamp = ros::Time::now();
     // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
     vis_wall.action = visualization_msgs::Marker::ADD;
@@ -305,7 +306,7 @@ void initializeVisualizationMarkers()
     vis_wall.scale.y = 0.3;
 
     // Visualize wall the ropod is following
-    vis_plan.header.frame_id = "/map";
+    vis_plan.header.frame_id = "map";
     vis_plan.header.stamp = ros::Time::now();
     // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
     vis_plan.action = visualization_msgs::Marker::ADD;
@@ -1271,7 +1272,7 @@ void visualizeGlobalFreeArea(Rectangle freeNavArea, double rw_angle, int vis_id)
      if(j==1)
     {
         visualization_msgs::Marker vis_free_Area;
-        vis_free_Area.header.frame_id = "/map";
+        vis_free_Area.header.frame_id = "map";
         vis_free_Area.header.stamp = ros::Time::now();
         // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
         vis_free_Area.action = visualization_msgs::Marker::ADD;
@@ -1565,6 +1566,10 @@ void checkForCollisions()
     pred_ropod_dil_rt.x = pred_x_rearax[m] + (config.SIZE_FRONT_RAX+(config.OBS_AVOID_MARGIN_FRONT*v_scale))*cos(pred_theta[m]) + (config.SIZE_SIDE+(config.OBS_AVOID_MARGIN*v_scale))*cos(pred_theta[m]-M_PI/2);
     pred_ropod_dil_rt.y = pred_y_rearax[m] + (config.SIZE_FRONT_RAX+(config.OBS_AVOID_MARGIN_FRONT*v_scale))*sin(pred_theta[m]) + (config.SIZE_SIDE+(config.OBS_AVOID_MARGIN*v_scale))*sin(pred_theta[m]-M_PI/2);
     AreaQuad robot_footprint(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt);
+
+    // publish actual footprint
+    // geometry_msgs::PolygonStamped
+
     ropod_colliding_obs = false;
     pred_ropod_colliding_obs[j] = false;
     // Obstacle detection (crappy implementation in C++)
@@ -1793,7 +1798,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
 
     std::ofstream myfile;
     //myfile.open ("/simdata/ropod_" + get_date() +".txt");
-    myfile.open ("/home/cesar/Documents/simdata/ropod_" + get_date() +".txt");
+    myfile.open ("~/Documents/simdata/ropod_" + get_date() +".txt");
     myfile << "time" << "\t" << "tictoc" << "\t" << "state" << "\t" << "task counter" << "\t" << "tube width" << "\t" <<
             "phi des" << "\t" << "v ropod odom" << "\t"<< "v ropod cmd" << "\t" << "x ropod" << "\t" << "y ropod" << "\t" <<
             "theta ropod" << "\t" "x obs" << "\t" << "y obs" << "\t" << "theta obs" << "\t" << "obs width" << "\t" <<
@@ -1850,7 +1855,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
         try
         {
             tf::StampedTransform t_ropod_pose;
-            tf_listener_->lookupTransform("map", "/ropod/base_link", ros::Time(0), t_ropod_pose);
+            tf_listener_->lookupTransform("map", "ropod/base_link", ros::Time(0), t_ropod_pose);
 
             ropod_x = t_ropod_pose.getOrigin().getX();
             ropod_y = t_ropod_pose.getOrigin().getY();
