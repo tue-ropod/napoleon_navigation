@@ -8,9 +8,9 @@ carrot_length_feeler_offset: 0.5
 d_ax: 1.045
 size_rear: 0.1
 env_trns_size_cornering: 0.45
-v_cruising: 1.2
-v_inter_turning: 0.5
-v_steersaturation: 0.4
+v_cruising: 0.6 # 1.2
+v_inter_turning: 0.3 # 0.5
+v_steersaturation: 0.2 # 0.4
 v_overtake: 1.0
 delta_dot_limit: 0.5
 a_max: 0.5
