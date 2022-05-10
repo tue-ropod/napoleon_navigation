@@ -10,16 +10,14 @@
 <!--
          <arg name="map_file" default="$(find ed_object_models)/models/tue_hallway_RLtoAL/walls/shape/map.yaml" />
 -->
-       <arg name="map_file" default="/home/cesar/ropod-project-software/catkin_workspace/src/applications/occupancy_grids/brsu/brsu-c-floor0_osm/map.yaml" />
+       <arg name="map_file" default="/home/ropod/ropod-project-software/catkin_workspace/src/applications/occupancy_grids/brsu/brsu-c-floor0_osm/map.yaml" />
 
    <!-- Run the map server -->
      <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
 
     <!--- Run AMCL -->
     <node pkg="amcl" type="amcl" name="amcl">
-        <remap from="scan" to="/$(arg robotName)/$(arg laser1_name)/scan"/>
-        
-        <!-- <remap from="scan" to="/projected_scan_front"/> --> <!-- for BRSU ropod -->
+        <remap from="scan" to="/projected_scan_front"/> <!-- for BRSU ropod -->
 
         <!--- Odometery model parameters  -->
         <param name="odom_model_type" value="omni"/>
@@ -88,10 +86,10 @@
         <param name="default_ropod_load_navigation_param_file" value ="$(find napoleon_navigation)/config/footprint_local_planner_params_ropod_load.yaml"/>
 
         <!-- In Gazebo: -->
-        <remap from="/napoleon_navigation/cmd_vel" to="/$(arg robotName)/load/cmd_vel"/>
+        <remap from="/napoleon_navigation/cmd_vel" to="/load/cmd_vel"/>
         <!-- On ropod: -->
         <!--<remap from="/napoleon_navigation/cmd_vel" to="/ropod_tue_1/cmd_vel"/>-->
-        <remap from="/napoleon_navigation/scan" to="/$(arg robotName)/$(arg laser1_name)/scan"/>
+        <remap from="/napoleon_navigation/scan" to="/projected_scan_front"/> <!-- for BRSU ropod -->
 
     </node>
 

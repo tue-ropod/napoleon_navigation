@@ -37,6 +37,16 @@ public:
     bool contains(Point q);
 };
 
+
+class Rectangle {
+public:
+    double width;
+    double depth;
+    double x;
+    double y;
+};
+
+
 class AreaQuadID {
 public:
     PointID p0, p1, p2, p3;

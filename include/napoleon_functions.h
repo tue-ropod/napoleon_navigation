@@ -13,6 +13,7 @@ static constexpr double     _PI= 3.141592653589793238462643383279502884197169399
 static constexpr double _TWO_PI= 6.2831853071795864769252867665590057683943387987502116419498891846156328125724179972560696;
 
 void printstringvec(vector<string> vec);
+Point getPoint(PointID point_with_id);
 Point rotate_point(Point c, double angle, Point p);
 Point coordGlobalToRopod(Point gp, Point rc, double ra);
 Point coordGlobalToRopod(PointID gp, Point rc, double ra);
@@ -23,6 +24,9 @@ double dist2(Point v, Point w);
 double distToSegmentSquared(Point p, Point v, Point w);
 double distToEndSegmentSquared(Point p, Point v, Point w);
 double distToEndSegmentSquared(Point p, PointID v, PointID w);
+bool isPointOnLeftSide(string p_rearID, string p_frontID, vector<PointID> pointlist, Point point, double max_dist);
+double perpDistToSegment(Point p, PointID v, PointID w);
+double perpDistToSegment(Point p, Point v, Point w);
 double distToSegment(Point p, PointID v, PointID w);
 double distToSegment(Point p, Point v, Point w);
 double distToLine(Point p, PointID v, PointID w);
@@ -43,10 +47,9 @@ PointID getPointByID(string wantedID, vector<PointID> pointlist);
 vector<string> getPointsForTurning(AreaQuadID OBJ1, AreaQuadID OBJ2, AreaQuadID OBJ3, vector<string> OBJ1TASK);
 vector<string> getWalls(int id_OBJ1, int id_OBJ2, int id_OBJ3, vector<AreaQuadID> arealist);
 
-double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, double tubewidth);
-double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_front, Point local_wallpoint_rear);
-
-double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist);
+double getSteering(Point local_wallpoint_front, Point local_wallpoint_rear, double tubewidth, double carrot_length, double feeler_size);
+double getSteeringTurn(Point local_pivot, bool dir_cw, Point local_wallpoint_front, Point local_wallpoint_rear, double carrot_length, double feeler_size);
+double getSteeringTurnSharp(Point ropodpos, double ropod_angle, bool dir_cw, std::vector<string> task, vector<PointID> pointlist, double carrot_length, double feeler_size_steering);
 
 double wrapToPi(double angle);
 double modf(double x, double y);

@@ -20,6 +20,7 @@
         <rosparam file="$(find ropod_navigation_test)/config/parameters/footprint_ropod.yaml" command="load" ns="local_costmap" />
         <rosparam file="$(find ropod_navigation_test)/config/parameters/local_costmap_params.yaml"  command="load"/>
         <rosparam file="$(find ropod_navigation_test)/config/parameters/teb_local_planner_params_ropod.yaml" command="load" />
+        <rosparam file="$(find napoleon_navigation)/config/napoleon_navigation_ropod.yaml" command="load" />
         <param name="default_ropod_navigation_param_file" value ="$(find napoleon_navigation)/config/footprint_local_planner_params_ropod.yaml"/>
         <param name="default_ropod_load_navigation_param_file" value ="$(find napoleon_navigation)/config/footprint_local_planner_params_ropod_load.yaml"/>
 
@@ -29,6 +30,13 @@
         <!--<remap from="/napoleon_navigation/cmd_vel" to="/ropod_tue_1/cmd_vel"/>-->
         <remap from="/napoleon_navigation/scan" to="/projected_scan_front"/> <!-- for BRSU ropod -->
 
+    </node>
+    <node name="config_switcher" pkg="napoleon_navigation" type="config_switcher" output="screen">
+        <param name="ropod_config_file" value="$(find napoleon_navigation)/config/napoleon_navigation_ropod.yaml"/>
+        <param name="load_config_file" value="$(find napoleon_navigation)/config/napoleon_navigation_load.yaml"/>
+        <param name="navigation_node_name" value="napoleon_navigation"/>
+        <param name="loop_rate" value="0.2" type="double" />
+        <remap from="~load_topic" to="/route_navigation/set_load_attached" />
     </node>
 
 

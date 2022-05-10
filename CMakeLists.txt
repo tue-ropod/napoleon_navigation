@@ -17,13 +17,20 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   tf
   costmap_2d
-  maneuver_planner
+#  maneuver_planner
   pluginlib
   nav_core
-  ed  
-  ed_gui_server
   actionlib_msgs
   ropod_ros_msgs
+  dynamic_reconfigure
+)
+
+add_message_files(
+  FILES
+    circleProperties.msg
+    rectangleProperties.msg
+    objPosVel.msg
+    objsPosVel.msg
 )
 
 
@@ -35,11 +42,16 @@ generate_messages(
   ropod_ros_msgs
 )
 
+generate_dynamic_reconfigure_options(
+    config/NapoleonNavigation.cfg
+)
 
 catkin_package(
   INCLUDE_DIRS include
   # LIBRARIES napoleon_navigation
-  CATKIN_DEPENDS  message_runtime std_msgs geometry_msgs nav_msgs roscpp  tf costmap_2d maneuver_planner actionlib_msgs ropod_ros_msgs
+
+#  CATKIN_DEPENDS  message_runtime std_msgs geometry_msgs nav_msgs roscpp  tf costmap_2d maneuver_planner actionlib_msgs ropod_ros_msgs
+  CATKIN_DEPENDS  message_runtime std_msgs geometry_msgs nav_msgs roscpp  tf costmap_2d actionlib_msgs ropod_ros_msgs
   # DEPENDS system_lib
 )
 
@@ -61,6 +73,10 @@ include_directories(
 
 add_executable(napoleon_navigation src/napoleon_navigation_rosnode.cpp src/napoleon_geometry.cpp src/napoleon_functions.cpp )
 target_link_libraries(napoleon_navigation ${catkin_LIBRARIES})
-add_dependencies(napoleon_navigation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(napoleon_navigation
+    ${${PROJECT_NAME}_EXPORTED_TARGETS}
+    ${catkin_EXPORTED_TARGETS}
+    ${PROJECT_NAME}_gencfg
+)
 
 
