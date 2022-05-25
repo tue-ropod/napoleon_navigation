@@ -62,8 +62,8 @@
 
         <!-- initial pose of the robot in TU/e hallway-->
 
-        <param name="initial_pose_x" value="5.7"/>
-        <param name="initial_pose_y" value="-2.3"/>
+        <param name="initial_pose_x" value="5.3"/>
+        <param name="initial_pose_y" value="-1.4"/>
         <param name="initial_pose_a" value="1.57"/>
 
 
