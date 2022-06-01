@@ -582,20 +582,20 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
           geometry:
              vertices:
               -
-                x: 2.900000 
-                y: 0.950000 
+                x: 2.850000 
+                y: 1.000000 
                 id: 19 
               -
-                x: 1.400000 
-                y: 0.950000 
+                x: 1.325000 
+                y: 1.050000 
                 id: 21 
               -
-                x: 1.425000 
-                y: -0.675000 
+                x: 1.350000 
+                y: -0.725000 
                 id: 22 
               -
                 x: 3.075000 
-                y: -0.725000 
+                y: -0.775000 
                 id: 20 
           right:
             point1:
@@ -645,19 +645,19 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
              vertices:
               -
                 x: 1.375000 
-                y: -0.725000 
+                y: -0.750000 
                 id: 22 
               -
-                x: 1.350000 
-                y: -1.350000 
+                x: 1.375000 
+                y: -1.375000 
                 id: 23 
               -
-                x: 3.150000 
-                y: -1.450000 
+                x: 3.100000 
+                y: -1.575000 
                 id: 24 
               -
-                x: 3.100000 
-                y: -0.775000 
+                x: 3.075000 
+                y: -0.800000 
                 id: 20 
           right:
             point1:
@@ -710,16 +710,16 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
                 y: -1.425000 
                 id: 23 
               -
-                x: 1.350000 
-                y: -2.775000 
+                x: 1.375000 
+                y: -2.750000 
                 id: 25 
               -
-                x: 3.250000 
-                y: -2.800000 
+                x: 3.125000 
+                y: -2.750000 
                 id: 26 
               -
-                x: 3.150000 
-                y: -1.450000 
+                x: 3.125000 
+                y: -1.500000 
                 id: 24 
           right:
             point1:
@@ -768,21 +768,145 @@ rostopic pub /ropod/debug_route_plan ropod_ros_msgs/RoutePlannerResult "areas:
           geometry:
              vertices:
               -
-                x: 3.300000 
+                x: 3.125000 
                 y: -2.750000 
                 id: 26 
               -
-                x: 5.575000 
-                y: -2.750000 
+                x: 4.575000 
+                y: -2.775000 
                 id: 27 
               -
-                x: 5.500000 
-                y: -1.400000 
+                x: 4.600000 
+                y: -1.475000 
                 id: 28 
               -
                 x: 3.150000 
                 y: -1.475000 
                 id: 24 
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '14' 
+      name: 'H14' 
+      type: 'junction'
+      floor_number: 0 
+      sub_areas: 
+        - 
+          name: 'H1_14'
+          id: '1400'
+          floor_number: 0 
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+             vertices:
+              -
+                x: 4.600000 
+                y: -2.750000 
+                id: 27 
+              -
+                x: 6.175000 
+                y: -2.775000 
+                id: 29 
+              -
+                x: 6.175000 
+                y: -1.375000 
+                id: 30 
+              -
+                x: 4.625000 
+                y: -1.425000 
+                id: 28 
+          right:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          left:
+            point1:
+              x: 0
+              y: 0
+              id: 0
+            point2:
+              x: 0
+              y: 0
+              id: 0
+          turn_point:
+            x: 0.0
+            y: 0.0
+            id: 0
+    -
+      id: '15' 
+      name: 'H15' 
+      type: 'corridor'
+      floor_number: 0 
+      sub_areas: 
+        - 
+          name: 'H1_15'
+          id: '1500'
+          floor_number: 0 
+          type: ''
+          capacity: 0
+          waypoint_pose:
+            position:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+            orientation:
+              x: 0.0
+              y: 0.0
+              z: 0.0
+              w: 0.0
+          geometry:
+             vertices:
+              -
+                x: 6.175000 
+                y: -1.325000 
+                id: 30 
+              -
+                x: 6.175000 
+                y: -0.125000 
+                id: 31 
+              -
+                x: 4.575000 
+                y: -0.100000 
+                id: 32 
+              -
+                x: 4.650000 
+                y: -1.400000 
+                id: 28 
           right:
             point1:
               x: 0

@@ -1,7 +1,7 @@
 size_side: 0.36
 ropod_length: 0.65
 feeler_size: 1.0
-feeler_size_steering: 2.0
+feeler_size_steering: 1.0
 env_tctw_size: 0.05
 env_trns_size: 0.2
 carrot_length_feeler_offset: 0.5
