@@ -62,6 +62,8 @@ bool action_server_enabled =  false;
 bool goal_received = false;
 ropod_ros_msgs::RoutePlannerResult debug_route_planner_result_;
 
+ros::Publisher navigation_status_pub;
+
 struct NapoleonConfig config;
 
 void getObstaclesCallback(const napoleon_navigation::objsPosVel::ConstPtr& obsarray)
@@ -2119,6 +2121,9 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             {
                 ropod_reached_target = true;
                 ROS_INFO("Ropod has reached its target, yay!");
+                std_msgs::Bool navigation_ready;
+                navigation_ready.data = true;
+                navigation_status_pub.publish(navigation_ready);
             }
         }
 
@@ -2297,6 +2302,7 @@ int main(int argc, char** argv)
 
     ros::Subscriber obstacle_sub = nroshndl.subscribe<napoleon_navigation::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+    navigation_status_pub = nroshndl.advertise<std_msgs::Bool>("navigation_ready", 1);
 
     // Visualize map nodes and robot
     ropodmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/ropodpoints", 1);
