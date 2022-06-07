@@ -290,9 +290,6 @@ void initializeVisualizationMarkers()
 /*********************************************************/
 
 void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ros::Publisher &pub) {
-    //ROS_INFO_STREAM("showWallPoints (" << local_wallpoint_front.x  << ", " << local_wallpoint_front.y << "), ("
-    //        << local_wallpoint_rear.x << ", " << local_wallpoint_rear.y << ")");
-
     vis_wall.header.stamp = ros::Time::now();
     geometry_msgs::Point wall_p;
 
@@ -1049,7 +1046,6 @@ void computeSteeringAndVelocity()
         }
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-        if(j==1) showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
         double distance_point_to_line = -distToLine(pred_xy_ropod[j-1], glob_wallpoint_rear, glob_wallpoint_front);
         double carrot_length = config.CARROT_LENGTH;
         if(distance_point_to_line < 0)
@@ -1072,7 +1068,6 @@ void computeSteeringAndVelocity()
         }
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-        if(j==1) showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
         v_des = config.V_ENTRY;
     } else if (pred_state[j] == ACCELERATE_ON_INTERSECTION) {
@@ -1089,7 +1084,6 @@ void computeSteeringAndVelocity()
 
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-        if(j==1) showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
         v_des = config.V_INTER_ACC;
 
@@ -1125,7 +1119,6 @@ void computeSteeringAndVelocity()
 
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-        if(j==1) showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
         v_des = config.V_INTER_DEC;
 
@@ -1177,6 +1170,13 @@ void computeSteeringAndVelocity()
         }
 
         v_des = config.V_INTER_TURNING;
+    }
+
+
+    if(j==1) {
+        local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
     }
 
     // Wrap to [-pi,pi] domain
