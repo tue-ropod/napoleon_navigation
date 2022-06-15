@@ -1,11 +1,11 @@
-size_side: 0.36
-ropod_length: 0.65
+size_side: 0.4
+ropod_length: 1.0
 feeler_size: 1.0
 feeler_size_steering: 1.0
 env_tctw_size: 0.05
 env_trns_size: 0.2
 carrot_length_feeler_offset: 0.5
-d_ax: 1.045
+d_ax: 1.4
 size_rear: 0.1
 env_trns_size_cornering: 0.45
 v_cruising: 0.6 # 1.2
@@ -26,7 +26,7 @@ cutoff_freq: 1.0
 obs_avoid_margin: 0.1
 obs_avoid_margin_front: 0.15
 dilate_ropod_aligning: 0.9
-reached_target_threshold: 2.0
+reached_target_threshold: 0.5
 entry_length: 2.0
 sharp_angle_threshold: 0.1
 is_load_attached: True
