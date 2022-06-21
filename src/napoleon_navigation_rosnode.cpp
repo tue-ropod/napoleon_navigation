@@ -2,6 +2,7 @@
 #include <nav_msgs/Path.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PolygonStamped.h>
+#include <geometry_msgs/Point32.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Pose.h>
@@ -468,6 +469,7 @@ void dynamicReconfigureCallback(napoleon_navigation::NapoleonNavigationConfig &d
     config.V_INTER_DEC = config.V_INTER_TURNING;
     config.V_ENTRY = config.V_INTER_TURNING;
     config.V_STEERSATURATION = dyn_config.v_steersaturation;
+    config.V_OVERTAKE = dyn_config.v_overtake;
     config.DELTA_DOT_LIMIT = dyn_config.delta_dot_limit;
     config.A_MAX = dyn_config.a_max;
     config.V_OBS_OVERTAKE_MAX = dyn_config.v_obs_overtake_max;
@@ -480,14 +482,12 @@ void dynamicReconfigureCallback(napoleon_navigation::NapoleonNavigationConfig &d
         config.D_AX = dyn_config.d_ax;
         config.ROPOD_TO_AX = config.D_AX;
         config.SIZE_REAR = dyn_config.size_rear;
-        config.V_OVERTAKE = dyn_config.v_overtake;
     }
     else
     {
         config.D_AX = config.ROPOD_LENGTH;
         config.ROPOD_TO_AX = 0.0;
         config.SIZE_REAR = config.ROPOD_LENGTH / 2.0;
-        config.V_OVERTAKE = 0.8 * config.V_CRUISING;
     }
     config.SIZE_FRONT_RAX = (config.ROPOD_TO_AX + config.SIZE_FRONT_ROPOD);
     config.FOLLOW_WALL_DIST_TURNING = sqrt((config.ROPOD_LENGTH * config.ROPOD_LENGTH) / 2.0) + config.ENV_TCTW_SIZE + config.ENV_TRNS_SIZE;
@@ -1489,10 +1489,11 @@ void overtakeStateMachine()
         lw_p_front = getPointByID(areaIDs[2],pointlist);
         // TODO: Add freeNavigationLeftLaneLeft;
 
-        if (freeNavigationRightLaneRight.width >= config.TUBE_WIDTH_C) {
-            if (j == 1) ROS_INFO("No overtake necessary, passing on right should be possible");
-            shift_wall = 0;
-        } else if (freeNavigationRightLaneRight.width > 2*(config.SIZE_SIDE+config.OBS_AVOID_MARGIN)) {
+        // if (freeNavigationRightLaneRight.width >= config.TUBE_WIDTH_C) {
+        //     if (j == 1) ROS_INFO("No overtake necessary, passing on right should be possible");
+        //     shift_wall = 0;
+        // } else
+        if (freeNavigationRightLaneRight.width > 2*(config.SIZE_SIDE+config.OBS_AVOID_MARGIN)) {
             // Same state, but change tube width so ropod will
             // fit through space right
             Point wall_pos(freeNavigationRightLaneRight.x, freeNavigationRightLaneRight.y);
@@ -1525,7 +1526,7 @@ void overtakeStateMachine()
 }
 
 
-
+ros::Publisher footprint_pub;
 /**
  * Check for collision
  * Either for obstacles or virtual walls(to be added)
@@ -1549,7 +1550,27 @@ void checkForCollisions()
     AreaQuad robot_footprint(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt);
 
     // publish actual footprint
-    // geometry_msgs::PolygonStamped
+    if (j == 1) {
+        geometry_msgs::PolygonStamped footprint_msg;
+        footprint_msg.header.stamp = ros::Time::now();
+        footprint_msg.header.frame_id = "map";
+        geometry_msgs::Point32 footprint_polygon_point;
+        footprint_polygon_point.x = pred_ropod_dil_rb.x;
+        footprint_polygon_point.y = pred_ropod_dil_rb.y;
+        footprint_msg.polygon.points.push_back(footprint_polygon_point);
+        footprint_polygon_point.x = pred_ropod_dil_lb.x;
+        footprint_polygon_point.y = pred_ropod_dil_lb.y;
+        footprint_msg.polygon.points.push_back(footprint_polygon_point);
+        footprint_polygon_point.x = pred_ropod_dil_lt.x;
+        footprint_polygon_point.y = pred_ropod_dil_lt.y;
+        footprint_msg.polygon.points.push_back(footprint_polygon_point);
+        footprint_polygon_point.x = pred_ropod_dil_rt.x;
+        footprint_polygon_point.y = pred_ropod_dil_rt.y;
+        footprint_msg.polygon.points.push_back(footprint_polygon_point);
+        footprint_pub.publish(footprint_msg);
+    }
+
+
 
     ropod_colliding_obs = false;
     pred_ropod_colliding_obs[j] = false;
@@ -1864,8 +1885,8 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             pred_xdot[0] = pred_v_ropod[0]*cos(pred_phi[0])*cos(ropod_theta);   // xdot of rearaxle in global frame
             pred_ydot[0] = pred_v_ropod[0]*cos(pred_phi[0])*sin(ropod_theta);   // ydot of rearaxle in global frame
             pred_thetadot[0] = pred_v_ropod[0]*1/config.D_AX*sin(pred_phi[0]);
-            pred_x_rearax[0] = ropod_x-config.D_AX*cos(ropod_theta);
-            pred_y_rearax[0] = ropod_y-config.D_AX*sin(ropod_theta);
+            pred_x_rearax[0] = ropod_x-config.ROPOD_TO_AX*cos(ropod_theta);
+            pred_y_rearax[0] = ropod_y-config.ROPOD_TO_AX*sin(ropod_theta);
             pred_xy_ropod[0].x = ropod_x;
             pred_xy_ropod[0].y = ropod_y;
             prev_pred_phi_des = prev_sim_phi_des;
@@ -1943,7 +1964,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                     double walls_angle = getAngleBetweenHallways(task1, task2, pointlist);
                     double distance_to_switch_halls;
                     if(walls_angle > 0) // Concave, switch early
-                        distance_to_switch_halls = config.SIZE_FRONT_ROPOD+1.0;
+                        distance_to_switch_halls = config.SIZE_FRONT_ROPOD;
                     else // Convex, switch close to turning axis
                         distance_to_switch_halls = -0.5*config.D_AX;
 
@@ -2009,8 +2030,8 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                 // Update positions used to make the prediction plan with
                 // Cesar-> TODO: In theory D_AX should be replaced by ROPOD_TO_AX, but it brings issues.
                 //               Or rename predictions not to ropod but to steering point?
-                pred_x_ropod[j] = pred_x_rearax[m]+config.D_AX*cos(pred_theta[m]);
-                pred_y_ropod[j] = pred_y_rearax[m]+config.D_AX*sin(pred_theta[m]);
+                pred_x_ropod[j] = pred_x_rearax[m]+config.ROPOD_TO_AX*cos(pred_theta[m]);
+                pred_y_ropod[j] = pred_y_rearax[m]+config.ROPOD_TO_AX*sin(pred_theta[m]);
                 pred_xy_ropod[j].x = pred_x_ropod[j];
                 pred_xy_ropod[j].y = pred_y_ropod[j];
                 pred_v_ropod_plan[j] = pred_v_ropod[m];
@@ -2028,12 +2049,12 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                     vis_p.x = ropod_x;
                     vis_p.y = ropod_y;
                     vis_points.points.push_back(vis_p);
-                    x_rearax = ropod_x - config.D_AX*cos(ropod_theta); // X position of center of rear axle [m]
-                    y_rearax = ropod_y - config.D_AX*sin(ropod_theta); // Y position of center of rear axle [m]
-                    vis_rt.x = x_rearax+(config.D_AX+config.SIZE_FRONT_ROPOD)*cos(ropod_theta)+config.SIZE_SIDE*cos(ropod_theta-0.5*M_PI);
-                    vis_rt.y = y_rearax+(config.D_AX+config.SIZE_FRONT_ROPOD)*sin(ropod_theta)+config.SIZE_SIDE*sin(ropod_theta-0.5*M_PI);
-                    vis_lt.x = x_rearax+(config.D_AX+config.SIZE_FRONT_ROPOD)*cos(ropod_theta)+config.SIZE_SIDE*cos(ropod_theta+0.5*M_PI);
-                    vis_lt.y = y_rearax+(config.D_AX+config.SIZE_FRONT_ROPOD)*sin(ropod_theta)+config.SIZE_SIDE*sin(ropod_theta+0.5*M_PI);
+                    x_rearax = ropod_x - config.ROPOD_TO_AX*cos(ropod_theta); // X position of center of rear axle [m]
+                    y_rearax = ropod_y - config.ROPOD_TO_AX*sin(ropod_theta); // Y position of center of rear axle [m]
+                    vis_rt.x = x_rearax+(config.ROPOD_TO_AX+config.SIZE_FRONT_ROPOD)*cos(ropod_theta)+config.SIZE_SIDE*cos(ropod_theta-0.5*M_PI);
+                    vis_rt.y = y_rearax+(config.ROPOD_TO_AX+config.SIZE_FRONT_ROPOD)*sin(ropod_theta)+config.SIZE_SIDE*sin(ropod_theta-0.5*M_PI);
+                    vis_lt.x = x_rearax+(config.ROPOD_TO_AX+config.SIZE_FRONT_ROPOD)*cos(ropod_theta)+config.SIZE_SIDE*cos(ropod_theta+0.5*M_PI);
+                    vis_lt.y = y_rearax+(config.ROPOD_TO_AX+config.SIZE_FRONT_ROPOD)*sin(ropod_theta)+config.SIZE_SIDE*sin(ropod_theta+0.5*M_PI);
                     vis_fr.x = config.FEELER_SIZE_STEERING*cos(ropod_theta+prev_sim_phi_des);
                     vis_fr.y = config.FEELER_SIZE_STEERING*sin(ropod_theta+prev_sim_phi_des);
                     vis_fl.x = config.FEELER_SIZE_STEERING*cos(ropod_theta+prev_sim_phi_des);
@@ -2270,6 +2291,8 @@ int main(int argc, char** argv)
     freeAreaOR_marker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/freeAreaOvertakeRight", 10, true);
     freeAreaOL_marker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/freeAreaOvertakeLeft", 10, true);
     wallmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/right_side_wall", 10, true);
+    footprint_pub = nroshndl.advertise<geometry_msgs::PolygonStamped>("/napoleon_driving/footprint", 10, true);
+
     tf_listener_ = new tf::TransformListener;
     // Subscribe to topic with non-associated laser points (for now all laser points)
     unsigned int bufferSize = 2;
