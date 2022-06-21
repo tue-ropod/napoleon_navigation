@@ -1,9 +1,9 @@
 size_side: 0.4
 ropod_length: 1.0
-feeler_size: 1.5
+feeler_size: 1.0
 feeler_size_steering: 1.0
-env_tctw_size: 0.1
-env_trns_size: 0.2
+env_tctw_size: 0.2
+env_trns_size: 0.3
 carrot_length_feeler_offset: 0.5
 d_ax: 1.0 # NOTE: changing this has no effect; hardcoded to ropod_length
 size_rear: 0.5 # NOTE: hardcoded to ropod_length / 2.0
@@ -14,7 +14,7 @@ v_steersaturation: 0.3 # 0.6
 v_overtake: 0.5 # NOTE: hardcoded to 0.8 * v_cruising, 0.88
 delta_dot_limit: 0.4
 a_max: 0.7
-v_obs_overtake_max: 0.1
+v_obs_overtake_max: 0.05
 min_dist_to_overtake: 2.5
 start_steering_early_right: 0.3
 start_steering_early_left: 0.3
@@ -27,6 +27,6 @@ obs_avoid_margin: 0.1
 obs_avoid_margin_front: 0.15
 dilate_ropod_aligning: 0.9
 reached_target_threshold: 0.5
-entry_length: 2.0
+entry_length: 1.0
 sharp_angle_threshold: 0.1
 is_load_attached: False
