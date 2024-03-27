@@ -1,20 +1,20 @@
-size_side: 0.36
-ropod_length: 0.65
+size_side: 0.35
+ropod_length: 1.0
 feeler_size: 1.5
-feeler_size_steering: 1.0
-env_tctw_size: 0.1
+feeler_size_steering: 1.5
+env_tctw_size: 0.3
 env_trns_size: 0.2
 carrot_length_feeler_offset: 0.5
-d_ax: 0.65 # NOTE: changing this has no effect; hardcoded to ropod_length
-size_rear: 0.325 # NOTE: hardcoded to ropod_length / 2.0
+d_ax: 1.0 # NOTE: changing this has no effect; hardcoded to ropod_length
+size_rear: 0.5 # NOTE: hardcoded to ropod_length / 2.0
 env_trns_size_cornering: 0.3
-v_cruising: 1.1
-v_inter_turning: 0.7
-v_steersaturation: 0.6
-v_overtake: 0.88 # NOTE: hardcoded to 0.8 * v_cruising
+v_cruising: 0.5   # 1.1
+v_inter_turning: 0.3 # 0.7
+v_steersaturation: 0.3 # 0.6
+v_overtake: 0.5 # NOTE: hardcoded to 0.8 * v_cruising, 0.88
 delta_dot_limit: 0.4
 a_max: 0.7
-v_obs_overtake_max: 0.1
+v_obs_overtake_max: 0.05
 min_dist_to_overtake: 2.5
 start_steering_early_right: 0.3
 start_steering_early_left: 0.3
@@ -23,10 +23,10 @@ t_min_pred: 10.0
 t_pred_wall_collision: 5.0
 t_pred_obs_collision: 4.0
 cutoff_freq: 1.0
-obs_avoid_margin: 0.1
-obs_avoid_margin_front: 0.15
-dilate_ropod_aligning: 0.9
-reached_target_threshold: 2.0
-entry_length: 2.0
+obs_avoid_margin: 0.0
+obs_avoid_margin_front: 0.0
+dilate_ropod_aligning: 0.0 # 0.9
+reached_target_threshold: 0.5
+entry_length: 0.5
 sharp_angle_threshold: 0.1
 is_load_attached: False

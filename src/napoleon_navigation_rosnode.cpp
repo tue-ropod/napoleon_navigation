@@ -2,6 +2,7 @@
 #include <nav_msgs/Path.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PolygonStamped.h>
+#include <geometry_msgs/Point32.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Pose.h>
@@ -61,6 +62,8 @@ geometry_msgs::PoseStamped simple_goal;
 bool action_server_enabled =  false;
 bool goal_received = false;
 ropod_ros_msgs::RoutePlannerResult debug_route_planner_result_;
+
+ros::Publisher navigation_status_pub;
 
 struct NapoleonConfig config;
 
@@ -229,34 +232,6 @@ void getLatestScanData()
     }
 }
 
-void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ros::Publisher &pub) {
-    //ROS_INFO_STREAM("showWallPoints (" << local_wallpoint_front.x  << ", " << local_wallpoint_front.y << "), ("
-    //        << local_wallpoint_rear.x << ", " << local_wallpoint_rear.y << ")");
-    visualization_msgs::Marker vis_wall;
-    vis_wall.header.frame_id = "ropod/base_link";
-    vis_wall.header.stamp = ros::Time::now();
-    // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
-    vis_wall.action = visualization_msgs::Marker::ADD;
-    vis_wall.pose.orientation.w = 1.0;
-    vis_wall.id = 90;
-    vis_wall.color.a = 0.7;
-    vis_wall.color.r = 0.1;
-    vis_wall.color.g = 0.9;
-    vis_wall.color.b = 0.1;
-    vis_wall.type = visualization_msgs::Marker::POINTS;
-    vis_wall.scale.x = 0.3;
-    vis_wall.scale.y = 0.3;
-    geometry_msgs::Point wall_p;
-
-    vis_wall.points.clear();
-    wall_p.x =  local_wallpoint_front.x;
-    wall_p.y =  local_wallpoint_front.y;
-    vis_wall.points.push_back(wall_p);
-    wall_p.x =  local_wallpoint_rear.x;
-    wall_p.y =  local_wallpoint_rear.y;
-    vis_wall.points.push_back(wall_p);
-    pub.publish(vis_wall);
-}
 
 /******************************************
  * Visualization markers
@@ -267,52 +242,44 @@ visualization_msgs::Marker vis_plan;
 
 void initializeVisualizationMarkers()
 {
-    // Visualize map nodes
+    // Visualize robot nodes
     vis_points.header.frame_id = "map";
     vis_points.header.stamp = ros::Time::now();
-    // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
     vis_points.action = visualization_msgs::Marker::ADD;
     vis_points.pose.orientation.w = 1.0;
     vis_points.id = 0;
     vis_points.color.a = 1.0;
+    vis_points.color.r = 0.1;
     vis_points.color.g = 1.0;
+    vis_points.color.b = 0.1;
     vis_points.type = visualization_msgs::Marker::POINTS;
-    vis_points.scale.x = 0.2;
-    vis_points.scale.y = 0.2;
+    vis_points.scale.x = 0.3;
+    vis_points.scale.y = 0.3;
     geometry_msgs::Point vis_p;
-
-    for (int imap = 0; imap < pointlist.size(); ++imap)
-    {
-        vis_p.x = pointlist[imap].x;
-        vis_p.y = pointlist[imap].y;
-        vis_p.z = 0;
-        vis_points.points.push_back(vis_p);
-    }
 
     // End visualize map nodes
 
     // Visualize wall the ropod is following
-    vis_wall.header.frame_id = "map";
+    vis_wall.header.frame_id = "ropod/base_link";
     vis_wall.header.stamp = ros::Time::now();
-    // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
     vis_wall.action = visualization_msgs::Marker::ADD;
     vis_wall.pose.orientation.w = 1.0;
-    vis_wall.id = 100;
-    vis_wall.color.a = 0.7;
-    vis_wall.color.g = 0.3;
-    vis_wall.color.b = 0.5;
-    vis_wall.type = visualization_msgs::Marker::POINTS;
+    vis_wall.id = 1;
+    vis_wall.color.a = 1.0;
+    vis_wall.color.r = 0.9;
+    vis_wall.color.g = 0.1;
+    vis_wall.color.b = 0.1;
+    vis_wall.type = visualization_msgs::Marker::ARROW;
     vis_wall.scale.x = 0.3;
-    vis_wall.scale.y = 0.3;
+    vis_wall.scale.y = 0.4;
 
-    // Visualize wall the ropod is following
+    // Visualize plan the ropod is following
     vis_plan.header.frame_id = "map";
     vis_plan.header.stamp = ros::Time::now();
-    // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
     vis_plan.action = visualization_msgs::Marker::ADD;
     vis_plan.pose.orientation.w = 1.0;
-    vis_plan.id = 1;
-    vis_plan.color.a = 0.7;
+    vis_plan.id = 2;
+    vis_plan.color.a = 0.5;
     vis_plan.color.g = 0.3;
     vis_plan.color.b = 0.5;
     vis_plan.type = visualization_msgs::Marker::LINE_STRIP;
@@ -323,6 +290,19 @@ void initializeVisualizationMarkers()
 
 /*********************************************************/
 
+void showWallPoints(Point local_wallpoint_front, Point local_wallpoint_rear,  ros::Publisher &pub) {
+    vis_wall.header.stamp = ros::Time::now();
+    geometry_msgs::Point wall_p;
+
+    vis_wall.points.clear();
+    wall_p.x =  local_wallpoint_rear.x;
+    wall_p.y =  local_wallpoint_rear.y;
+    vis_wall.points.push_back(wall_p);
+    wall_p.x =  local_wallpoint_front.x;
+    wall_p.y =  local_wallpoint_front.y;
+    vis_wall.points.push_back(wall_p);
+    pub.publish(vis_wall);
+}
 
 /******************************************
  * Global scope variables
@@ -489,6 +469,7 @@ void dynamicReconfigureCallback(napoleon_navigation::NapoleonNavigationConfig &d
     config.V_INTER_DEC = config.V_INTER_TURNING;
     config.V_ENTRY = config.V_INTER_TURNING;
     config.V_STEERSATURATION = dyn_config.v_steersaturation;
+    config.V_OVERTAKE = dyn_config.v_overtake;
     config.DELTA_DOT_LIMIT = dyn_config.delta_dot_limit;
     config.A_MAX = dyn_config.a_max;
     config.V_OBS_OVERTAKE_MAX = dyn_config.v_obs_overtake_max;
@@ -501,14 +482,12 @@ void dynamicReconfigureCallback(napoleon_navigation::NapoleonNavigationConfig &d
         config.D_AX = dyn_config.d_ax;
         config.ROPOD_TO_AX = config.D_AX;
         config.SIZE_REAR = dyn_config.size_rear;
-        config.V_OVERTAKE = dyn_config.v_overtake;
     }
     else
     {
         config.D_AX = config.ROPOD_LENGTH;
         config.ROPOD_TO_AX = 0.0;
         config.SIZE_REAR = config.ROPOD_LENGTH / 2.0;
-        config.V_OVERTAKE = 0.8 * config.V_CRUISING;
     }
     config.SIZE_FRONT_RAX = (config.ROPOD_TO_AX + config.SIZE_FRONT_ROPOD);
     config.FOLLOW_WALL_DIST_TURNING = sqrt((config.ROPOD_LENGTH * config.ROPOD_LENGTH) / 2.0) + config.ENV_TCTW_SIZE + config.ENV_TRNS_SIZE;
@@ -1067,7 +1046,6 @@ void computeSteeringAndVelocity()
         }
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-        if(j==1) showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
         double distance_point_to_line = -distToLine(pred_xy_ropod[j-1], glob_wallpoint_rear, glob_wallpoint_front);
         double carrot_length = config.CARROT_LENGTH;
         if(distance_point_to_line < 0)
@@ -1090,7 +1068,6 @@ void computeSteeringAndVelocity()
         }
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-        if(j==1) showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
         v_des = config.V_ENTRY;
     } else if (pred_state[j] == ACCELERATE_ON_INTERSECTION) {
@@ -1107,7 +1084,6 @@ void computeSteeringAndVelocity()
 
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-        if(j==1) showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
         v_des = config.V_INTER_ACC;
 
@@ -1143,7 +1119,6 @@ void computeSteeringAndVelocity()
 
         local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
         local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
-        if(j==1) showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
         pred_phi_des[j] = getSteering(local_wallpoint_front, local_wallpoint_rear, pred_tube_width[j], config.CARROT_LENGTH, config.FEELER_SIZE);
         v_des = config.V_INTER_DEC;
 
@@ -1195,6 +1170,13 @@ void computeSteeringAndVelocity()
         }
 
         v_des = config.V_INTER_TURNING;
+    }
+
+
+    if(j==1) {
+        local_wallpoint_front = coordGlobalToRopod(glob_wallpoint_front, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        local_wallpoint_rear = coordGlobalToRopod(glob_wallpoint_rear, pred_xy_ropod[j-1], pred_plan_theta[j-1]);
+        showWallPoints(local_wallpoint_front, local_wallpoint_rear, wallmarker_pub);
     }
 
     // Wrap to [-pi,pi] domain
@@ -1274,7 +1256,6 @@ void visualizeGlobalFreeArea(Rectangle freeNavArea, double rw_angle, int vis_id)
         visualization_msgs::Marker vis_free_Area;
         vis_free_Area.header.frame_id = "map";
         vis_free_Area.header.stamp = ros::Time::now();
-        // vis_points.ns = line_strip.ns = line_list.ns = "points_in_map";
         vis_free_Area.action = visualization_msgs::Marker::ADD;
         vis_free_Area.pose.orientation.w = 1.0;
         vis_free_Area.id = vis_id;
@@ -1508,10 +1489,11 @@ void overtakeStateMachine()
         lw_p_front = getPointByID(areaIDs[2],pointlist);
         // TODO: Add freeNavigationLeftLaneLeft;
 
-        if (freeNavigationRightLaneRight.width >= config.TUBE_WIDTH_C) {
-            if (j == 1) ROS_INFO("No overtake necessary, passing on right should be possible");
-            shift_wall = 0;
-        } else if (freeNavigationRightLaneRight.width > 2*(config.SIZE_SIDE+config.OBS_AVOID_MARGIN)) {
+        // if (freeNavigationRightLaneRight.width >= config.TUBE_WIDTH_C) {
+        //     if (j == 1) ROS_INFO("No overtake necessary, passing on right should be possible");
+        //     shift_wall = 0;
+        // } else
+        if (freeNavigationRightLaneRight.width > 2*(config.SIZE_SIDE+config.OBS_AVOID_MARGIN)) {
             // Same state, but change tube width so ropod will
             // fit through space right
             Point wall_pos(freeNavigationRightLaneRight.x, freeNavigationRightLaneRight.y);
@@ -1544,7 +1526,7 @@ void overtakeStateMachine()
 }
 
 
-
+ros::Publisher footprint_pub;
 /**
  * Check for collision
  * Either for obstacles or virtual walls(to be added)
@@ -1568,7 +1550,27 @@ void checkForCollisions()
     AreaQuad robot_footprint(pred_ropod_dil_rb, pred_ropod_dil_lb, pred_ropod_dil_lt, pred_ropod_dil_rt);
 
     // publish actual footprint
-    // geometry_msgs::PolygonStamped
+    if (j == 1) {
+        geometry_msgs::PolygonStamped footprint_msg;
+        footprint_msg.header.stamp = ros::Time::now();
+        footprint_msg.header.frame_id = "map";
+        geometry_msgs::Point32 footprint_polygon_point;
+        footprint_polygon_point.x = pred_ropod_dil_rb.x;
+        footprint_polygon_point.y = pred_ropod_dil_rb.y;
+        footprint_msg.polygon.points.push_back(footprint_polygon_point);
+        footprint_polygon_point.x = pred_ropod_dil_lb.x;
+        footprint_polygon_point.y = pred_ropod_dil_lb.y;
+        footprint_msg.polygon.points.push_back(footprint_polygon_point);
+        footprint_polygon_point.x = pred_ropod_dil_lt.x;
+        footprint_polygon_point.y = pred_ropod_dil_lt.y;
+        footprint_msg.polygon.points.push_back(footprint_polygon_point);
+        footprint_polygon_point.x = pred_ropod_dil_rt.x;
+        footprint_polygon_point.y = pred_ropod_dil_rt.y;
+        footprint_msg.polygon.points.push_back(footprint_polygon_point);
+        footprint_pub.publish(footprint_msg);
+    }
+
+
 
     ropod_colliding_obs = false;
     pred_ropod_colliding_obs[j] = false;
@@ -1624,12 +1626,6 @@ void checkForCollisions()
 ros::Publisher ropodmarker_pub;
 void visualizeRopodMarkers()
 {
-    vis_points.id = 1;
-    vis_points.color.r = 0.0;
-    vis_points.color.g = 0.0;
-    vis_points.color.b = 0.0;
-    vis_points.scale.x = 0.1;
-    vis_points.scale.y = 0.1;
     geometry_msgs::Point vis_p;
     vis_p.x = obsrt.x; vis_p.y = obsrt.y; vis_points.points.push_back(vis_p);
     vis_p.x = obslt.x; vis_p.y = obslt.y; vis_points.points.push_back(vis_p);
@@ -1889,8 +1885,8 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             pred_xdot[0] = pred_v_ropod[0]*cos(pred_phi[0])*cos(ropod_theta);   // xdot of rearaxle in global frame
             pred_ydot[0] = pred_v_ropod[0]*cos(pred_phi[0])*sin(ropod_theta);   // ydot of rearaxle in global frame
             pred_thetadot[0] = pred_v_ropod[0]*1/config.D_AX*sin(pred_phi[0]);
-            pred_x_rearax[0] = ropod_x-config.D_AX*cos(ropod_theta);
-            pred_y_rearax[0] = ropod_y-config.D_AX*sin(ropod_theta);
+            pred_x_rearax[0] = ropod_x-config.ROPOD_TO_AX*cos(ropod_theta);
+            pred_y_rearax[0] = ropod_y-config.ROPOD_TO_AX*sin(ropod_theta);
             pred_xy_ropod[0].x = ropod_x;
             pred_xy_ropod[0].y = ropod_y;
             prev_pred_phi_des = prev_sim_phi_des;
@@ -1968,7 +1964,7 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                     double walls_angle = getAngleBetweenHallways(task1, task2, pointlist);
                     double distance_to_switch_halls;
                     if(walls_angle > 0) // Concave, switch early
-                        distance_to_switch_halls = config.SIZE_FRONT_ROPOD+1.0;
+                        distance_to_switch_halls = config.SIZE_FRONT_ROPOD;
                     else // Convex, switch close to turning axis
                         distance_to_switch_halls = -0.5*config.D_AX;
 
@@ -2029,13 +2025,13 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                     break;
 
 
-                visualizeRopodMarkers();
+                // visualizeRopodMarkers();
 
                 // Update positions used to make the prediction plan with
                 // Cesar-> TODO: In theory D_AX should be replaced by ROPOD_TO_AX, but it brings issues.
                 //               Or rename predictions not to ropod but to steering point?
-                pred_x_ropod[j] = pred_x_rearax[m]+config.D_AX*cos(pred_theta[m]);
-                pred_y_ropod[j] = pred_y_rearax[m]+config.D_AX*sin(pred_theta[m]);
+                pred_x_ropod[j] = pred_x_rearax[m]+config.ROPOD_TO_AX*cos(pred_theta[m]);
+                pred_y_ropod[j] = pred_y_rearax[m]+config.ROPOD_TO_AX*sin(pred_theta[m]);
                 pred_xy_ropod[j].x = pred_x_ropod[j];
                 pred_xy_ropod[j].y = pred_y_ropod[j];
                 pred_v_ropod_plan[j] = pred_v_ropod[m];
@@ -2047,6 +2043,33 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
                 pred_plan_theta[j] = pred_theta[m];
                 //ROS_INFO("j: %d / State: %d / Time: %f / Phi: %f / V_des: %f", j, pred_state[j], t_pred_j[j], pred_phi_des[j], pred_v_ropod[j]);
 
+                if (j == 1) {
+                    // Publish ropod points to rostopic
+                    geometry_msgs::Point vis_p;
+                    vis_p.x = ropod_x;
+                    vis_p.y = ropod_y;
+                    vis_points.points.push_back(vis_p);
+                    x_rearax = ropod_x - config.ROPOD_TO_AX*cos(ropod_theta); // X position of center of rear axle [m]
+                    y_rearax = ropod_y - config.ROPOD_TO_AX*sin(ropod_theta); // Y position of center of rear axle [m]
+                    vis_rt.x = x_rearax+(config.ROPOD_TO_AX+config.SIZE_FRONT_ROPOD)*cos(ropod_theta)+config.SIZE_SIDE*cos(ropod_theta-0.5*M_PI);
+                    vis_rt.y = y_rearax+(config.ROPOD_TO_AX+config.SIZE_FRONT_ROPOD)*sin(ropod_theta)+config.SIZE_SIDE*sin(ropod_theta-0.5*M_PI);
+                    vis_lt.x = x_rearax+(config.ROPOD_TO_AX+config.SIZE_FRONT_ROPOD)*cos(ropod_theta)+config.SIZE_SIDE*cos(ropod_theta+0.5*M_PI);
+                    vis_lt.y = y_rearax+(config.ROPOD_TO_AX+config.SIZE_FRONT_ROPOD)*sin(ropod_theta)+config.SIZE_SIDE*sin(ropod_theta+0.5*M_PI);
+                    vis_fr.x = config.FEELER_SIZE_STEERING*cos(ropod_theta+prev_sim_phi_des);
+                    vis_fr.y = config.FEELER_SIZE_STEERING*sin(ropod_theta+prev_sim_phi_des);
+                    vis_fl.x = config.FEELER_SIZE_STEERING*cos(ropod_theta+prev_sim_phi_des);
+                    vis_fl.y = config.FEELER_SIZE_STEERING*sin(ropod_theta+prev_sim_phi_des);
+                    vis_fr = vis_fr.add(vis_rt); vis_fl = vis_fl.add(vis_lt);
+                    vis_p.x = vis_lt.x; vis_p.y = vis_lt.y; vis_points.points.push_back(vis_p);
+                    vis_p.x = vis_rt.x; vis_p.y = vis_rt.y; vis_points.points.push_back(vis_p);
+                    vis_p.x = vis_fr.x; vis_p.y = vis_fr.y; vis_points.points.push_back(vis_p);
+                    vis_p.x = vis_fl.x; vis_p.y = vis_fl.y; vis_points.points.push_back(vis_p);
+                    vis_p.x = glob_wallpoint_rear.x; vis_p.y = glob_wallpoint_rear.y; vis_points.points.push_back(vis_p);
+                    vis_p.x = glob_wallpoint_front.x; vis_p.y = glob_wallpoint_front.y; vis_points.points.push_back(vis_p);
+                    ropodmarker_pub.publish(vis_points);
+                    vis_points.points.clear();
+                    // End publish ropod points
+                }
             } // endwhile prediction
 
         }          // end while finding v_scale
@@ -2119,48 +2142,11 @@ void followRoute(std::vector<ropod_ros_msgs::Area> planner_areas,
             {
                 ropod_reached_target = true;
                 ROS_INFO("Ropod has reached its target, yay!");
+                std_msgs::Bool navigation_ready;
+                navigation_ready.data = true;
+                navigation_status_pub.publish(navigation_ready);
             }
         }
-
-        // Publish ropod points to rostopic
-        vis_points.id = 2;
-        vis_points.color.r = 0.0;
-        vis_points.color.g = 0.0;
-        vis_points.color.b = 1.0;
-        vis_points.scale.x = 0.2;
-        vis_points.scale.y = 0.2;
-        geometry_msgs::Point vis_p;
-        vis_p.x = ropod_x;
-        vis_p.y = ropod_y;
-        vis_points.points.push_back(vis_p);
-        vis_points.id = 3;
-        vis_points.color.r = 1.0;
-        vis_points.color.g = 0.0;
-        vis_points.color.b = 0.0;
-        x_rearax = ropod_x - config.D_AX*cos(ropod_theta); // X position of center of rear axle [m]
-        y_rearax = ropod_y - config.D_AX*sin(ropod_theta); // Y position of center of rear axle [m]
-        vis_rt.x = x_rearax+(config.D_AX+config.SIZE_FRONT_ROPOD)*cos(ropod_theta)+config.SIZE_SIDE*cos(ropod_theta-0.5*M_PI);
-        vis_rt.y = y_rearax+(config.D_AX+config.SIZE_FRONT_ROPOD)*sin(ropod_theta)+config.SIZE_SIDE*sin(ropod_theta-0.5*M_PI);
-        vis_lt.x = x_rearax+(config.D_AX+config.SIZE_FRONT_ROPOD)*cos(ropod_theta)+config.SIZE_SIDE*cos(ropod_theta+0.5*M_PI);
-        vis_lt.y = y_rearax+(config.D_AX+config.SIZE_FRONT_ROPOD)*sin(ropod_theta)+config.SIZE_SIDE*sin(ropod_theta+0.5*M_PI);
-        vis_fr.x = config.FEELER_SIZE_STEERING*cos(ropod_theta+prev_sim_phi_des);
-        vis_fr.y = config.FEELER_SIZE_STEERING*sin(ropod_theta+prev_sim_phi_des);
-        vis_fl.x = config.FEELER_SIZE_STEERING*cos(ropod_theta+prev_sim_phi_des);
-        vis_fl.y = config.FEELER_SIZE_STEERING*sin(ropod_theta+prev_sim_phi_des);
-        vis_fr = vis_fr.add(vis_rt); vis_fl = vis_fl.add(vis_lt);
-        vis_p.x = vis_lt.x; vis_p.y = vis_lt.y; vis_points.points.push_back(vis_p);
-        vis_p.x = vis_rt.x; vis_p.y = vis_rt.y; vis_points.points.push_back(vis_p);
-        vis_p.x = vis_fr.x; vis_p.y = vis_fr.y; vis_points.points.push_back(vis_p);
-        vis_p.x = vis_fl.x; vis_p.y = vis_fl.y; vis_points.points.push_back(vis_p);
-        vis_points.id = 4;
-        vis_points.color.r = 0.0;
-        vis_points.color.g = 1.0;
-        vis_points.color.b = 0.0;
-        vis_p.x = glob_wallpoint_rear.x; vis_p.y = glob_wallpoint_rear.y; vis_points.points.push_back(vis_p);
-        vis_p.x = glob_wallpoint_front.x; vis_p.y = glob_wallpoint_front.y; vis_points.points.push_back(vis_p);
-        ropodmarker_pub.publish(vis_points);
-        vis_points.points.clear();
-        // End publish ropod points
 
         }   // end if received goal
 
@@ -2297,6 +2283,7 @@ int main(int argc, char** argv)
 
     ros::Subscriber obstacle_sub = nroshndl.subscribe<napoleon_navigation::objsPosVel>("/ed/gui/objectPosVel", 10, getObstaclesCallback);
     ros::Publisher vel_pub = nroshndl.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+    navigation_status_pub = nroshndl.advertise<std_msgs::Bool>("navigation_ready", 1);
 
     // Visualize map nodes and robot
     ropodmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/ropodpoints", 1);
@@ -2304,6 +2291,8 @@ int main(int argc, char** argv)
     freeAreaOR_marker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/freeAreaOvertakeRight", 10, true);
     freeAreaOL_marker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/freeAreaOvertakeLeft", 10, true);
     wallmarker_pub = nroshndl.advertise<visualization_msgs::Marker>("/napoleon_driving/right_side_wall", 10, true);
+    footprint_pub = nroshndl.advertise<geometry_msgs::PolygonStamped>("/napoleon_driving/footprint", 10, true);
+
     tf_listener_ = new tf::TransformListener;
     // Subscribe to topic with non-associated laser points (for now all laser points)
     unsigned int bufferSize = 2;
